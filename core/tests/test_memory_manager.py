@@ -2712,3 +2712,26 @@ class TestMemoryManager:
         assert "llm" not in source.lower()
         assert "model" not in source.lower()
         assert "prompt" not in source.lower()
+
+def test_delete_memory_does_not_touch_index_when_canonical_delete_fails(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.delete.return_value = Result.err("Canonical store unavailable")
+
+        result = manager.delete_memory(sample_memory.id)
+
+        assert not result.success
+        assert "Canonical store unavailable" in result.error
+        mock_semantic_index.remove_memory.assert_not_called()
+
+    def test_assemble_context_fails_when_custom_instructions_cannot_load(self, manager, mock_uow, sample_project):
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.custom_instructions.get_active_for_scope.side_effect = [
+            Result.err("Instruction store unavailable")
+        ]
+
+        result = manager.assemble_context(
+            ContextAssemblyRequest(project_id=sample_project.id, include_custom_instructions=True)
+        )
+
+        assert not result.success
+        assert "Instruction store unavailable" in result.error
