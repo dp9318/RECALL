@@ -1,7 +1,5 @@
-# RECALL_V2 — Agent Instruction Alias
+# RECALL — Agent Instruction Alias
 
-OpenCode V2 uses `AGENTS.md` as the authoritative project instruction file.
+`AGENTS.md` is the authoritative OpenCode instruction file for this repository.
 
-This file is retained only as a human-readable compatibility/reference alias for repositories or tooling that previously used the singular `AGENT.md` name. Keep it synchronized conceptually with `AGENTS.md`; do not use it as a separate source of project policy.
-
-See [`AGENTS.md`](./AGENTS.md) for the authoritative instructions.
+This file exists only as a compatibility alias. Keep it conceptually synchronized with `AGENTS.md` and do not introduce conflicting project policy here.

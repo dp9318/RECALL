@@ -1,21 +1,14 @@
-# RECALL_V2 — OpenCode Project Instructions
+# RECALL — Project Instructions for OpenCode
 
 ## Mission
 
-RECALL_V2 is a persistent memory engine for AI coding agents. It helps an agent retain useful project context across sessions, retrieve relevant history, manage explicit user-authored custom instructions, and safely resolve conflicting historical context.
+RECALL is a persistent memory engine for AI coding agents. Its purpose is to preserve useful project context across sessions, retrieve relevant history, manage explicit user-authored custom instructions, detect and resolve conflicting historical context, and expose the resulting context through both an agent-facing OpenCode integration and a human-facing web dashboard.
 
-RECALL is **not** the coding agent itself. OpenCode is the primary agent host/integration target.
+RECALL is the memory system. It is not the coding agent itself, and it is not a general-purpose chatbot.
 
-RECALL exposes two first-class client surfaces:
+## Read First
 
-1. **OpenCode integration** — MCP + `/recall ...` command surface for agent-driven use.
-2. **Web dashboard** — a ChatGPT-like human-facing client for inspecting memory, asking RECALL questions, managing custom instructions, and reviewing conflicts.
-
-Both clients use the same RECALL core. Neither client owns canonical memory.
-
-## Read Before Coding
-
-For any non-trivial change, read the relevant documents in this order:
+Before non-trivial implementation, read:
 
 1. `docs/PROBLEM_STATEMENT.md`
 2. `docs/PRD.md`
@@ -23,65 +16,67 @@ For any non-trivial change, read the relevant documents in this order:
 4. `docs/DESIGN.md`
 5. `docs/TECH_STACK.md`
 6. `docs/DEVELOPMENT_RULES.md`
-7. `docs/ARCHITECTURE_REFERENCE.md` when the visual architecture or dashboard boundary is relevant
+7. `docs/TEAM_WORKFLOW.md`
+8. the relevant module document in `docs/modules/`
 
-The image `docs/architecture-overview.png` is a visual reference. The written architecture is authoritative where the image is incomplete or ambiguous.
+If working from the architecture image, read `docs/ARCHITECTURE_REFERENCE.md`. The written documents are authoritative when the image is incomplete or ambiguous.
 
 ## Locked Architecture
 
 ```text
-                        ┌───────────────────────────┐
-                        │     CLIENT INTERFACES     │
-                        │                           │
-                        │ OpenCode + MCP + /recall │
-                        │ Web Dashboard / Chat UI   │
-                        └────────────┬──────────────┘
-                                     │
-                          ┌──────────┴──────────┐
-                          │                     │
-                        MCP               HTTP/JSON
-                          │                     │
-                          └──────────┬──────────┘
-                                     ▼
-                        ┌─────────────────────────┐
-                        │      RECALL CORE        │
-                        │        Python           │
-                        │                         │
-                        │ commands / API          │
-                        │ memory lifecycle        │
-                        │ retrieval               │
-                        │ instruction management  │
-                        │ conflict resolution     │
-                        │ context assembly        │
-                        └────────────┬────────────┘
-                                     │
-                 ┌───────────────────┼───────────────────┐
-                 ▼                   ▼                   ▼
-           ┌──────────┐       ┌────────────┐      ┌─────────────┐
-           │  SQLite  │       │  ChromaDB  │      │ Local 1B–3B │
-           │ canonical│──────▶│ semantic / │      │ conflict    │
-           │ source   │       │ derived idx│      │ arbitration │
-           └──────────┘       └────────────┘      └─────────────┘
+                          CLIENT SURFACES
+        ┌────────────────────────┬─────────────────────────┐
+        │                        │                         │
+        │ OpenCode + MCP         │ Web Dashboard           │
+        │ /recall commands       │ React + Tailwind CSS   │
+        │                        │ HTTP/JSON              │
+        └──────────────┬─────────┴──────────────┬──────────┘
+                       │                        │
+                       └────────────┬───────────┘
+                                    ▼
+                         ┌─────────────────────────┐
+                         │       RECALL CORE       │
+                         │        Python           │
+                         │                         │
+                         │ command/API adapters    │
+                         │ memory lifecycle        │
+                         │ retrieval               │
+                         │ instructions            │
+                         │ conflict handling       │
+                         │ context assembly        │
+                         └────────────┬────────────┘
+                                      │
+                    ┌─────────────────┼──────────────────┐
+                    ▼                 ▼                  ▼
+              ┌──────────┐      ┌──────────┐       ┌────────────┐
+              │ SQLite   │─────▶│ ChromaDB │       │ Local      │
+              │ canonical│     │ derived  │       │ LLM 1B–3B │
+              │ truth     │     │ index    │       │ arbitration│
+              └──────────┘      └──────────┘       └────────────┘
 ```
 
-### Non-negotiable rules
+## Non-Negotiable Rules
 
-- SQLite is the **canonical source of truth** for sessions, events/messages, memories, lineage, and custom instructions.
-- ChromaDB is a **derived semantic index**. It must be rebuildable from SQLite.
-- The local 1B–3B model is a **bounded conflict-arbitration component**, not a database, not a memory source of truth, and not a policy authority.
-- The local LLM cannot directly mutate canonical state.
-- Explicit user custom instructions outrank inferred historical memory.
-- Custom instructions are a separate canonical domain with explicit CRUD lifecycle.
-- The dashboard must never write directly to SQLite or ChromaDB.
-- The dashboard talks to the RECALL core through a domain/application API; do not duplicate memory business logic in the frontend.
-- The OpenCode integration talks to RECALL through MCP and the `/recall` command surface.
-- The core must not depend on the dashboard being present.
-- Do not reintroduce the old Qt/QML/PySide6 desktop architecture into RECALL.
-- Do not add another primary database.
+- SQLite is the canonical source of truth for sessions, messages/events, memories, lineage, projects, and custom instructions.
+- ChromaDB is derived semantic state. It must be rebuildable from SQLite.
+- The local 1B–3B model is a bounded conflict-arbitration component. It is not canonical memory and cannot directly mutate canonical storage.
+- Explicit user-authored custom instructions have higher authority than inferred historical memory.
+- `/recall custom-instructions` must support view/list, create, update, and delete.
+- Custom instructions must support at least global/personal scope and project scope.
+- The dashboard must never read or write SQLite or ChromaDB directly.
+- The OpenCode integration must use MCP and the `/recall` command family; it must not duplicate core memory logic.
+- The dashboard is a client of RECALL, not a second memory engine.
+- The RECALL core must remain usable without the dashboard.
+- Do not introduce a second primary database.
+- Do not reintroduce the previous Qt/QML/PySide6 desktop direction.
+- Do not let the local LLM override explicit user instructions.
+- When ambiguity remains, RECALL may return an unresolved result instead of fabricating certainty.
 
-## User-Facing RECALL Surface
+## Client Surfaces
 
-The command family is conceptually:
+### OpenCode
+
+Use the `/recall` command family and MCP operations for agent-facing memory workflows. Typical operations include:
 
 ```text
 /recall compact
@@ -93,54 +88,23 @@ The command family is conceptually:
 /recall stats
 ```
 
-The exact set may evolve, but `/recall custom-instructions` is mandatory and must support:
+### Web Dashboard
 
-- list/view;
-- create;
-- update;
-- delete.
+The dashboard is a ChatGPT-style human control surface, implemented with React and Tailwind CSS. MVP areas:
 
-Do not fabricate results if the corresponding RECALL tool/API is unavailable.
+- Chat / Ask RECALL
+- Memory Explorer
+- Conflict Center
+- Custom Instructions
+- Session / usage overview
+- Project/context selector
 
-## Custom Instructions
+It may present conversation-style responses, but RECALL itself remains a memory engine. General-purpose response generation is not the responsibility of the mandatory 1B–3B conflict model.
 
-Treat custom instructions as explicit user-owned state:
-
-```text
-create → persist in SQLite → version/update → apply during context assembly → delete/deactivate explicitly
-```
-
-Support at least:
-
-- global/personal scope;
-- project scope.
-
-A stale ChromaDB vector must never keep a deleted or inactive instruction authoritative.
-
-## Memory Lifecycle
+## Memory Authority
 
 ```text
-capture
-  → canonical persist
-  → derive/compress
-  → semantic index
-  → retrieve
-  → detect conflicts
-  → deterministic resolution
-  → bounded LLM arbitration if needed
-  → apply custom instructions
-  → assemble context
-  → return through MCP/API
-```
-
-Preserve parent/child lineage for derived memories.
-
-## Conflict Priority
-
-When context conflicts, prefer:
-
-```text
-Explicit user instruction
+Explicit user custom instruction
         ↓
 Explicit user update / supersession
         ↓
@@ -153,60 +117,8 @@ Local 1B–3B arbitration for residual ambiguity
 Unresolved / abstain
 ```
 
-Never force an uncertain answer merely to avoid returning an unresolved state.
+## Development Rule
 
-## Dashboard Rules
+Every module must be independently testable behind a clear contract. Keep implementation ownership separated by module directory. Shared contracts must be changed deliberately and documented when they change.
 
-The dashboard is a **human control and inspection surface**, not a second memory engine.
-
-Expected MVP areas:
-
-- Chat / Ask RECALL
-- Memory Explorer
-- Conflict Center
-- Custom Instructions
-- Session / usage overview
-- Project/context selector
-
-The dashboard must be able to expose provenance and state where practical, especially:
-
-- memory IDs;
-- source/lineage;
-- conflict status;
-- custom instruction scope and status;
-- whether a result came from canonical or derived data.
-
-Keep it visually similar in interaction model to a ChatGPT-style client, but do not pretend it is a generic chatbot. The product identity is RECALL and the UI exists to control and inspect persistent memory.
-
-## Development Discipline
-
-Before changing a locked architecture decision, update the architecture documents first and obtain explicit approval.
-
-For new features:
-
-1. identify the domain capability;
-2. add/modify a core service or API contract;
-3. expose it to MCP and/or dashboard as required;
-4. test canonical persistence and failure behavior;
-5. verify that the dashboard/OpenCode client does not bypass the core.
-
-For dashboard work, do not implement direct DB queries, ad-hoc memory rules, or LLM conflict logic in the frontend.
-
-For memory work, prioritize correctness and provenance over retrieval recall at any cost.
-
-For resolver work, use deterministic rules first and call the local model only on bounded ambiguous candidate sets.
-
-## Verification
-
-At minimum, new behavior should have focused tests for:
-
-- persistence and retrieval;
-- lineage;
-- SQLite → ChromaDB rebuild;
-- custom instruction CRUD and scope isolation;
-- instruction precedence;
-- conflict resolution and abstention;
-- MCP contracts;
-- dashboard API contracts and core integration.
-
-Do not mark a feature complete based only on a successful happy-path demo.
+For architectural changes, update the relevant documentation and add an ADR under `docs/adr/` before or with implementation.

@@ -1,66 +1,25 @@
-# RECALL_V2 — Architecture Reference and Alignment
+# RECALL — Architecture Reference
 
 ## Visual Reference
 
-The file `docs/architecture-overview.png` is the architecture image reviewed in the current project context.
+`docs/architecture-overview.png` is the current visual reference generated from the approved architecture direction.
 
-It correctly captures the core ideas already approved:
+## Approved Architecture
 
-- OpenCode as the AI coding-agent host;
-- RECALL as a Python MCP/service layer;
-- SQLite as canonical source of truth;
-- ChromaDB as a derived semantic index;
-- a local 1B–3B LLM for bounded conflict resolution;
-- explicit custom-instruction management;
-- retrieval → conflict resolution → context assembly.
+The image captures the following core relationships:
 
-## Approved Update: Human Dashboard
+- OpenCode is an agent-facing client.
+- A web dashboard is a human-facing client.
+- Both communicate with the RECALL Core through separate adapters.
+- SQLite is canonical.
+- ChromaDB is derived.
+- A local 1B–3B model handles bounded conflict arbitration.
+- Custom instructions are user-managed canonical state.
 
-The architecture is now approved with one additional first-class client surface that the original image does not show completely:
+## Written Authority
 
-```text
-                 ┌──────────────────────────────┐
-                 │        CLIENT SURFACES       │
-                 │                              │
-                 │ OpenCode / MCP / /recall     │
-                 │ Web Dashboard / Chat-like UI │
-                 └──────────────┬───────────────┘
-                                │
-                      ┌─────────┴─────────┐
-                      │                   │
-                     MCP              HTTP/JSON
-                      │                   │
-                      └─────────┬─────────┘
-                                ▼
-                     ┌──────────────────────┐
-                     │      RECALL CORE     │
-                     │       Python         │
-                     └──────────┬───────────┘
-                                │
-              ┌─────────────────┼─────────────────┐
-              ▼                 ▼                 ▼
-         ┌─────────┐       ┌──────────┐     ┌──────────┐
-         │ SQLite  │       │ ChromaDB │     │ Local    │
-         │ truth   │──────▶│ derived  │     │ 1B–3B    │
-         │         │       │ index    │     │ resolver  │
-         └─────────┘       └──────────┘     └──────────┘
-```
+The written architecture in `docs/ARCHITECTURE.md`, root `AGENTS.md`, and supporting contracts is authoritative if the image omits an implementation detail.
 
-The dashboard is intentionally **not** another backend or another data store. It is a human-facing client similar in interaction style to a ChatGPT wrapper.
+## Important Clarification
 
-## Dashboard Scope
-
-The MVP dashboard should provide:
-
-- Chat / Ask RECALL;
-- Memory Explorer;
-- Conflict Center;
-- Custom Instructions management;
-- Session/usage overview;
-- project/context selection.
-
-All dashboard mutations go through RECALL domain/API services.
-
-## Authority
-
-When the image and written project documents disagree, the written documents and `AGENTS.md` are authoritative. The image is a visual communication aid, not a source of schema truth.
+The local 1B–3B model in the visual architecture is **not** the general response model for a ChatGPT-style dashboard. It exists specifically to arbitrate ambiguous memory conflicts. A future general response model may be integrated as a separate concern only through an explicit architecture change.
