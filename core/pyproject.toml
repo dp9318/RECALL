@@ -29,5 +29,5 @@ test = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["core", "contracts*", "database*", "intelligence*", "recall_core*"]
+where = [".."]
+include = ["core", "core.recall_core*", "contracts*", "database*", "intelligence*"]
