@@ -1,0 +1,921 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.9, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\dipan\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: D:\proj\Hackathon\RECALL\core
+configfile: pyproject.toml
+plugins: anyio-4.12.1
+collecting ... collected 218 items
+
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_basic PASSED [  0%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_with_query PASSED [  0%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_apply_custom_instructions PASSED [  1%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_apply_conflict_resolutions PASSED [  1%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_dependency_project_repo_failure FAILED [  2%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_empty_request PASSED [  2%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_with_conflict_resolutions FAILED [  3%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_applies_custom_instructions_via_manager ERROR [  3%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_explicit_instruction ERROR [  4%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_explicit_update ERROR [  4%]
+core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_current_canonical ERROR [  5%]
+core\tests\test_contracts.py::TestContracts::test_result_ok PASSED       [  5%]
+core\tests\test_contracts.py::TestContracts::test_result_err PASSED      [  5%]
+core\tests\test_contracts.py::TestContracts::test_pagination_params_defaults PASSED [  6%]
+core\tests\test_contracts.py::TestContracts::test_pagination_params_clamping PASSED [  6%]
+core\tests\test_contracts.py::TestContracts::test_paginated_result_has_more PASSED [  7%]
+core\tests\test_contracts.py::TestContracts::test_scope_enum PASSED      [  7%]
+core\tests\test_contracts.py::TestContracts::test_memory_status_enum PASSED [  8%]
+core\tests\test_contracts.py::TestContracts::test_instruction_status_enum PASSED [  8%]
+core\tests\test_contracts.py::TestContracts::test_memory_is_active PASSED [  9%]
+core\tests\test_contracts.py::TestContracts::test_memory_is_historical PASSED [  9%]
+core\tests\test_contracts.py::TestContracts::test_custom_instruction_is_active PASSED [ 10%]
+core\tests\test_contracts.py::TestContracts::test_custom_instruction_scope_matches PASSED [ 10%]
+core\tests\test_contracts.py::TestContracts::test_conflict_resolution_result_is_resolved PASSED [ 11%]
+core\tests\test_contracts.py::TestContracts::test_conflict_resolution_result_has_unresolved PASSED [ 11%]
+core\tests\test_contracts.py::TestContracts::test_session_is_active PASSED [ 11%]
+core\tests\test_contracts.py::TestMemoryContract::test_memory_create_request PASSED [ 12%]
+core\tests\test_contracts.py::TestMemoryContract::test_memory_update_request PASSED [ 12%]
+core\tests\test_contracts.py::TestMemoryContract::test_memory_search_params PASSED [ 13%]
+core\tests\test_contracts.py::TestInstructionContract::test_custom_instruction_create_request PASSED [ 13%]
+core\tests\test_contracts.py::TestInstructionContract::test_custom_instruction_update_request PASSED [ 14%]
+core\tests\test_contracts.py::TestProjectContract::test_project_create_request PASSED [ 14%]
+core\tests\test_contracts.py::TestProjectContract::test_session_create_request PASSED [ 15%]
+core\tests\test_contracts.py::TestRetrievalContract::test_retrieval_request PASSED [ 15%]
+core\tests\test_contracts.py::TestRetrievalContract::test_context_assembly_request PASSED [ 16%]
+core\tests\test_contracts.py::TestConflictContract::test_resolution_decision PASSED [ 16%]
+core\tests\test_contracts.py::TestConflictContract::test_conflict_resolution_result PASSED [ 16%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_create_instruction_success PASSED [ 17%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_create_instruction_empty_content PASSED [ 17%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_get_instruction PASSED [ 18%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_update_instruction PASSED [ 18%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_delete_instruction PASSED [ 19%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_list_instructions PASSED [ 19%]
+core\tests\test_instruction_service.py::TestCustomInstructionService::test_get_active_global PASSED [ 20%]
+core\tests\test_instruction_service.py::test_get_active_for_project_multiple_instructions ERROR [ 20%]
+core\tests\test_instruction_service.py::test_get_active_for_project_inactive_instructions_filtered ERROR [ 21%]
+core\tests\test_instruction_service.py::test_scope_matches_behavior ERROR [ 21%]
+core\tests\test_instruction_service.py::test_create_instruction_validates_content ERROR [ 22%]
+core\tests\test_instruction_service.py::test_update_instruction_preserves_id ERROR [ 22%]
+core\tests\test_instruction_service.py::test_list_instructions_with_scope_filter ERROR [ 22%]
+core\tests\test_instruction_service.py::test_list_instructions_with_project_filter ERROR [ 23%]
+core\tests\test_instruction_service.py::test_get_active_global_no_instructions ERROR [ 23%]
+core\tests\test_instruction_service.py::test_get_active_for_project_no_project_instructions ERROR [ 24%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_project PASSED [ 24%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_project PASSED [ 25%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_project_not_found PASSED [ 25%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_project_repo_failure PASSED [ 26%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_project PASSED [ 26%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_project_not_found PASSED [ 27%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_project PASSED [ 27%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_project_not_found PASSED [ 27%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_list_projects PASSED [ 28%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_list_projects_repo_failure PASSED [ 28%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_session PASSED [ 29%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_session PASSED [ 29%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_session_not_found PASSED [ 30%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_session_repo_failure PASSED [ 30%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_session PASSED [ 31%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_session_none PASSED [ 31%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_session PASSED [ 32%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_session_not_found PASSED [ 32%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_end_session PASSED [ 33%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_end_session_not_found PASSED [ 33%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_end_session_repo_failure PASSED [ 33%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory PASSED [ 34%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_index_failure_continues PASSED [ 34%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_repo_failure PASSED [ 35%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_preserves_provenance PASSED [ 35%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_memory PASSED [ 36%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_memory_not_found PASSED [ 36%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_memory_repo_failure PASSED [ 37%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_memory PASSED [ 37%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_memory_not_found PASSED [ 38%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_memory_repo_failure PASSED [ 38%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_memory_index_failure_continues PASSED [ 38%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_memory PASSED [ 39%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_memory_not_found PASSED [ 39%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_memory_repo_failure PASSED [ 40%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_search_memories PASSED [ 40%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_search_memories_empty PASSED [ 41%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_search_memories_repo_failure PASSED [ 41%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_memories PASSED [ 42%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_memories_empty PASSED [ 42%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_memories_repo_failure PASSED [ 43%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_memory_status_transitions PASSED [ 43%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_instruction PASSED [ 44%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_instruction_empty_content PASSED [ 44%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_instruction_repo_failure PASSED [ 44%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_instruction PASSED [ 45%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_instruction_not_found PASSED [ 45%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_instruction PASSED [ 46%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_instruction PASSED [ 46%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_list_instructions PASSED [ 47%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_instructions_global PASSED [ 47%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_instructions_project PASSED [ 48%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_instructions_project_only_global PASSED [ 48%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_active_instructions_repo_failure PASSED [ 49%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_instruction_precedence_in_context_assembly FAILED [ 49%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_precedence_explicit_instruction_over_historical_memory PASSED [ 50%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_precedence_explicit_update_over_historical_memory PASSED [ 50%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_precedence_current_canonical_over_historical PASSED [ 50%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_precedence_multiple_historical_conflicts PASSED [ 51%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_precedence_custom_instruction_over_conflict_candidate PASSED [ 51%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_delegates_to_service FAILED [ 52%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_does_not_implement_arbitration PASSED [ 52%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_handles_service_success PASSED [ 53%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_handles_service_failure PASSED [ 53%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_empty_candidates PASSED [ 54%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_partial_result PASSED [ 54%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_abstained PASSED [ 55%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_explicit_instruction_preserved PASSED [ 55%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_project_only FAILED [ 55%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_session_only PASSED [ 56%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_project_and_session PASSED [ 56%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_active_memories PASSED [ 57%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_historical_memories PASSED [ 57%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_without_historical PASSED [ 58%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_custom_instructions FAILED [ 58%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_without_custom_instructions PASSED [ 59%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_conflict_results PASSED [ 59%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_empty_sources PASSED [ 60%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_partial_sources PASSED [ 60%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_conflicting_sources FAILED [ 61%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_dependency_failure FAILED [ 61%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_no_duplicate_memories FAILED [ 61%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_no_loss_of_authoritative_info PASSED [ 62%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_nothing_to_compact PASSED [ 62%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_exactly_at_threshold PASSED [ 63%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_above_threshold_creates_summaries PASSED [ 63%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_selection_of_memories PASSED [ 64%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_summary_preserves_lineage PASSED [ 64%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_preserves_provenance PASSED [ 65%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_preserves_project_session_scope PASSED [ 65%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_archive_behavior PASSED [ 66%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_transactional_behavior PASSED [ 66%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_partial_operation_failure PASSED [ 66%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_indexing_failure PASSED [ 67%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_repeated_compaction PASSED [ 67%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_does_not_delete_canonical_info PASSED [ 68%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_success PASSED [ 68%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_empty_content PASSED [ 69%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_whitespace_content PASSED [ 69%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_provenance PASSED [ 70%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_interaction_with_retrieval PASSED [ 70%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_precedence_over_historical PASSED [ 71%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_persistence_failure PASSED [ 71%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_invalid_input PASSED [ 72%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_context_no_accidental_mutation PASSED [ 72%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_project_isolation_memories FAILED [ 72%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_project_isolation_instructions PASSED [ 73%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_session_isolation PASSED [ 73%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_multiple_sessions_same_project PASSED [ 74%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_overlapping_memory_content_different_projects PASSED [ 74%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_global_instructions_applied_correctly PASSED [ 75%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_global_instructions_only_no_project PASSED [ 75%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieval_filters_passed_correctly FAILED [ 76%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_project_repo_failure PASSED [ 76%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_session_repo_failure PASSED [ 77%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_memory_repo_failure PASSED [ 77%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_instruction_repo_failure PASSED [ 77%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_semantic_index_repo_failure PASSED [ 78%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieval_service_failure PASSED [ 78%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_service_failure PASSED [ 79%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_all_dependencies_fail_independently PASSED [ 79%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_failures_not_silently_swallowed PASSED [ 80%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_failures_not_fabricated_success PASSED [ 80%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_failures_no_partial_inconsistent_state PASSED [ 81%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve PASSED [ 81%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_empty_results PASSED [ 82%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_failure PASSED [ 82%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_passes_correct_scope PASSED [ 83%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_passes_filters FAILED [ 83%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_search_convenience PASSED [ 83%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_search_convenience_without_project PASSED [ 84%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_indexes_semantic PASSED [ 84%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_update_memory_updates_semantic PASSED [ 85%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_delete_memory_removes_from_semantic PASSED [ 85%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_semantic_index_failure_is_best_effort PASSED [ 86%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_semantic_index_interface_calls PASSED [ 86%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_core_does_not_contain_vector_logic PASSED [ 87%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_detect_and_resolve_conflicts PASSED [ 87%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context PASSED [ 88%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_no_project_id PASSED [ 88%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_creates_summaries PASSED [ 88%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_compact_archives_old_historical PASSED [ 89%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_get_stats PASSED [ 89%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_close PASSED  [ 90%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_context_manager PASSED [ 90%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_invalid_content PASSED [ 91%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_missing_project PASSED [ 91%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_delegates_to_service PASSED [ 92%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_empty_query PASSED [ 92%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_detect_and_resolve_conflicts_delegates PASSED [ 93%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_detect_and_resolve_conflicts_empty_candidates PASSED [ 93%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_detect_and_resolve_conflicts_no_instructions PASSED [ 94%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_all_sources PASSED [ 94%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_no_project_no_session PASSED [ 94%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_historical_and_instructions FAILED [ 95%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_project_isolation_instructions_detailed PASSED [ 95%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_dependency_project_repo_failure FAILED [ 96%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_custom_instructions_disabled PASSED [ 96%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_explicit_instruction_over_historical_memory PASSED [ 97%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_explicit_update_over_historical_memory PASSED [ 97%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_current_canonical_over_older_historical PASSED [ 98%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_no_authority_downgrade_by_conflict_resolver FAILED [ 98%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_manager_delegates_all_storage_to_repositories PASSED [ 99%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_manager_delegates_retrieval_fully PASSED [ 99%]
+core\tests\test_memory_manager.py::TestMemoryManager::test_manager_delegates_conflict_resolution_fully PASSED [100%]
+
+=================================== ERRORS ====================================
+_ ERROR at setup of TestContextAssemblyService.test_assemble_context_applies_custom_instructions_via_manager _
+file D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py, line 208
+      def test_assemble_context_applies_custom_instructions_via_manager(self, manager, mock_uow, sample_project):
+E       fixture 'manager' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py:208
+_ ERROR at setup of TestContextAssemblyService.test_assemble_context_authority_precedence_explicit_instruction _
+file D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py, line 244
+      def test_assemble_context_authority_precedence_explicit_instruction(self, manager, mock_uow, sample_project, sample_session):
+E       fixture 'manager' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py:244
+_ ERROR at setup of TestContextAssemblyService.test_assemble_context_authority_precedence_explicit_update _
+file D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py, line 280
+      def test_assemble_context_authority_precedence_explicit_update(self, manager, mock_uow, sample_project):
+E       fixture 'manager' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py:280
+_ ERROR at setup of TestContextAssemblyService.test_assemble_context_authority_precedence_current_canonical _
+file D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py, line 302
+      def test_assemble_context_authority_precedence_current_canonical(self, manager, mock_uow, sample_project):
+E       fixture 'manager' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_context_assembly.py:302
+_____ ERROR at setup of test_get_active_for_project_multiple_instructions _____
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 112
+  def test_get_active_for_project_multiple_instructions(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:112
+_ ERROR at setup of test_get_active_for_project_inactive_instructions_filtered _
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 135
+  def test_get_active_for_project_inactive_instructions_filtered(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:135
+________________ ERROR at setup of test_scope_matches_behavior ________________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 152
+  def test_scope_matches_behavior(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:152
+_________ ERROR at setup of test_create_instruction_validates_content _________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 173
+  def test_create_instruction_validates_content(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:173
+___________ ERROR at setup of test_update_instruction_preserves_id ____________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 188
+  def test_update_instruction_preserves_id(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:188
+_________ ERROR at setup of test_list_instructions_with_scope_filter __________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 202
+  def test_list_instructions_with_scope_filter(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:202
+________ ERROR at setup of test_list_instructions_with_project_filter _________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 220
+  def test_list_instructions_with_project_filter(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:220
+__________ ERROR at setup of test_get_active_global_no_instructions ___________
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 239
+  def test_get_active_global_no_instructions(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:239
+____ ERROR at setup of test_get_active_for_project_no_project_instructions ____
+file D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py, line 249
+  def test_get_active_for_project_no_project_instructions(self, mock_instruction_repo):
+E       fixture 'self' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_conflict_service, mock_instruction_repo, mock_memory_repo, mock_project_repo, mock_retrieval_service, mock_semantic_index, mock_session_repo, mock_uow, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_instruction, sample_memory, sample_project, sample_session, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+D:\proj\Hackathon\RECALL\core\tests\test_instruction_service.py:249
+================================== FAILURES ===================================
+_ TestContextAssemblyService.test_assemble_context_dependency_project_repo_failure _
+
+self = <test_context_assembly.TestContextAssemblyService object at 0x000002712B813E30>
+mock_uow = <Mock spec='UnitOfWork' id='2685085829984'>
+
+    def test_assemble_context_dependency_project_repo_failure(self, mock_uow):
+        """Test context assembly propagates project repo failure."""
+        mock_uow.projects.get.return_value = Result.err("Project service unavailable")
+    
+        request = ContextAssemblyRequest(project_id=uuid4())
+>       result = service.assemble(request)
+                 ^^^^^^^
+E       NameError: name 'service' is not defined
+
+core\tests\test_context_assembly.py:153: NameError
+_ TestContextAssemblyService.test_assemble_context_with_conflict_resolutions __
+
+self = <test_context_assembly.TestContextAssemblyService object at 0x000002712B840680>
+mock_uow = <Mock spec='UnitOfWork' id='2685085982432'>
+mock_retrieval_service = <Mock spec='RetrievalService' id='2685085976144'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 164176), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 164176), id=UUID('874722e2-024a-4c17-8e31-6d7183b516ff'), name='Test Project', description=None, metadata={})
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 164176), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+
+    def test_assemble_context_with_conflict_resolutions(self, mock_uow, mock_retrieval_service, sample_project, sample_memory):
+        """Test context assembly includes conflict resolutions."""
+        resolution = ConflictResolutionResult(
+            status=ConflictResolutionStatus.RESOLVED,
+            preferred_candidates=[
+                type('obj', (object,), {'memory': sample_memory})()
+            ],
+            superseded_candidates=[],
+            unresolved_candidates=[],
+        )
+    
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
+    
+        service = ContextAssemblyService(
+            memory_repo=mock_uow.memories,
+            project_repo=mock_uow.projects,
+            session_repo=mock_uow.sessions,
+            retrieval_service=mock_retrieval_service,
+        )
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id, include_resolved_conflicts=True)
+        result = service.assemble(request)
+    
+        assert result.success
+        context = result.value
+>       assert len(context.conflict_resolutions) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 164176), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 164176), id=UUID('874722e2-024a-4c17-8e31-6d7183b516ff'), name='Test Project', description=None, metadata={}), session=<Mock name='mock.sessions.get_active_for_project().value' id='2685085989392'>, custom_instructions=[], active_memories=[], resolved_memories=[], historical_memories=[], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:24.165179', metadata={}).conflict_resolutions
+
+core\tests\test_context_assembly.py:204: AssertionError
+______ TestMemoryManager.test_instruction_precedence_in_context_assembly ______
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8E43E0>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BAB9100>
+mock_uow = <Mock spec='UnitOfWork' id='2685087583600'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), name='Test Project', description=None, metadata={})
+sample_session = Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), updated_at=datetime.datetime(2026, 10, 8, 22, 5...2e-46ad-9813-e5b6fa439bab'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), ended_at=None, metadata={})
+
+    def test_instruction_precedence_in_context_assembly(self, manager, mock_uow, sample_project, sample_session):
+        """Test that custom instructions take precedence in context assembly."""
+        # Setup: historical memory contradicts custom instruction
+        historical_memory = Memory(
+            id=uuid4(),
+            project_id=sample_project.id,
+            content="Old approach: use XML for config",
+            status=MemoryStatus.SUPERSEDED,
+            provenance="inferred",
+        )
+        explicit_instruction = CustomInstruction(
+            id=uuid4(),
+            scope=Scope.PROJECT,
+            project_id=sample_project.id,
+            content="Always use YAML for configuration files",
+            status=InstructionStatus.ACTIVE,
+        )
+    
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get.return_value = Result.ok(sample_session)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.memories.search.return_value = Result.ok(
+            type('obj', (object,), {'items': [historical_memory], 'total': 1})()
+        )
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([explicit_instruction])
+    
+        request = ContextAssemblyRequest(
+            project_id=sample_project.id,
+            session_id=sample_session.id,
+            include_custom_instructions=True,
+            include_historical=True,
+        )
+        result = manager.assemble_context(request)
+    
+        assert result.success
+        context = result.value
+        # Custom instruction should be in context
+>       assert len(context.custom_instructions) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})])
+E        +    where [CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})] = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), name='Test Project', description=None, metadata={}), session=Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), id=UUID('97393c21-84f7-4633-a601-e0ec4f152e4f'), project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), ended_at=None, metadata={}), custom_instructions=[CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 504845), id=UUID('7012d987-cc71-4c3b-ad37-d7504160554f'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), content='Always use YAML for configuration files', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})], active_memories=[], resolved_memories=[], historical_memories=[Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 503824), id=UUID('6e7aeb71-211a-4aa3-b749-028a5e89dd7b'), project_id=UUID('51676641-be2e-46ad-9813-e5b6fa439bab'), session_id=None, scope=<Scope.GLOBAL: 'global'>, memory_type='general', content='Old approach: use XML for config', status=<MemoryStatus.SUPERSEDED: 'superseded'>, provenance='inferred', supersedes_id=None, metadata={})], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:24.504845', metadata={}).custom_instructions
+
+core\tests\test_memory_manager.py:729: AssertionError
+_______ TestMemoryManager.test_conflict_resolution_delegates_to_service _______
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8E71A0>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712B989FD0>
+mock_conflict_service = <Mock spec='ConflictResolutionService' id='2685085979504'>
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+sample_instruction = CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), updated_at=datetime.datetime(2026, 10...al'>, project_id=None, content='Test instruction', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})
+
+    def test_conflict_resolution_delegates_to_service(self, manager, mock_conflict_service, sample_memory, sample_instruction):
+        """Test that Core delegates conflict handling to ConflictResolutionService."""
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        instructions = [sample_instruction]
+        project_id = sample_memory.project_id
+    
+        resolution = ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED)
+        mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
+    
+        result = manager.detect_and_resolve_conflicts(candidates, instructions, project_id=project_id)
+    
+        assert result.success
+        # Verify service was called with correct request structure
+        mock_conflict_service.detect_and_resolve.assert_called_once()
+        call_args = mock_conflict_service.detect_and_resolve.call_args[0][0]
+        assert call_args.candidates == candidates
+        assert call_args.custom_instructions == instructions
+        assert call_args.project_context is not None
+>       assert call_args.project_context.id == project_id
+E       AssertionError: assert <Mock name='mock.projects.get().value.id' id='2685085981616'> == UUID('3369088c-4039-459c-9dee-014bcb58df27')
+E        +  where <Mock name='mock.projects.get().value.id' id='2685085981616'> = <Mock name='mock.projects.get().value' id='2685085984688'>.id
+E        +    where <Mock name='mock.projects.get().value' id='2685085984688'> = ConflictResolutionRequest(candidates=[ConflictCandidate(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 580502), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 580502), id=UUID('fd75f8cf-8d81-4e43-bd25-baa4ced6d678'), memory=Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), id=UUID('96ec4041-d537-481e-97da-cd4414081516'), project_id=UUID('3369088c-4039-459c-9dee-014bcb58df27'), session_id=UUID('6fc9821e-6d03-42da-aa18-f7f85b750a7d'), scope=<Scope.PROJECT: 'project'>, memory_type='general', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={}), relevance_score=0.0, conflict_type=<ConflictType.CONTRADICTORY_CLAIM: 'contradictory_claim'>, evidence=[])], custom_instructions=[CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 579499), id=UUID('ec804484-10ab-42a6-960d-5ab9a4168d07'), scope=<Scope.GLOBAL: 'global'>, project_id=None, content='Test instruction', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})], project_context=<Mock name='mock.projects.get().value' id='2685085984688'>, session_context=None).project_context
+
+core\tests\test_memory_manager.py:921: AssertionError
+____________ TestMemoryManager.test_assemble_context_project_only _____________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8E4710>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BC2B7A0>
+mock_uow = <Mock spec='UnitOfWork' id='2685088729232'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), id=UUID('3ac7df50-049a-4b0b-be9b-8a67c2493421'), name='Test Project', description=None, metadata={})
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+
+    def test_assemble_context_project_only(self, manager, mock_uow, sample_project, sample_memory):
+        """Test context assembly with project context only."""
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([sample_memory])
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id)
+        result = manager.assemble_context(request)
+    
+        assert result.success
+        context = result.value
+        assert context.project is not None
+        assert context.project.id == sample_project.id
+>       assert context.session is None
+E       AssertionError: assert <Mock name='mock.sessions.get_active_for_project().value' id='2685087400496'> is None
+E        +  where <Mock name='mock.sessions.get_active_for_project().value' id='2685087400496'> = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), id=UUID('3ac7df50-049a-4b0b-be9b-8a67c2493421'), name='Test Project', description=None, metadata={}), session=<Mock name='mock.sessions.get_active_for_project().value' id='2685087400496'>, custom_instructions=[], active_memories=[Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 665785), id=UUID('0dcaf210-b855-4dbe-9037-93e856ed43a6'), project_id=UUID('3ac7df50-049a-4b0b-be9b-8a67c2493421'), session_id=UUID('f3232236-ea9e-445c-bf14-fe164d094f6d'), scope=<Scope.PROJECT: 'project'>, memory_type='general', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})], resolved_memories=[], historical_memories=[], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:24.665785', metadata={}).session
+
+core\tests\test_memory_manager.py:1045: AssertionError
+______ TestMemoryManager.test_assemble_context_with_custom_instructions _______
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8F5490>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BBDB530>
+mock_uow = <Mock spec='UnitOfWork' id='2685088403088'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), name='Test Project', description=None, metadata={})
+
+    def test_assemble_context_with_custom_instructions(self, manager, mock_uow, sample_project):
+        """Test context assembly includes custom instructions."""
+        instruction = CustomInstruction(
+            id=uuid4(),
+            scope=Scope.PROJECT,
+            project_id=sample_project.id,
+            content="Project rule",
+            status=InstructionStatus.ACTIVE,
+        )
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([instruction])
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id, include_custom_instructions=True)
+        result = manager.assemble_context(request)
+    
+        assert result.success
+        context = result.value
+>       assert len(context.custom_instructions) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})])
+E        +    where [CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})] = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), name='Test Project', description=None, metadata={}), session=<Mock name='mock.sessions.get_active_for_project().value' id='2685088414464'>, custom_instructions=[CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 737945), id=UUID('2216843b-4ce5-4a69-87f6-ae6d4879d2ce'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('bade101e-cc72-43c3-8ad5-64e1bcdb6352'), content='Project rule', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})], active_memories=[], resolved_memories=[], historical_memories=[], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:24.737945', metadata={}).custom_instructions
+
+core\tests\test_memory_manager.py:1146: AssertionError
+_________ TestMemoryManager.test_assemble_context_conflicting_sources _________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8C3800>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BBDBBF0>
+mock_uow = <Mock spec='UnitOfWork' id='2685088402896'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), name='Test Project', description=None, metadata={})
+sample_session = Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), updated_at=datetime.datetime(2026, 10, 8, 22, 5...fd-496b-9813-ab2ea69eded0'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), ended_at=None, metadata={})
+
+    def test_assemble_context_conflicting_sources(self, manager, mock_uow, sample_project, sample_session):
+        """Test context assembly with conflicting sources."""
+        # Active memory says one thing, historical says another
+        active = Memory(id=uuid4(), project_id=sample_project.id, content="Use new API", status=MemoryStatus.ACTIVE)
+        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Use old API", status=MemoryStatus.SUPERSEDED)
+        instruction = CustomInstruction(
+            id=uuid4(),
+            scope=Scope.PROJECT,
+            project_id=sample_project.id,
+            content="Migrate to new API",
+            status=InstructionStatus.ACTIVE,
+        )
+    
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get.return_value = Result.ok(sample_session)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([active])
+        mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [historical], 'total': 1})())
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([instruction])
+    
+        request = ContextAssemblyRequest(
+            project_id=sample_project.id,
+            session_id=sample_session.id,
+            include_custom_instructions=True,
+            include_historical=True,
+        )
+        result = manager.assemble_context(request)
+    
+        assert result.success
+        context = result.value
+        # All sources should be present in their respective buckets
+        assert len(context.active_memories) == 1
+        assert context.active_memories[0].content == "Use new API"
+        assert len(context.historical_memories) == 1
+        assert context.historical_memories[0].content == "Use old API"
+>       assert len(context.custom_instructions) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})])
+E        +    where [CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})] = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), name='Test Project', description=None, metadata={}), session=Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), id=UUID('8207076d-1d43-42f7-8286-bde4d9b72a7c'), project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 812360), ended_at=None, metadata={}), custom_instructions=[CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('bf018b6c-2c7c-4a3a-a939-f217ffcdb851'),...=<Scope.PROJECT: 'project'>, project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), content='Migrate to new API', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})], active_memories=[Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('0b3d8a03-1afb-4796-8f4c-cc72b825a733'), project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), session_id=None, scope=<Scope.GLOBAL: 'global'>, memory_type='general', content='Use new API', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})], resolved_memories=[], historical_memories=[Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 813402), id=UUID('e76c384b-95d0-4264-8ffa-f908ba67b4c4'), project_id=UUID('1fc9e5ce-78fd-496b-9813-ab2ea69eded0'), session_id=None, scope=<Scope.GLOBAL: 'global'>, memory_type='general', content='Use old API', status=<MemoryStatus.SUPERSEDED: 'superseded'>, provenance=None, supersedes_id=None, metadata={})], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:24.813402', metadata={}).custom_instructions
+
+core\tests\test_memory_manager.py:1254: AssertionError
+_________ TestMemoryManager.test_assemble_context_dependency_failure __________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8F5B80>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BABAF30>
+mock_uow = <Mock spec='UnitOfWork' id='2685087586576'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 865397), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 865397), id=UUID('83985cdf-5cb2-4d4a-84b1-2af135b50498'), name='Test Project', description=None, metadata={})
+
+    def test_assemble_context_dependency_failure(self, manager, mock_uow, sample_project):
+        """Test context assembly when a dependency fails."""
+        mock_uow.projects.get.return_value = Result.err("Project service unavailable")
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id)
+        result = manager.assemble_context(request)
+    
+        assert not result.success
+>       assert "unavailable" in result.error.lower()
+E       assert 'unavailable' in "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'"
+E        +  where "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'" = <built-in method lower of str object at 0x000002712BA53F30>()
+E        +    where <built-in method lower of str object at 0x000002712BA53F30> = "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'".lower
+E        +      where "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'" = Result(success=False, value=None, error="Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'", metadata={}).error
+
+core\tests\test_memory_manager.py:1265: AssertionError
+________ TestMemoryManager.test_assemble_context_no_duplicate_memories ________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8F4DD0>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712B9D4710>
+mock_uow = <Mock spec='UnitOfWork' id='2685087005056'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 914972), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 914972), id=UUID('0921cc63-784e-43f0-ade8-b8055394b7ba'), name='Test Project', description=None, metadata={})
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 24, 914972), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+
+    def test_assemble_context_no_duplicate_memories(self, manager, mock_uow, sample_project, sample_memory):
+        """Test context assembly doesn't accidentally duplicate memories."""
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([sample_memory])
+        # Retrieval returns the same memory
+        mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [], 'total': 0})())
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
+    
+        # Mock retrieval to return same memory
+        mock_retrieval = Mock()
+        mock_retrieval.retrieve.return_value = Result.ok(
+            type('obj', (object,), {'memories': [sample_memory], 'total_found': 1})()
+        )
+        manager._retrieval_service = mock_retrieval
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id, query="test")
+        result = manager.assemble_context(request)
+    
+>       assert result.success
+E       assert False
+E        +  where False = Result(success=False, value=None, error="Context assembly failed: 'Mock' object is not iterable", metadata={}).success
+
+core\tests\test_memory_manager.py:1285: AssertionError
+______________ TestMemoryManager.test_project_isolation_memories ______________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B90E990>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712D159C40>
+mock_uow = <Mock spec='UnitOfWork' id='2685110991376'>
+
+    def test_project_isolation_memories(self, manager, mock_uow):
+        """Test project A does not receive project B memories."""
+        project_a = Project(id=uuid4(), name="Project A")
+        project_b = Project(id=uuid4(), name="Project B")
+        mem_a = Memory(id=uuid4(), project_id=project_a.id, content="Project A memory", status=MemoryStatus.ACTIVE)
+        mem_b = Memory(id=uuid4(), project_id=project_b.id, content="Project B memory", status=MemoryStatus.ACTIVE)
+    
+        # When querying project A, only A's memories should be returned
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([mem_a])
+        mock_uow.projects.get.return_value = Result.ok(project_a)
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
+    
+        request = ContextAssemblyRequest(project_id=project_a.id)
+        result = manager.assemble_context(request)
+    
+        assert result.success
+        context = result.value
+        assert len(context.active_memories) == 1
+        assert context.active_memories[0].content == "Project A memory"
+        assert context.active_memories[0].project_id == project_a.id
+        # Verify get_active_for_project was called with project A's ID
+>       mock_uow.memories.get_active_for_project.assert_called_with(project_a.id, 50)
+
+core\tests\test_memory_manager.py:1780: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.memories.get_active_for_project' id='2685110945504'>
+args = (UUID('fef668ad-0d20-4dac-863d-79fc10f83267'), 50), kwargs = {}
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: get_active_for_project(UUID('fef668ad-0d20-4dac-863d-79fc10f83267'), 50)
+E             Actual: get_active_for_project(UUID('fef668ad-0d20-4dac-863d-79fc10f83267'), 20)
+
+C:\Users\dipan\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:949: AssertionError
+__________ TestMemoryManager.test_retrieval_filters_passed_correctly __________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B90ED80>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712D121F40>
+mock_retrieval_service = <Mock spec='RetrievalService' id='2685110720352'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 247182), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 247182), id=UUID('47d4b699-4a7c-471b-a788-234635fea1de'), name='Test Project', description=None, metadata={})
+
+    def test_retrieval_filters_passed_correctly(self, manager, mock_retrieval_service, sample_project):
+        """Test retrieval filters are passed correctly."""
+        memory = Memory(id=uuid4(), project_id=sample_project.id, content="Filtered memory", status=MemoryStatus.ACTIVE)
+        mock_retrieval_service.retrieve.return_value = Result.ok(RetrievalResult(memories=[memory], total_found=1))
+    
+>       request = RetrievalRequest(
+            query="test",
+            project_id=sample_project.id,
+            memory_types=["decision"],
+            include_historical=False,
+            limit=10,
+        )
+E       TypeError: RetrievalRequest.__init__() got an unexpected keyword argument 'memory_types'
+
+core\tests\test_memory_manager.py:1925: TypeError
+_______________ TestMemoryManager.test_retrieve_passes_filters ________________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B91CC20>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BBC4320>
+mock_retrieval_service = <Mock spec='RetrievalService' id='2685088423840'>
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 378126), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+
+    def test_retrieve_passes_filters(self, manager, mock_retrieval_service, sample_memory):
+        """Test retrieval passes relevant filters/options."""
+        mock_retrieval_service.retrieve.return_value = Result.ok(RetrievalResult(memories=[sample_memory], total_found=1))
+    
+>       request = RetrievalRequest(
+            query="test",
+            project_id=uuid4(),
+            include_historical=True,
+            memory_types=["decision", "fact"],
+            limit=25
+        )
+E       TypeError: RetrievalRequest.__init__() got an unexpected keyword argument 'memory_types'
+
+core\tests\test_memory_manager.py:2131: TypeError
+__ TestMemoryManager.test_assemble_context_with_historical_and_instructions ___
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B8F4980>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712BB5CCE0>
+mock_uow = <Mock spec='UnitOfWork' id='2685110424288'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), name='Test Project', description=None, metadata={})
+sample_session = Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), updated_at=datetime.datetime(2026, 10, 8, 22, 5...2b-42ca-bb52-2246dde8fbe9'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), ended_at=None, metadata={})
+
+    def test_assemble_context_with_historical_and_instructions(self, manager, mock_uow, sample_project, sample_session):
+        """Test historical memories and custom instructions coexist correctly."""
+        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old decision", status=MemoryStatus.SUPERSEDED)
+        instruction = CustomInstruction(id=uuid4(), scope=Scope.PROJECT, project_id=sample_project.id, content="New approach", status=InstructionStatus.ACTIVE)
+    
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get.return_value = Result.ok(sample_session)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [historical], 'total': 1})())
+        mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([instruction])
+    
+        request = ContextAssemblyRequest(project_id=sample_project.id, session_id=sample_session.id, include_custom_instructions=True, include_historical=True)
+        result = manager.assemble_context(request)
+        assert result.success
+        context = result.value
+        # Historical memory in historical_memories
+        assert len(context.historical_memories) == 1
+        assert context.historical_memories[0].content == "Old decision"
+        # Custom instruction in custom_instructions
+>       assert len(context.custom_instructions) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})])
+E        +    where [CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})] = AssembledContext(project=Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), name='Test Project', description=None, metadata={}), session=Session(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), id=UUID('ddcca8a2-f2f3-4cc3-968b-4464e68cee92'), project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), started_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 561658), ended_at=None, metadata={}), custom_instructions=[CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={}), CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('13a080a3-07b2-4699-a13f-c933ceda7a3c'), scope=<Scope.PROJECT: 'project'>, project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), content='New approach', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})], active_memories=[], resolved_memories=[], historical_memories=[Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 562656), id=UUID('1039fc4c-a51f-4d3f-b244-c0e8e1b6c489'), project_id=UUID('18645db7-bb2b-42ca-bb52-2246dde8fbe9'), session_id=None, scope=<Scope.GLOBAL: 'global'>, memory_type='general', content='Old decision', status=<MemoryStatus.SUPERSEDED: 'superseded'>, provenance=None, supersedes_id=None, metadata={})], conflict_resolutions=[], query=None, assembled_at='2026-10-08T22:55:25.562656', metadata={}).custom_instructions
+
+core\tests\test_memory_manager.py:2527: AssertionError
+___ TestMemoryManager.test_assemble_context_dependency_project_repo_failure ___
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B928EC0>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712CD15EB0>
+mock_uow = <Mock spec='UnitOfWork' id='2685106486496'>
+
+    def test_assemble_context_dependency_project_repo_failure(self, manager, mock_uow):
+        """Test context assembly propagates project repo failure."""
+        mock_uow.projects.get.return_value = Result.err("Project service unavailable")
+    
+        request = ContextAssemblyRequest(project_id=uuid4())
+        result = manager.assemble_context(request)
+        assert not result.success
+>       assert "unavailable" in result.error.lower() or "project" in result.error.lower()
+E       assert ('unavailable' in "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'" or 'project' in "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'")
+E        +  where "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'" = <built-in method lower of str object at 0x000002712CD1BBB0>()
+E        +    where <built-in method lower of str object at 0x000002712CD1BBB0> = "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'".lower
+E        +      where "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'" = Result(success=False, value=None, error="Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'", metadata={}).error
+E        +  and   "context assembly failed: unsupported operand type(s) for +: 'mock' and 'mock'" = <built-in method lower of str object at 0x000002712CD1BBB0>()
+E        +    where <built-in method lower of str object at 0x000002712CD1BBB0> = "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'".lower
+E        +      where "Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'" = Result(success=False, value=None, error="Context assembly failed: unsupported operand type(s) for +: 'Mock' and 'Mock'", metadata={}).error
+
+core\tests\test_memory_manager.py:2565: AssertionError
+_____ TestMemoryManager.test_no_authority_downgrade_by_conflict_resolver ______
+
+self = <test_memory_manager.TestMemoryManager object at 0x000002712B92A450>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000002712CD9F890>
+mock_conflict_service = <Mock spec='ConflictResolutionService' id='2685107042208'>
+sample_project = Project(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 727881), updated_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 727881), id=UUID('4d66e1c5-4345-4f9a-90f7-bac9447d7606'), name='Test Project', description=None, metadata={})
+sample_memory = Memory(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 727881), updated_at=datetime.datetime(2026, 10, 8, 22, 55...eral', content='Test memory', status=<MemoryStatus.ACTIVE: 'active'>, provenance=None, supersedes_id=None, metadata={})
+sample_instruction = CustomInstruction(created_at=datetime.datetime(2026, 10, 8, 22, 55, 25, 728962), updated_at=datetime.datetime(2026, 10...al'>, project_id=None, content='Test instruction', status=<InstructionStatus.ACTIVE: 'active'>, version=1, metadata={})
+
+    def test_no_authority_downgrade_by_conflict_resolver(self, manager, mock_conflict_service, sample_project, sample_memory, sample_instruction):
+        """Conflict resolver output does not silently downgrade higher-authority information."""
+        # Set up a conflict where the resolver might try to prefer a lower-authority candidate
+>       resolution = ConflictResolutionResult(
+            status=ConflictResolutionStatus.RESOLVED,
+            preferred_candidates=[ConflictCandidate(memory=sample_memory)],
+            resolution_resolver="resolver picked this",
+        )
+E       TypeError: ConflictResolutionResult.__init__() got an unexpected keyword argument 'resolution_resolver'
+
+core\tests\test_memory_manager.py:2647: TypeError
+============================== warnings summary ===============================
+tests/test_context_assembly.py: 16 warnings
+tests/test_contracts.py: 6 warnings
+tests/test_instruction_service.py: 6 warnings
+tests/test_memory_manager.py: 1359 warnings
+  <string>:3: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_context_assembly.py: 16 warnings
+tests/test_contracts.py: 6 warnings
+tests/test_instruction_service.py: 6 warnings
+tests/test_memory_manager.py: 1355 warnings
+  <string>:4: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_context_assembly.py: 4 warnings
+tests/test_contracts.py: 1 warning
+tests/test_memory_manager.py: 78 warnings
+  <string>:7: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_context_assembly.py: 4 warnings
+tests/test_memory_manager.py: 39 warnings
+  D:\proj\Hackathon\RECALL\core\recall_core\context_assembly.py:111: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assembled_at=datetime.utcnow().isoformat(),
+
+tests/test_contracts.py::TestContracts::test_session_is_active
+  D:\proj\Hackathon\RECALL\core\tests\test_contracts.py:138: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    session.ended_at = datetime.utcnow()
+
+tests/test_memory_manager.py::TestMemoryManager::test_update_session
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:225: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+
+tests/test_memory_manager.py::TestMemoryManager::test_update_session
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:228: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    request = SessionUpdateRequest(ended_at=datetime.utcnow())
+
+tests/test_memory_manager.py::TestMemoryManager::test_update_session_not_found
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:240: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    request = SessionUpdateRequest(ended_at=datetime.utcnow())
+
+tests/test_memory_manager.py::TestMemoryManager::test_end_session
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:248: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    ended_session = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+
+tests/test_memory_manager.py::TestMemoryManager::test_end_session
+tests/test_memory_manager.py::TestMemoryManager::test_end_session_not_found
+tests/test_memory_manager.py::TestMemoryManager::test_end_session_repo_failure
+  D:\proj\Hackathon\RECALL\core\recall_core\memory_manager.py:132: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return self._uow.sessions.update(session_id, SessionUpdateRequest(ended_at=datetime.utcnow()))
+
+tests/test_memory_manager.py::TestMemoryManager::test_create_memory_preserves_provenance
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:334: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_memory_manager.py::TestMemoryManager::test_create_memory_preserves_provenance
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:335: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/test_memory_manager.py::TestMemoryManager::test_precedence_current_canonical_over_historical
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:813: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/test_memory_manager.py::TestMemoryManager::test_precedence_current_canonical_over_historical
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:821: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/test_memory_manager.py: 119 warnings
+  D:\proj\Hackathon\RECALL\core\recall_core\memory_manager.py:379: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    metadata={**memory.metadata, "compacted_at": datetime.utcnow().isoformat()},
+
+tests/test_memory_manager.py::TestMemoryManager::test_compact_selection_of_memories
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:1395: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    base_time = datetime.utcnow()
+
+tests/test_memory_manager.py::TestMemoryManager::test_current_canonical_over_older_historical
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:2626: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.utcnow())
+
+tests/test_memory_manager.py::TestMemoryManager::test_current_canonical_over_older_historical
+  D:\proj\Hackathon\RECALL\core\tests\test_memory_manager.py:2627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.utcnow())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_dependency_project_repo_failure
+FAILED core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_with_conflict_resolutions
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_instruction_precedence_in_context_assembly
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_conflict_resolution_delegates_to_service
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_project_only
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_custom_instructions
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_conflicting_sources
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_dependency_failure
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_no_duplicate_memories
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_project_isolation_memories
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_retrieval_filters_passed_correctly
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_retrieve_passes_filters
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_with_historical_and_instructions
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_assemble_context_dependency_project_repo_failure
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_no_authority_downgrade_by_conflict_resolver
+ERROR core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_applies_custom_instructions_via_manager
+ERROR core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_explicit_instruction
+ERROR core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_explicit_update
+ERROR core\tests\test_context_assembly.py::TestContextAssemblyService::test_assemble_context_authority_precedence_current_canonical
+ERROR core\tests\test_instruction_service.py::test_get_active_for_project_multiple_instructions
+ERROR core\tests\test_instruction_service.py::test_get_active_for_project_inactive_instructions_filtered
+ERROR core\tests\test_instruction_service.py::test_scope_matches_behavior
+ERROR core\tests\test_instruction_service.py::test_create_instruction_validates_content
+ERROR core\tests\test_instruction_service.py::test_update_instruction_preserves_id
+ERROR core\tests\test_instruction_service.py::test_list_instructions_with_scope_filter
+ERROR core\tests\test_instruction_service.py::test_list_instructions_with_project_filter
+ERROR core\tests\test_instruction_service.py::test_get_active_global_no_instructions
+ERROR core\tests\test_instruction_service.py::test_get_active_for_project_no_project_instructions
+========== 15 failed, 190 passed, 3030 warnings, 13 errors in 1.80s ===========

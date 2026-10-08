@@ -1,0 +1,29 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.9, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\dipan\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: D:\proj\Hackathon\RECALL\core
+configfile: pyproject.toml
+plugins: anyio-4.12.1
+collecting ... collected 1 item
+
+core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_invalid_content FAILED [100%]
+
+================================== FAILURES ===================================
+____________ TestMemoryManager.test_create_memory_invalid_content _____________
+
+self = <test_memory_manager.TestMemoryManager object at 0x000001ACF8B7A990>
+manager = <core.recall_core.memory_manager.MemoryManager object at 0x000001ACF8B8B530>
+mock_uow = <Mock spec='UnitOfWork' id='1842418847664'>
+
+    def test_create_memory_invalid_content(self, manager, mock_uow):
+        """Test memory creation fails with empty content."""
+        request = MemoryCreateRequest(project_id=uuid4(), content="")
+        result = manager.create_memory(request)
+>       assert not result.success
+E       AssertionError: assert not True
+E        +  where True = Result(success=True, value=<Mock name='mock.memories.create().value' id='1842418856352'>, error=None, metadata={}).success
+
+core\tests\test_memory_manager.py:2425: AssertionError
+=========================== short test summary info ===========================
+FAILED core\tests\test_memory_manager.py::TestMemoryManager::test_create_memory_invalid_content
+============================== 1 failed in 0.16s ==============================
