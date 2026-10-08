@@ -383,3 +383,34 @@ class TestContextAssemblyService:
         # Older historical in historical_memories
         assert any(mem.content == "Old: API v1 is standard" for mem in context.historical_memories)
         assert not any(mem.content == "Old: API v1 is standard" for mem in context.active_memories)
+
+def test_assemble_context_propagates_session_repository_failure(self, mock_uow, mock_retrieval_service, sample_project):
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get_active_for_project.return_value = Result.err("Session store unavailable")
+
+        service = ContextAssemblyService(
+            memory_repo=mock_uow.memories,
+            project_repo=mock_uow.projects,
+            session_repo=mock_uow.sessions,
+            retrieval_service=mock_retrieval_service,
+        )
+        result = service.assemble(ContextAssemblyRequest(project_id=sample_project.id))
+
+        assert not result.success
+        assert "Session store unavailable" in result.error
+
+    def test_assemble_context_propagates_retrieval_failure(self, mock_uow, mock_retrieval_service, sample_project):
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_retrieval_service.retrieve.return_value = Result.err("Retrieval unavailable")
+
+        service = ContextAssemblyService(
+            memory_repo=mock_uow.memories,
+            project_repo=mock_uow.projects,
+            session_repo=mock_uow.sessions,
+            retrieval_service=mock_retrieval_service,
+        )
+        result = service.assemble(ContextAssemblyRequest(project_id=sample_project.id, query="test"))
+
+        assert not result.success
+        assert "Retrieval unavailable" in result.error
