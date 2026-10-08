@@ -143,11 +143,18 @@ class MemoryManager:
 
             memory = result.value
 
-            # Index in semantic store (best effort)
-            index_result = self._semantic_index.index_memory(memory)
-            if not index_result.success:
-                # Log but don't fail - semantic index is derived
-                pass
+            # Index in semantic store (best effort). Canonical persistence has
+            # succeeded, so a derived-index outage must not report creation as
+            # failed and encourage callers to retry a write that already exists.
+            try:
+                index_result = self._semantic_index.index_memory(memory)
+                if not index_result.success:
+                    return Result.ok(
+                        memory,
+                        metadata={"semantic_index_error": index_result.error or "Indexing failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
 
             return Result.ok(memory)
 
@@ -167,10 +174,17 @@ class MemoryManager:
 
             memory = result.value
 
-            # Update semantic index (best effort)
-            index_result = self._semantic_index.update_memory(memory)
-            if not index_result.success:
-                pass
+            # Updating canonical state is authoritative; index maintenance is
+            # best effort and can be reconciled by rebuilding the derived index.
+            try:
+                index_result = self._semantic_index.update_memory(memory)
+                if not index_result.success:
+                    return Result.ok(
+                        memory,
+                        metadata={"semantic_index_error": index_result.error or "Index update failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
 
             return Result.ok(memory)
 
