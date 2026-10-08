@@ -2735,3 +2735,23 @@ def test_delete_memory_does_not_touch_index_when_canonical_delete_fails(self, ma
 
         assert not result.success
         assert "Instruction store unavailable" in result.error
+
+    def test_create_memory_succeeds_when_index_raises(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.create.return_value = Result.ok(sample_memory)
+        mock_semantic_index.index_memory.side_effect = RuntimeError("index offline")
+
+        result = manager.create_memory(MemoryCreateRequest(project_id=sample_memory.project_id, content=sample_memory.content))
+
+        assert result.success
+        assert result.value.id == sample_memory.id
+        assert result.metadata["semantic_index_error"] == "index offline"
+
+    def test_update_memory_succeeds_when_index_raises(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.update.return_value = Result.ok(sample_memory)
+        mock_semantic_index.update_memory.side_effect = RuntimeError("index offline")
+
+        result = manager.update_memory(sample_memory.id, MemoryUpdateRequest(content="updated"))
+
+        assert result.success
+        assert result.value.id == sample_memory.id
+        assert result.metadata["semantic_index_error"] == "index offline"
