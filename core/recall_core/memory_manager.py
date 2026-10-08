@@ -180,11 +180,28 @@ class MemoryManager:
     def delete_memory(self, memory_id: UUID) -> Result[bool]:
         """Delete (deactivate) a memory."""
         try:
-            # Remove from semantic index first
-            self._semantic_index.remove_memory(memory_id)
+            # Canonical storage is the source of truth. Never remove a memory
+            # from the derived index unless the canonical operation succeeded.
+            delete_result = self._uow.memories.delete(memory_id)
+            if not delete_result.success or not delete_result.value:
+                return delete_result
 
-            # Delete from canonical storage
-            return self._uow.memories.delete(memory_id)
+            # The semantic index is derived and can be rebuilt. Cleanup failure
+            # must not turn a successful canonical deletion into a false failure.
+            try:
+                index_result = self._semantic_index.remove_memory(memory_id)
+                if not index_result.success:
+                    return Result.ok(
+                        delete_result.value,
+                        metadata={"semantic_index_cleanup_error": index_result.error or "Index cleanup failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(
+                    delete_result.value,
+                    metadata={"semantic_index_cleanup_error": str(index_error)},
+                )
+
+            return delete_result
 
         except Exception as e:
             return Result.err(f"Memory deletion failed: {str(e)}")
@@ -302,11 +319,17 @@ class MemoryManager:
                 return context_result
             context = context_result.value
 
-            # Apply custom instructions (highest precedence)
-            if request.include_custom_instructions and request.project_id:
+            # Apply custom instructions (highest precedence). Global instructions
+            # must also be available when no project has been selected.
+            if request.include_custom_instructions:
                 instr_result = self.get_active_instructions(request.project_id)
-                if instr_result.success:
-                    context = self._context_assembly.apply_custom_instructions(context, instr_result.value)
+                if not instr_result.success:
+                    return Result.err(
+                        instr_result.error or "Failed to load required custom instructions"
+                    )
+                context = self._context_assembly.apply_custom_instructions(
+                    context, instr_result.value or []
+                )
 
             return Result.ok(context)
 
