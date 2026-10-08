@@ -65,5 +65,14 @@ class CustomInstructionService:
         if not project_result.success:
             return project_result
 
-        combined = global_result.value + project_result.value
+        # Repositories should scope their results correctly, but deduplicate
+        # defensively in case an adapter returns an instruction in both lists.
+        combined = []
+        seen_ids = set()
+        for instruction in (global_result.value or []) + (project_result.value or []):
+            if instruction.id in seen_ids:
+                continue
+            seen_ids.add(instruction.id)
+            combined.append(instruction)
+
         return Result.ok(combined)
