@@ -58,10 +58,10 @@ class CustomInstructionService:
     def get_active_for_project(self, project_id: UUID) -> Result[list[CustomInstruction]]:
         """Get active instructions for a project (global + project-scoped)."""
         global_result = self.get_active_global()
-        project_result = self.get_active_for_scope("project", project_id)
-
         if not global_result.success:
             return global_result
+
+        project_result = self.get_active_for_scope("project", project_id)
         if not project_result.success:
             return project_result
 
