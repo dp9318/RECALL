@@ -384,7 +384,7 @@ class TestContextAssemblyService:
         assert any(mem.content == "Old: API v1 is standard" for mem in context.historical_memories)
         assert not any(mem.content == "Old: API v1 is standard" for mem in context.active_memories)
 
-def test_assemble_context_propagates_session_repository_failure(self, mock_uow, mock_retrieval_service, sample_project):
+    def test_assemble_context_propagates_session_repository_failure(self, mock_uow, mock_retrieval_service, sample_project):
         mock_uow.projects.get.return_value = Result.ok(sample_project)
         mock_uow.sessions.get_active_for_project.return_value = Result.err("Session store unavailable")
 
