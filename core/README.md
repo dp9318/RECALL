@@ -24,7 +24,7 @@ The `contracts`, `database`, and `intelligence` packages intentionally live besi
 Run from the repository root:
 
 ```bash
-python -m pip install -e "core[test]"
+python -m pip install -e "core[test,mcp]"
 ```
 
 ## Running tests
@@ -34,6 +34,9 @@ Run from the repository root:
 ```bash
 python -m pytest core/tests -v
 ```
+
+See [the MCP module setup guide](../docs/modules/MCP.md) for OpenCode configuration,
+Core factory requirements, and current integration limitations.
 
 ## Core components
 
