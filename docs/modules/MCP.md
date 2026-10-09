@@ -22,22 +22,22 @@ The adapter does not implement storage, retrieval, or conflict policy. It does
 not expose conflict-resolution tools because there is not yet a complete safe
 Core operation that selects and persists a conflict resolution.
 
-## Current implementation status and blocker
+## Current implementation status and composition requirement
 
-The repository currently has Core orchestration and a default retrieval
-implementation, plus SQLite connection/schema/migration utilities. It does not
-have concrete implementations of the project, session, memory, custom
-instruction, semantic-index repositories, or Unit of Work. Consequently this
-checkout has no real Core composition factory, so it cannot provide durable
-save/search/context flows end-to-end. The MCP server deliberately requires a
-real factory and refuses to start without one; it never substitutes sample or
-in-memory records.
+The repository includes concrete SQLite repositories for projects, sessions,
+memories, and custom instructions, plus a SQLite Unit of Work. The default
+retrieval service can be composed with the SQLite memory repository for
+structured retrieval. This checkout does not provide a default Core composition
+factory, so an application must construct a `MemoryManager` with its chosen
+database configuration and services, then expose a zero-argument factory
+through `RECALL_CORE_FACTORY`. The MCP server refuses to start without that
+factory; it never substitutes sample or in-memory records.
 
-Once a concrete composition exists, expose a callable that constructs and
-returns `MemoryManager`, then point `RECALL_CORE_FACTORY` at it in
-`package.module:factory` form. The returned manager owns its real repositories
-and services. Do not place SQL, ChromaDB calls, or another memory store in the
-factory or MCP handlers.
+The factory should compose the existing repositories and services rather than
+implementing their logic itself. Do not place SQL, ChromaDB calls, or another
+memory store in the MCP handlers. The current ChromaDB adapter does not provide
+production semantic indexing; configure structured SQLite retrieval where
+semantic indexing is unavailable.
 
 ## Install and run
 
@@ -59,10 +59,10 @@ export RECALL_CORE_FACTORY="your_application.bootstrap:create_memory_manager"
 recall-mcp
 ```
 
-The factory value above is a placeholder, not an included RECALL module: no
-concrete storage composition currently exists in this repository. Until one is
-provided, startup exits with an explicit diagnostic. Do not configure OpenCode
-to point at a guessed database path or claim persistence has been initialized.
+The factory value above is a placeholder, not an included RECALL module. Until
+an application provides the factory and its database configuration, startup
+exits with an explicit diagnostic. Do not configure OpenCode to point at a
+guessed database path or claim persistence has been initialized.
 
 ## OpenCode configuration
 
@@ -102,10 +102,10 @@ After the real Core composition is in place, verify the flow with these tools:
 3. Call `recall_get_context` with the same project and inspect memory provenance
    and custom instructions.
 
-The current repository cannot complete this end-to-end flow until concrete
-repositories/Unit of Work and their composition are implemented. Automated
-adapter tests use mocked Core boundaries and are not persistence integration
-tests.
+The repository provides the persistence components, but an application factory
+is still required to wire them into Core. Automated adapter tests use mocked
+Core boundaries; database-backed MCP behavior should be verified with the
+application's configured factory.
 
 ## Validation
 

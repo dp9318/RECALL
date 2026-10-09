@@ -190,8 +190,8 @@ def main() -> None:
     factory_path = os.environ.get("RECALL_CORE_FACTORY")
     if not factory_path:
         raise SystemExit(
-            "RECALL_CORE_FACTORY is required. This checkout has no concrete database "
-            "repositories or Core bootstrap; configure a factory returning MemoryManager."
+            "RECALL_CORE_FACTORY is required. This checkout has no default Core "
+            "composition factory; configure a factory returning MemoryManager."
         )
 
     memory_manager = _load_core_factory(factory_path)
