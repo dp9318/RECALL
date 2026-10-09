@@ -10,6 +10,10 @@ build/
 dist/
 *.egg-info/
 
+
+new_test_failures*.txt
+test_output.txt
+
 # Environments and secrets
 .venv/
 venv/
