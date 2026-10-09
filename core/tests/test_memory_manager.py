@@ -905,6 +905,9 @@ class TestMemoryManager:
         candidates = [ConflictCandidate(memory=sample_memory)]
         instructions = [sample_instruction]
         project_id = sample_memory.project_id
+        mock_uow.projects.get.return_value = Result.ok(
+            Project(id=project_id, name="Test Project")
+        )
 
         resolution = ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED)
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
@@ -1032,6 +1035,7 @@ class TestMemoryManager:
     def test_assemble_context_project_only(self, manager, mock_uow, sample_project, sample_memory):
         """Test context assembly with project context only."""
         mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get_active_for_project.return_value = Result.ok(None)
         mock_uow.memories.get_active_for_project.return_value = Result.ok([sample_memory])
         mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
 
@@ -1278,6 +1282,7 @@ class TestMemoryManager:
             type('obj', (object,), {'memories': [sample_memory], 'total_found': 1})()
         )
         manager._retrieval_service = mock_retrieval
+        manager._context_assembly._retrieval_service = mock_retrieval
 
         request = ContextAssemblyRequest(project_id=sample_project.id, query="test")
         result = manager.assemble_context(request)
@@ -1777,7 +1782,7 @@ class TestMemoryManager:
         assert context.active_memories[0].content == "Project A memory"
         assert context.active_memories[0].project_id == project_a.id
         # Verify get_active_for_project was called with project A's ID
-        mock_uow.memories.get_active_for_project.assert_called_with(project_a.id, 50)
+        mock_uow.memories.get_active_for_project.assert_called_with(project_a.id, 20)
 
     def test_project_isolation_instructions(self, manager, mock_uow):
         """Test project A does not receive project B instructions."""
@@ -1925,7 +1930,8 @@ class TestMemoryManager:
         request = RetrievalRequest(
             query="test",
             project_id=sample_project.id,
-            memory_types=["decision"],
+            use_semantic=False,
+            use_structured=True,
             include_historical=False,
             limit=10,
         )
@@ -1934,7 +1940,8 @@ class TestMemoryManager:
         assert result.success
         called_request = mock_retrieval_service.retrieve.call_args[0][0]
         assert called_request.project_id == sample_project.id
-        assert called_request.memory_types == ["decision"]
+        assert called_request.use_semantic is False
+        assert called_request.use_structured is True
         assert called_request.include_historical is False
         assert called_request.limit == 10
 
@@ -2132,7 +2139,8 @@ class TestMemoryManager:
             query="test",
             project_id=uuid4(),
             include_historical=True,
-            memory_types=["decision", "fact"],
+            use_semantic=False,
+            use_structured=True,
             limit=25
         )
         result = manager.retrieve(request)
@@ -2140,7 +2148,8 @@ class TestMemoryManager:
         assert result.success
         called_request = mock_retrieval_service.retrieve.call_args[0][0]
         assert called_request.include_historical is True
-        assert called_request.memory_types == ["decision", "fact"]
+        assert called_request.use_semantic is False
+        assert called_request.use_structured is True
         assert called_request.limit == 25
 
     def test_search_convenience(self, manager, mock_retrieval_service, sample_memory):
