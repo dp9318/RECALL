@@ -1,5 +1,5 @@
 import { createApiClient } from './mockClient';
-import apiClient from './client';
+import apiClient, { API_BASE_URL } from './client';
 import type {
   Memory,
   MemoryListResponse,
@@ -26,6 +26,7 @@ import type {
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 export const api = createApiClient(USE_MOCK);
+export { API_BASE_URL };
 
 // Re-export types for convenience
 export type {

@@ -27,6 +27,7 @@ from contracts.project import Project, Session, SessionCreateRequest
 from contracts.retrieval import CompactRequest, RetrievalRequest
 from core.recall_core.bootstrap import create_memory_manager
 from core.recall_core.memory_manager import MemoryManager
+from intelligence.conflict_adapters import OllamaConflictAdapter
 
 
 def _parse_uuid(value: str | None, field_name: str, *, allow_missing: bool = False) -> UUID | None:
@@ -167,15 +168,24 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         for origin in os.getenv("RECALL_CORS_ORIGINS", "").split(",")
         if origin.strip()
     ]
+    default_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://0.0.0.0:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://0.0.0.0:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://0.0.0.0:3000",
+        "http://[::1]:5173",
+        "http://[::1]:5174",
+        "http://[::1]:3000",
+    ]
     if not cors_origins:
-        cors_origins = [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://localhost:5174",
-            "http://127.0.0.1:5174",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-        ]
+        cors_origins = default_origins
+    else:
+        cors_origins = sorted(set(cors_origins + default_origins))
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
@@ -196,10 +206,12 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         app.state.memory_manager = manager
         return manager
 
+    # Core shares a thread-affine SQLite connection, so these handlers stay on the event-loop thread.
     @app.get("/health")
-    def health() -> dict[str, Any]:
+    async def health() -> dict[str, Any]:
         manager = get_manager()
-        database_connected = True
+        database_check = manager.list_projects(limit=1)
+        database_connected = database_check.success
         semantic_index = getattr(manager, "_semantic_index", None)
         chromadb_connected = False
         if semantic_index is not None and hasattr(semantic_index, "health_check"):
@@ -212,9 +224,9 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
                         chromadb_connected = status_value in {"healthy", "available"} or bool(payload.get("available"))
             except Exception:
                 chromadb_connected = False
-        local_llm_available = True
+        local_llm_available = OllamaConflictAdapter().is_available()
         return {
-            "status": "healthy" if database_connected and chromadb_connected else "degraded",
+            "status": "healthy" if database_connected and chromadb_connected and local_llm_available else "degraded",
             "api_version": "1.0.0",
             "database_connected": database_connected,
             "chromadb_connected": chromadb_connected,
@@ -223,7 +235,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         }
 
     @app.get("/projects")
-    def list_projects(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
+    async def list_projects(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
         manager = get_manager()
         result = manager.list_projects(limit=limit, offset=offset)
         if not result.success:
@@ -247,7 +259,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return payload
 
     @app.get("/memories")
-    def list_memories(
+    async def list_memories(
         project_id: str | None = None,
         memory_type: str | None = None,
         status: str | None = None,
@@ -281,7 +293,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return payload
 
     @app.get("/memories/{memory_id}")
-    def get_memory(memory_id: str) -> dict[str, Any]:
+    async def get_memory(memory_id: str) -> dict[str, Any]:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
         result = manager.get_memory(memory_uuid)
@@ -290,7 +302,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return _serialize_memory(manager, result.value)
 
     @app.post("/memories")
-    def create_memory(payload: dict[str, Any]) -> dict[str, Any]:
+    async def create_memory(payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         project_id = _parse_uuid(payload.get("project_id"), "project_id", allow_missing=True)
         session_id = _parse_uuid(payload.get("session_id"), "session_id", allow_missing=True)
@@ -315,7 +327,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return _serialize_memory(manager, result.value)
 
     @app.patch("/memories/{memory_id}")
-    def update_memory(memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def update_memory(memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
         status_value = _parse_status(payload.get("status"), MemoryStatus, "status")
@@ -331,7 +343,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return _serialize_memory(manager, result.value)
 
     @app.delete("/memories/{memory_id}")
-    def delete_memory(memory_id: str) -> Response:
+    async def delete_memory(memory_id: str) -> Response:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
         result = manager.delete_memory(memory_uuid)
@@ -340,7 +352,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return Response(status_code=204)
 
     @app.get("/custom-instructions")
-    def list_custom_instructions(
+    async def list_custom_instructions(
         project_id: str | None = None,
         scope: str | None = None,
         status: str | None = None,
@@ -366,7 +378,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         }
 
     @app.post("/custom-instructions")
-    def create_custom_instruction(payload: dict[str, Any]) -> dict[str, Any]:
+    async def create_custom_instruction(payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         scope_value = Scope(payload.get("scope") or Scope.GLOBAL.value)
         project_id = _parse_uuid(payload.get("project_id"), "project_id", allow_missing=True)
@@ -384,7 +396,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return _serialize_instruction(result.value)
 
     @app.patch("/custom-instructions/{instruction_id}")
-    def update_custom_instruction(instruction_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def update_custom_instruction(instruction_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         instruction_uuid = _parse_uuid(instruction_id, "instruction_id")
         active = payload.get("active")
@@ -406,7 +418,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return _serialize_instruction(result.value)
 
     @app.delete("/custom-instructions/{instruction_id}")
-    def delete_custom_instruction(instruction_id: str) -> Response:
+    async def delete_custom_instruction(instruction_id: str) -> Response:
         manager = get_manager()
         instruction_uuid = _parse_uuid(instruction_id, "instruction_id")
         result = manager.delete_instruction(instruction_uuid)
@@ -415,7 +427,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return Response(status_code=204)
 
     @app.get("/conflicts")
-    def list_conflicts(project_id: str | None = None) -> dict[str, Any]:
+    async def list_conflicts(project_id: str | None = None) -> dict[str, Any]:
         manager = get_manager()
         project_uuid = _parse_uuid(project_id, "project_id", allow_missing=True)
         available = manager._uow.memories.search(MemorySearchParams(project_id=project_uuid, status=MemoryStatus.ACTIVE, limit=200))
@@ -437,7 +449,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return {"conflicts": [conflict], "total": 1}
 
     @app.get("/sessions")
-    def list_sessions(project_id: str | None = None, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
+    async def list_sessions(project_id: str | None = None, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
         manager = get_manager()
         project_uuid = _parse_uuid(project_id, "project_id", allow_missing=True)
         result = manager._uow.sessions.list(PaginationParams(limit=limit, offset=offset), project_id=project_uuid)
@@ -447,7 +459,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         return {"sessions": [_serialize_session(session) for session in sessions], "total": result.value.total if result.value is not None else len(sessions)}
 
     @app.get("/stats")
-    def get_stats() -> dict[str, Any]:
+    async def get_stats() -> dict[str, Any]:
         manager = get_manager()
         result = manager.get_stats()
         if not result.success:
@@ -458,6 +470,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         total_memories = sum(int(v) for v in memory_payload.values()) if isinstance(memory_payload, dict) else 0
         total_instructions = sum(int(v) for v in instruction_payload.values()) if isinstance(instruction_payload, dict) else 0
         semantic_health = payload.get("semantic_index", {})
+        database_check = manager.list_projects(limit=1)
         return {
             "total_memories": total_memories,
             "active_memories": int(memory_payload.get("active", 0)) if isinstance(memory_payload, dict) else 0,
@@ -468,13 +481,13 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
             "unresolved_conflicts": 0,
             "semantic_index_status": "healthy" if (semantic_health.get("status") == "healthy" or semantic_health.get("available") is True) else "degraded",
             "last_indexed_at": semantic_health.get("last_indexed_at"),
-            "database_connected": True,
+            "database_connected": database_check.success,
             "chromadb_connected": bool(semantic_health.get("available") or semantic_health.get("status") == "healthy"),
-            "local_llm_available": True,
+            "local_llm_available": OllamaConflictAdapter().is_available(),
         }
 
     @app.post("/context/query")
-    def query_context(payload: dict[str, Any]) -> dict[str, Any]:
+    async def query_context(payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         query_text = str(payload.get("query") or "").strip()
         if not query_text:
@@ -508,7 +521,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         }
 
     @app.post("/context/compact")
-    def compact_context(payload: dict[str, Any]) -> dict[str, Any]:
+    async def compact_context(payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         project_id = _parse_uuid(payload.get("project_id"), "project_id")
         session_id = _parse_uuid(payload.get("session_id"), "session_id", allow_missing=True)

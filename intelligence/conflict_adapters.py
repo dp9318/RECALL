@@ -123,6 +123,24 @@ class OllamaConflictAdapter:
             raise RuntimeError("Ollama returned an unsupported response shape.") from exc
         return _parse_model_json(content, "Ollama")
 
+    def is_available(self) -> bool:
+        """Check whether Ollama serves the configured arbitration model."""
+        request = Request(f"{self._base_url}/api/tags", headers={"Accept": "application/json"})
+        try:
+            with self._opener(request, timeout=min(self._timeout_seconds, 2.0)) as response:
+                payload = json.load(response)
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
+            return False
+
+        models = payload.get("models") if isinstance(payload, dict) else None
+        if not isinstance(models, list):
+            return False
+        return any(
+            isinstance(model, dict)
+            and (model.get("name") == self._model or model.get("model") == self._model)
+            for model in models
+        )
+
 
 class CloudConflictAdapter:
     """Adapter for native OpenAI, Anthropic, and Google Gemini APIs."""

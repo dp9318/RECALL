@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type Project, type Session, type Stats, type HealthStatus } from '../api';
+import { api, API_BASE_URL, type Project, type Session, type Stats, type HealthStatus } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -352,9 +352,11 @@ export function SettingsPage() {
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">API Base URL</label>
                   <Input
-                    value={import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}
+                    value={API_BASE_URL}
                     disabled
-                    helperText="Configured via VITE_API_BASE_URL environment variable"
+                    helperText={API_BASE_URL === '/api'
+                      ? 'Using the same-origin Vite development proxy to http://localhost:8080'
+                      : 'Configured via VITE_API_BASE_URL or the production default'}
                   />
                 </div>
                 <div>

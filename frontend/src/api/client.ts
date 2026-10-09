@@ -18,7 +18,10 @@ import type {
   HealthStatus,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const DEFAULT_API_BASE_URL = 'http://localhost:8080';
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
+
+export const API_BASE_URL = configuredBaseUrl || (import.meta.env.DEV ? '/api' : DEFAULT_API_BASE_URL);
 
 export function createApiError(message: string, status: number, response?: Response): Error {
   const error = new Error(message);

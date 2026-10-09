@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import inspect
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from fastapi.routing import APIRoute
 
 from contracts.base import Result, Scope
 from contracts.memory import Memory, MemoryStatus
@@ -156,6 +158,34 @@ def test_health_and_projects_routes():
     projects = client.get("/projects")
     assert projects.status_code == 200
     assert "projects" in projects.json()
+
+
+def test_health_reports_unavailable_local_model_without_marking_api_unreachable(monkeypatch):
+    monkeypatch.setattr(
+        "core.recall_core.api.OllamaConflictAdapter.is_available",
+        lambda self: False,
+    )
+    client = TestClient(create_app(FakeMemoryManager()))
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "degraded"
+    assert response.json()["database_connected"] is True
+    assert response.json()["chromadb_connected"] is True
+    assert response.json()["local_llm_available"] is False
+
+
+def test_core_api_handlers_run_on_event_loop_thread():
+    app = create_app(FakeMemoryManager())
+    core_routes = [
+        route
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.path != "/openapi.json"
+    ]
+
+    assert core_routes
+    assert all(inspect.iscoroutinefunction(route.endpoint) for route in core_routes)
 
 
 def test_memories_and_custom_instruction_routes():

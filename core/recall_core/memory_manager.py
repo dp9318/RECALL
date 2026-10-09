@@ -665,25 +665,21 @@ class MemoryManager:
             if proj_result.success:
                 stats["projects"] = len(proj_result.value)
 
-            if project_id:
-                # Session count for project
-                sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
-                if sess_result.success and sess_result.value:
-                    stats["sessions"] = sess_result.value.total
+            sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
+            if sess_result.success and sess_result.value:
+                stats["sessions"] = sess_result.value.total
 
-                # Memory counts
-                for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
-                    mem_params = MemorySearchParams(project_id=project_id, status=status, limit=1000)
-                    mem_result = self._uow.memories.search(mem_params)
-                    if mem_result.success and mem_result.value:
-                        stats["memories"][status.value] = mem_result.value.total
+            for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
+                mem_params = MemorySearchParams(project_id=project_id, status=status, limit=1000)
+                mem_result = self._uow.memories.search(mem_params)
+                if mem_result.success and mem_result.value:
+                    stats["memories"][status.value] = mem_result.value.total
 
-                # Instruction counts
-                for status_val in [InstructionStatus.ACTIVE, InstructionStatus.INACTIVE]:
-                    instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1000)
-                    instr_result = self._uow.custom_instructions.list(instr_params)
-                    if instr_result.success and instr_result.value:
-                        stats["custom_instructions"][status_val.value] = instr_result.value.total
+            for status_val in [InstructionStatus.ACTIVE, InstructionStatus.INACTIVE]:
+                instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1000)
+                instr_result = self._uow.custom_instructions.list(instr_params)
+                if instr_result.success and instr_result.value:
+                    stats["custom_instructions"][status_val.value] = instr_result.value.total
 
             # Semantic index health
             index_health = self._semantic_index.health_check()

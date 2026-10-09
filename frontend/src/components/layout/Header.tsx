@@ -10,6 +10,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
   
   const checkHealth = async () => {
@@ -17,8 +18,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     try {
       const h = await api.getHealth();
       setHealth(h);
-    } catch {
-      setHealth({ status: 'unhealthy', api_version: 'unknown', database_connected: false, chromadb_connected: false, local_llm_available: false, timestamp: new Date().toISOString() });
+      setHealthError(null);
+    } catch (err) {
+      setHealth(null);
+      setHealthError(err instanceof Error ? err.message : 'Health check failed');
     } finally {
       setCheckingHealth(false);
     }
@@ -88,7 +91,14 @@ export function Header({ onMenuClick }: HeaderProps) {
                   </span>
                 </>
               )}
-              {!health && <span className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" aria-hidden="true" />}
+              {!health && (
+                <>
+                  <span className={`w-2 h-2 rounded-full ${healthError ? 'bg-error' : 'bg-gray-400 animate-pulse'}`} aria-hidden="true" />
+                  <span className="hidden sm:inline text-sm font-medium">
+                    {healthError ? 'Disconnected' : checkingHealth ? 'Checking…' : 'Unknown'}
+                  </span>
+                </>
+              )}
             </Button>
           </div>
           
@@ -115,11 +125,21 @@ export function Header({ onMenuClick }: HeaderProps) {
       </div>
       
       {/* Health details dropdown - could be expanded later */}
+      {healthError && (
+        <div className="border-t border-border px-4 lg:px-6 py-2 bg-error/5 text-xs text-error">
+          API unreachable: {healthError}. Database, ChromaDB, and Local LLM status are unknown until the API responds.
+          <Button variant="ghost" size="sm" onClick={checkHealth} disabled={checkingHealth}>Retry</Button>
+        </div>
+      )}
       {health && health.status !== 'healthy' && (
         <div className="border-t border-border px-4 lg:px-6 py-2 bg-error/5 text-xs text-error">
           <div className="flex items-center gap-4 flex-wrap">
-            <span>API: {health.database_connected ? '✓' : '✗'} Database | {health.chromadb_connected ? '✓' : '✗'} ChromaDB | {health.local_llm_available ? '✓' : '✗'} Local LLM</span>
-            <Button variant="ghost" size="sm" onClick={checkHealth}>Retry</Button>
+            <span>
+              API reachable | Database: {health.database_connected ? 'Connected' : 'Unavailable'} |
+              {' '}ChromaDB: {health.chromadb_connected ? 'Connected' : 'Unavailable'} |
+              {' '}Local LLM: {health.local_llm_available ? 'Available' : 'Unavailable'}
+            </span>
+            <Button variant="ghost" size="sm" onClick={checkHealth} disabled={checkingHealth}>Retry</Button>
           </div>
         </div>
       )}
