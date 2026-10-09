@@ -1,5 +1,6 @@
 """Core Memory Manager package for RECALL."""
 
+from .api import app, create_app
 from .context_assembly import ContextAssemblyService
 from .exceptions import (
     ConflictResolutionError,
@@ -21,6 +22,8 @@ __all__ = [
     "MemoryManager",
     "CustomInstructionService",
     "ContextAssemblyService",
+    "app",
+    "create_app",
     "RecallCoreError",
     "MemoryNotFoundError",
     "ProjectNotFoundError",

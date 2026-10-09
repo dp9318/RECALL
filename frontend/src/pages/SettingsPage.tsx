@@ -360,9 +360,9 @@ export function SettingsPage() {
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Mock API Mode</label>
                   <Input
-                    value={import.meta.env.VITE_USE_MOCK_API !== 'false' ? 'Enabled (Default)' : 'Disabled'}
+                    value={import.meta.env.VITE_USE_MOCK_API === 'true' ? 'Enabled (Explicit Opt-In)' : 'Disabled (Default)'}
                     disabled
-                    helperText="Set VITE_USE_MOCK_API=false to use real backend"
+                    helperText="Set VITE_USE_MOCK_API=true only for UI-only mock development; otherwise use the real backend API."
                   />
                 </div>
               </div>

@@ -22,8 +22,8 @@ import type {
   MemoryReference,
 } from '../types';
 
-// Use mock client by default since backend doesn't exist yet
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
+// Real API is the default. Mock mode remains available only when explicitly enabled.
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 export const api = createApiClient(USE_MOCK);
 

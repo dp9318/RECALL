@@ -43,7 +43,7 @@ The conflict resolver should return a structured result containing enough inform
 
 ## API Contract
 
-The dashboard should be able to consume domain capabilities through a stable HTTP/JSON interface. Suggested endpoints:
+The dashboard consumes RECALL capabilities through a stable HTTP/JSON interface. The implemented frontend-facing contract is:
 
 ```text
 GET    /health
@@ -64,7 +64,17 @@ GET    /sessions
 GET    /stats
 ```
 
-Exact route names may evolve; the domain capability must remain stable.
+### Frontend-facing HTTP API behavior
+
+- The API is served by the RECALL core application and is not a separate business-logic implementation.
+- Requests are validated at the HTTP boundary before Core operations are invoked.
+- All write operations persist canonical state in SQLite and optionally update the derived ChromaDB index as best-effort metadata synchronization.
+- Route responses return JSON payloads shaped to the dashboard TypeScript contracts under `frontend/src/types`.
+- Error responses use standard HTTP status codes with a JSON detail message.
+- Project and session scoping is validated against canonical repositories before execution.
+- Compaction preserves lineage and is rejected when lineage preservation is disabled or invalid.
+
+The route names and field shapes above are the contract used by the dashboard client. Any change to these public names or schemas requires deliberate contract updates and corresponding frontend compatibility checks.
 
 ## MCP Contract
 
