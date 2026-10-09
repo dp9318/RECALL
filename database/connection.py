@@ -89,9 +89,7 @@ class Transaction:
 
     def __enter__(self) -> Transaction:
         # With isolation_level=None, we must explicitly start a transaction
-        print(f"Transaction.__enter__: executing BEGIN, in_transaction before={self._conn.in_transaction}")
         self._conn.execute("BEGIN")
-        print(f"Transaction.__enter__: BEGIN executed, in_transaction after={self._conn.in_transaction}")
         self._active = True
         return self
 
@@ -148,11 +146,8 @@ def transaction(conn: sqlite3.Connection) -> Iterator[Transaction]:
     """Context manager for a database transaction."""
     tx = Transaction(conn)
     try:
-        print(f"transaction: before with tx")
         with tx:
-            print(f"transaction: after with tx, before yield")
             yield tx
-            print(f"transaction: after yield")
     except Exception:
         if not tx._committed and not tx._rolled_back:
             tx.rollback()

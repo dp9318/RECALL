@@ -213,7 +213,7 @@ def test_memory_repository():
             cursor = conn.execute("SELECT * FROM memory_lineage WHERE parent_id = ? OR child_id = ?", (uuid_to_str(memory_id), uuid_to_str(memory_id)))
             for row in cursor.fetchall():
                 print(f"  DB Lineage: {row}")
-            
+
             result = memory_repo.get_lineage(memory_id)
             if not result.success:
                 print(f"get_lineage failed: {result.error}")

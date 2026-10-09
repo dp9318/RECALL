@@ -27,7 +27,13 @@ test = [
     "pytest>=7.0",
     "pytest-mock>=3.10",
 ]
+mcp = [
+    "mcp>=1.28,<2",
+]
+
+[project.scripts]
+recall-mcp = "recall_mcp.server:main"
 
 [tool.setuptools.packages.find]
 where = [".."]
-include = ["core", "core.recall_core*", "contracts*", "database*", "intelligence*"]
+include = ["core", "core.recall_core*", "contracts*", "database*", "intelligence*", "recall_mcp*"]
