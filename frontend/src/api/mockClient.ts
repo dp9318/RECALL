@@ -548,11 +548,11 @@ export const mockApiClient = {
   },
 };
 
-// Export a factory function to choose between real and mock API
+// Export a factory function to choose between real and mock API.
+// Mock mode is intentionally opt-in to avoid silently masking missing backend integration.
 import apiClient from './client';
 
 export function createApiClient(useMock = false) {
-  // Check if we should use mock (no backend available)
   const shouldUseMock = useMock || import.meta.env.VITE_USE_MOCK_API === 'true';
   return shouldUseMock ? mockApiClient : apiClient;
 }

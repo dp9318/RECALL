@@ -16,8 +16,8 @@ export function EditMemoryPage() {
   const navigate = useNavigate();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [memoryType, setMemoryType] = useState('fact');
-  const [status, setStatus] = useState('active');
+  const [memoryType, setMemoryType] = useState<Memory['memory_type']>('fact');
+  const [status, setStatus] = useState<Memory['status']>('active');
   const [importance, setImportance] = useState(50);
   const [provenance, setProvenance] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -26,8 +26,10 @@ export function EditMemoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Load memory and projects for edit form
+  const memoryId = id ?? '';
+
   useEffect(() => {
-    if (!id) {
+    if (!memoryId) {
       navigate('/memories');
       return;
     }
@@ -36,7 +38,7 @@ export function EditMemoryPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await api.getMemory(id);
+        const data = await api.getMemory(memoryId);
         setMemory(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load memory for edit');
@@ -83,6 +85,11 @@ export function EditMemoryPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!memoryId) {
+      navigate('/memories');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -90,7 +97,7 @@ export function EditMemoryPage() {
     const pname = projects.find(p => p.project_id === pid)?.name || memory.project_name;
 
     try {
-      await api.updateMemory(id, {
+      await api.updateMemory(memoryId, {
         project_id: pid,
         project_name: pname,
         memory_type: memoryType,
@@ -102,7 +109,7 @@ export function EditMemoryPage() {
         tags: tags,
       });
 
-      navigate(`/memories/${id}`);
+      navigate(`/memories/${memoryId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update memory');
     } finally {

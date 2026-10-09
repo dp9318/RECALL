@@ -20,7 +20,10 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+]
 
 [project.optional-dependencies]
 test = [
@@ -37,6 +40,7 @@ semantic = [
 
 [project.scripts]
 recall-mcp = "recall_mcp.server:main"
+recall-api = "core.recall_core.api:main"
 
 [tool.setuptools.packages.find]
 where = [".."]
