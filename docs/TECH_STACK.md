@@ -9,7 +9,8 @@
 - ChromaDB for derived semantic retrieval
 - Sentence Transformers with `sentence-transformers/all-MiniLM-L6-v2` as the
   default local embedding provider/model (CPU by default)
-- local 1B–3B LLM runtime behind a narrow resolver adapter (runtime/model configurable)
+- local 1B–3B LLM runtime behind a narrow resolver adapter (Ollama by default; runtime/model configurable)
+- optional native API adapters for OpenAI, Anthropic, and Google Gemini, used only on local context-window overflow when explicitly configured
 
 ## Frontend
 
@@ -43,9 +44,9 @@ Canonical records and relationships.
 
 Derived embeddings/index only. It may be recreated from SQLite.
 
-### Local LLM
+### Conflict arbitration models
 
-Only used for bounded conflict arbitration when deterministic logic cannot safely resolve the candidate set.
+The local LLM is used for bounded conflict arbitration when deterministic logic cannot safely resolve the candidate set. Cloud services are an opt-in overflow fallback, not a general fallback for local service errors. Conflict evidence is sent to a cloud API only when the provider, model, and API key are configured and local arbitration reports context-window overflow.
 
 ## Dependency Discipline
 

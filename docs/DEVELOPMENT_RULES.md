@@ -46,7 +46,7 @@ Keep business logic out of HTTP routes, MCP handlers, and React components.
 2. validate scope/status;
 3. prefer explicit user updates;
 4. prefer current valid state;
-5. use local LLM only for residual ambiguity;
+5. use local LLM only for residual ambiguity; use an explicitly configured cloud API only if the local context window is exceeded;
 6. validate output;
 7. permit abstention.
 

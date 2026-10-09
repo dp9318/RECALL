@@ -39,7 +39,7 @@ The conflict resolver should return a structured result containing enough inform
 - confidence where available;
 - evidence identifiers;
 - resolution reason;
-- whether the local model was used.
+- whether a model was used and the selected provider when available.
 
 ## API Contract
 

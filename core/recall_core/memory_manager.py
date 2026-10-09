@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result, PaginationParams
+from contracts.base import Result, PaginationParams, Scope
 from contracts.conflict import ConflictResolutionRequest, ConflictResolutionResult
 from contracts.instruction import (
     CustomInstruction,
@@ -326,31 +326,100 @@ class MemoryManager:
         """Detect and resolve conflicts among memory candidates."""
         try:
             from contracts.conflict import ConflictCandidate
-            from contracts.project import Project, Session
 
-            # Package candidates
-            conflict_candidates = []
+            supplied_candidates: list[ConflictCandidate] = []
             for c in candidates:
                 if isinstance(c, ConflictCandidate):
-                    conflict_candidates.append(c)
+                    if c.memory is not None:
+                        supplied_candidates.append(c)
                 elif isinstance(c, Memory):
-                    conflict_candidates.append(ConflictCandidate(memory=c))
+                    supplied_candidates.append(
+                        ConflictCandidate(id=c.id, memory=c)
+                    )
 
-            # Get project/session context
             project = None
             session = None
             if project_id:
                 proj_result = self._uow.projects.get(project_id)
-                if proj_result.success:
-                    project = proj_result.value
+                if not proj_result.success or proj_result.value is None:
+                    return Result.err(
+                        proj_result.error or "The requested project was not found"
+                    )
+                project = proj_result.value
             if session_id:
                 sess_result = self._uow.sessions.get(session_id)
-                if sess_result.success:
-                    session = sess_result.value
+                if not sess_result.success or sess_result.value is None:
+                    return Result.err(
+                        sess_result.error or "The requested session was not found"
+                    )
+                session = sess_result.value
+                if project_id is not None and session.project_id != project_id:
+                    return Result.err("The requested session does not belong to project")
+
+            canonical_candidates: list[ConflictCandidate] = []
+            if supplied_candidates:
+                requested_ids = list(
+                    dict.fromkeys(
+                        candidate.memory.id
+                        for candidate in supplied_candidates
+                        if candidate.memory is not None
+                    )
+                )
+                canonical_result = self._uow.memories.get_by_ids(requested_ids)
+                if not canonical_result.success:
+                    return Result.err(
+                        canonical_result.error
+                        or "Failed to validate conflict candidates against canonical memory"
+                    )
+                canonical = {
+                    memory.id: memory
+                    for memory in (canonical_result.value or [])
+                }
+                for candidate in supplied_candidates:
+                    if candidate.memory is None:
+                        continue
+                    memory = canonical.get(candidate.memory.id)
+                    if memory is None or not memory.is_active():
+                        continue
+                    if project_id is not None and (
+                        memory.project_id != project_id
+                        and not (
+                            memory.project_id is None
+                            and memory.scope == Scope.GLOBAL
+                        )
+                    ):
+                        continue
+                    if session_id is not None and (
+                        memory.session_id not in {None, session_id}
+                    ):
+                        continue
+                    canonical_candidates.append(
+                        ConflictCandidate(
+                            id=memory.id,
+                            memory=memory,
+                            relevance_score=candidate.relevance_score,
+                            conflict_type=candidate.conflict_type,
+                            evidence=list(candidate.evidence),
+                        )
+                    )
+
+            eligible_instructions = [
+                instruction
+                for instruction in custom_instructions
+                if instruction.is_active()
+                and (
+                    instruction.scope == Scope.GLOBAL
+                    or (
+                        project_id is not None
+                        and instruction.scope == Scope.PROJECT
+                        and instruction.project_id == project_id
+                    )
+                )
+            ]
 
             request = ConflictResolutionRequest(
-                candidates=conflict_candidates,
-                custom_instructions=custom_instructions,
+                candidates=canonical_candidates,
+                custom_instructions=eligible_instructions,
                 project_context=project,
                 session_context=session,
             )

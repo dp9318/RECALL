@@ -9,7 +9,12 @@ from core.recall_core.memory_manager import MemoryManager
 from database.config import DatabaseConfig
 from database.connection import initialize_database
 from database.repositories import SemanticIndexRepository, SQLiteUnitOfWork
-from intelligence.conflict import DefaultConflictResolutionService
+from intelligence.conflict import DefaultConflictResolutionService, DefaultConflictResolver
+from intelligence.conflict_adapters import (
+    CloudConflictAdapter,
+    CloudConflictConfig,
+    OllamaConflictAdapter,
+)
 from intelligence.embeddings import (
     ChromaSentenceTransformerEmbeddingFunction,
     EmbeddingConfig,
@@ -38,6 +43,12 @@ def create_memory_manager(
     embedding_function = ChromaSentenceTransformerEmbeddingFunction(
         embedding_service, embedding_config
     )
+    cloud_conflict_config = CloudConflictConfig.from_env()
+    cloud_conflict_adapter = (
+        CloudConflictAdapter(cloud_conflict_config)
+        if cloud_conflict_config is not None
+        else None
+    )
     initialize_database(config)
     unit_of_work = SQLiteUnitOfWork(
         config,
@@ -55,7 +66,12 @@ def create_memory_manager(
         return MemoryManager(
             unit_of_work=unit_of_work,
             retrieval_service=retrieval_service,
-            conflict_service=DefaultConflictResolutionService(),
+            conflict_service=DefaultConflictResolutionService(
+                resolver=DefaultConflictResolver(
+                    llm_adapter=OllamaConflictAdapter(),
+                    cloud_adapter=cloud_conflict_adapter,
+                )
+            ),
             semantic_index=semantic_index,
         )
     except Exception:

@@ -14,6 +14,16 @@ from contracts.retrieval import RetrievalRequest, RetrievalResult, ContextAssemb
 from core.recall_core.memory_manager import MemoryManager
 
 
+def _set_canonical_conflict_memories(manager, candidates):
+    memories = [
+        candidate.memory if isinstance(candidate, ConflictCandidate) else candidate
+        for candidate in candidates
+    ]
+    manager._uow.memories.get_by_ids.return_value = Result.ok(
+        [memory for memory in memories if memory is not None]
+    )
+
+
 class TestMemoryManager:
     """Tests for MemoryManager."""
 
@@ -904,10 +914,11 @@ class TestMemoryManager:
         """Test that Core delegates conflict handling to ConflictResolutionService."""
         candidates = [ConflictCandidate(memory=sample_memory)]
         instructions = [sample_instruction]
-        project_id = uuid4()
+        project_id = sample_memory.project_id
         mock_uow.projects.get.return_value = Result.ok(
             Project(id=project_id, name="Test Project")
         )
+        _set_canonical_conflict_memories(manager, candidates)
 
         resolution = ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED)
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
@@ -918,10 +929,72 @@ class TestMemoryManager:
         # Verify service was called with correct request structure
         mock_conflict_service.detect_and_resolve.assert_called_once()
         call_args = mock_conflict_service.detect_and_resolve.call_args[0][0]
-        assert call_args.candidates == candidates
+        assert [candidate.memory.id for candidate in call_args.candidates] == [
+            sample_memory.id
+        ]
         assert call_args.custom_instructions == instructions
         assert call_args.project_context is not None
         assert call_args.project_context.id == project_id
+
+    def test_conflict_resolution_uses_active_canonical_memory_without_mutating_it(
+        self, manager, mock_uow, mock_conflict_service, sample_memory, sample_project
+    ):
+        stale_candidate_memory = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content="Stale candidate copy",
+            status=MemoryStatus.ACTIVE,
+            provenance="inferred",
+        )
+        canonical_memory = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content="Canonical SQLite content",
+            status=MemoryStatus.ACTIVE,
+            provenance="user_explicit",
+        )
+        candidate = ConflictCandidate(memory=stale_candidate_memory)
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_by_ids.return_value = Result.ok([canonical_memory])
+        mock_conflict_service.detect_and_resolve.return_value = Result.ok(
+            ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED)
+        )
+
+        result = manager.detect_and_resolve_conflicts(
+            [candidate], [], project_id=sample_project.id
+        )
+
+        assert result.success
+        request = mock_conflict_service.detect_and_resolve.call_args.args[0]
+        assert request.candidates[0].memory.content == "Canonical SQLite content"
+        assert request.candidates[0].memory.provenance == "user_explicit"
+        mock_uow.memories.update.assert_not_called()
+        mock_uow.memories.delete.assert_not_called()
+
+    def test_conflict_resolution_excludes_inactive_canonical_records(
+        self, manager, mock_uow, mock_conflict_service, sample_memory, sample_project
+    ):
+        inactive = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content=sample_memory.content,
+            status=MemoryStatus.ARCHIVED,
+        )
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_by_ids.return_value = Result.ok([inactive])
+        mock_conflict_service.detect_and_resolve.return_value = Result.ok(
+            ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED)
+        )
+
+        result = manager.detect_and_resolve_conflicts(
+            [ConflictCandidate(memory=sample_memory)],
+            [],
+            project_id=sample_project.id,
+        )
+
+        assert result.success
+        request = mock_conflict_service.detect_and_resolve.call_args.args[0]
+        assert request.candidates == []
 
     def test_conflict_resolution_does_not_implement_arbitration(self, manager, mock_conflict_service, sample_memory, sample_instruction):
         """Test that Core does not implement arbitration logic itself."""
@@ -947,7 +1020,9 @@ class TestMemoryManager:
         )
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [sample_instruction])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
         assert result.value.status == ConflictResolutionStatus.RESOLVED
@@ -958,7 +1033,9 @@ class TestMemoryManager:
         """Test resolver failure is handled according to contract."""
         mock_conflict_service.detect_and_resolve.return_value = Result.err("Resolver timeout")
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [sample_instruction])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert not result.success
         assert "timeout" in result.error.lower()
@@ -981,6 +1058,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=sample_memory), ConflictCandidate(memory=Memory(id=uuid4(), content="Other"))]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
@@ -996,7 +1074,9 @@ class TestMemoryManager:
         )
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
 
         assert result.success
         assert result.value.status == ConflictResolutionStatus.ABSTAINED
@@ -1022,6 +1102,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=memory1), ConflictCandidate(memory=memory2)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [instruction], project_id=sample_project.id)
 
         assert result.success
@@ -2009,7 +2090,9 @@ class TestMemoryManager:
         """Test ConflictResolutionService failure handling."""
         mock_conflict_service.detect_and_resolve.return_value = Result.err("Resolver crashed")
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
 
         assert not result.success
         assert "crashed" in result.error.lower()
@@ -2291,6 +2374,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
@@ -2466,6 +2550,7 @@ class TestMemoryManager:
         """Test detect_and_resolve_conflicts fully delegates to ConflictResolutionService."""
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED))
         candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
         assert result.success
         mock_conflict_service.detect_and_resolve.assert_called_once()
@@ -2478,7 +2563,9 @@ class TestMemoryManager:
     def test_detect_and_resolve_conflicts_no_instructions(self, manager, mock_conflict_service, sample_memory):
         """Test detect_and_resolve_conflicts with no custom instructions."""
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(ConflictResolutionResult(status=ConflictResolutionStatus.ABSTAINED))
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
         assert result.success
         assert result.value.status == ConflictResolutionStatus.ABSTAINED
 
@@ -2670,8 +2757,10 @@ class TestMemoryManager:
         instruction = CustomInstruction(id=uuid4(), scope=Scope.PROJECT, project_id=sample_project.id, content="Explicit: always prefer user intent", status=InstructionStatus.ACTIVE)
 
         # Manager passes instruction to resolver
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(
-            [ConflictCandidate(memory=sample_memory)],
+            candidates,
             [instruction],
             project_id=sample_project.id
         )

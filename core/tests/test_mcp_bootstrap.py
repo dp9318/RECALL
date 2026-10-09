@@ -17,6 +17,7 @@ from contracts.memory import Memory
 from contracts.project import ProjectCreateRequest
 from core.recall_core.bootstrap import create_memory_manager
 from database.config import DatabaseConfig
+from intelligence.conflict_adapters import CloudConflictAdapter, OllamaConflictAdapter
 from recall_mcp import server as mcp_server
 
 
@@ -84,6 +85,27 @@ def test_factory_accepts_explicit_database_config(tmp_path):
     try:
         assert config.path.is_file()
         assert manager.get_stats().success
+    finally:
+        manager.close()
+
+
+def test_factory_configures_local_and_opt_in_cloud_conflict_adapters(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("RECALL_CONFLICT_CLOUD_PROVIDER", "gemini")
+    monkeypatch.setenv("RECALL_CONFLICT_CLOUD_MODEL", "test-gemini-model")
+    monkeypatch.setenv("RECALL_CONFLICT_CLOUD_API_KEY", "test-key")
+    manager = create_memory_manager(
+        DatabaseConfig.from_path(tmp_path / "conflicts.sqlite3"),
+        semantic_index=_TestSemanticIndex(),
+    )
+
+    try:
+        resolver = manager._conflict_service.resolver
+        assert isinstance(resolver._llm_adapter, OllamaConflictAdapter)
+        assert isinstance(resolver._cloud_adapter, CloudConflictAdapter)
+        assert resolver._cloud_adapter.config.provider.value == "gemini"
+        assert resolver._cloud_adapter.config.model == "test-gemini-model"
     finally:
         manager.close()
 

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 from uuid import UUID
 
-from contracts.base import Result, ConflictResolutionStatus, MemoryStatus
+from contracts.base import Result, ConflictResolutionStatus, MemoryStatus, Scope
 from contracts.conflict import (
     ConflictCandidate,
     ConflictDetectionResult,
@@ -18,6 +19,9 @@ from contracts.conflict import (
 from contracts.instruction import CustomInstruction
 from contracts.memory import Memory
 from contracts.project import Project, Session
+from intelligence.conflict_adapters import LocalContextWindowExceededError
+
+MAX_ARBITRATION_CONTEXT_CHARS = 16_000
 
 
 class ConflictDetector(ABC):
@@ -86,6 +90,14 @@ class DefaultConflictDetector(ConflictDetector):
                 continue
             seen.add(memory.id)
             if not memory.is_active():
+                continue
+            if project_id is not None and (
+                memory.project_id != project_id
+                and not (
+                    memory.project_id is None
+                    and memory.scope == Scope.GLOBAL
+                )
+            ):
                 continue
             candidates.append(
                 ConflictCandidate(
@@ -157,13 +169,17 @@ class DefaultConflictDetector(ConflictDetector):
         if left.id == right.id:
             return False
 
-        left_text = (left.content or "").strip().lower()
-        right_text = (right.content or "").strip().lower()
+        left_text = re.sub(r"[^a-z0-9]+", " ", (left.content or "").lower()).strip()
+        right_text = re.sub(r"[^a-z0-9]+", " ", (right.content or "").lower()).strip()
         if not left_text or not right_text:
             return False
 
-        left_tokens = {token for token in left_text.split() if token}
-        right_tokens = {token for token in right_text.split() if token}
+        stop_words = {
+            "a", "an", "and", "as", "for", "in", "is", "of", "on", "the",
+            "to", "with",
+        }
+        left_tokens = set(left_text.split()) - stop_words
+        right_tokens = set(right_text.split()) - stop_words
         if not left_tokens or not right_tokens:
             return False
 
@@ -171,17 +187,50 @@ class DefaultConflictDetector(ConflictDetector):
         if not shared:
             return False
 
-        if left.provenance == right.provenance == "user_explicit":
+        negations = {"not", "never", "avoid", "without", "cannot"}
+        left_negative = bool(set(left_text.split()) & negations)
+        right_negative = bool(set(right_text.split()) & negations)
+        if left_negative != right_negative:
             return True
 
-        return len(left_tokens - right_tokens) > 0 and len(right_tokens - left_tokens) > 0
+        decision_verbs = {"use", "choose", "select", "prefer"}
+        left_words = left_text.split()
+        right_words = right_text.split()
+        left_decision = next(
+            (
+                (word, left_words[index + 1])
+                for index, word in enumerate(left_words[:-1])
+                if word in decision_verbs
+            ),
+            None,
+        )
+        right_decision = next(
+            (
+                (word, right_words[index + 1])
+                for index, word in enumerate(right_words[:-1])
+                if word in decision_verbs
+            ),
+            None,
+        )
+        return bool(
+            left_decision
+            and right_decision
+            and left_decision[0] == right_decision[0]
+            and left_decision[1] != right_decision[1]
+            and len(shared) >= 2
+        )
 
 
 class DefaultConflictResolver(ConflictResolver):
-    """Deterministic conflict resolver with an optional model arbitration fallback."""
+    """Deterministic resolver with local arbitration and overflow-only cloud fallback."""
 
-    def __init__(self, llm_adapter: Optional[Any] = None):
+    def __init__(
+        self,
+        llm_adapter: Optional[Any] = None,
+        cloud_adapter: Optional[Any] = None,
+    ):
         self._llm_adapter = llm_adapter
+        self._cloud_adapter = cloud_adapter
 
     def resolve(self, request: ConflictResolutionRequest) -> Result[ConflictResolutionResult]:
         if not request.candidates:
@@ -198,6 +247,14 @@ class DefaultConflictResolver(ConflictResolver):
 
         if self._llm_adapter is not None:
             llm_context = self._build_evidence_context(request.candidates, request.custom_instructions)
+            if llm_context is None:
+                result.resolution_reason = (
+                    f"{result.resolution_reason} Arbitration was skipped because "
+                    f"the complete evidence exceeds {MAX_ARBITRATION_CONTEXT_CHARS} "
+                    "characters."
+                ).strip()
+                result.metadata["arbitration_skipped"] = "evidence_limit"
+                return Result.ok(result)
             llm_result = self.invoke_llm_arbitration(request.candidates, llm_context)
             if llm_result.success:
                 return llm_result
@@ -205,7 +262,16 @@ class DefaultConflictResolver(ConflictResolver):
         return Result.ok(result)
 
     def apply_deterministic_rules(self, candidates: list[ConflictCandidate], custom_instructions: list[CustomInstruction]) -> ConflictResolutionResult:
-        valid_candidates = [candidate for candidate in candidates if candidate.memory is not None]
+        valid_candidates = []
+        seen_ids: set[UUID] = set()
+        for candidate in candidates:
+            if (
+                candidate.memory is not None
+                and candidate.memory.is_active()
+                and candidate.memory.id not in seen_ids
+            ):
+                valid_candidates.append(candidate)
+                seen_ids.add(candidate.memory.id)
         if not valid_candidates:
             return ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED, resolution_reason="No valid memory candidates available.")
 
@@ -214,14 +280,48 @@ class DefaultConflictResolver(ConflictResolver):
             candidate for candidate in valid_candidates
             if self._matches_instruction(candidate.memory, active_instructions)
         ]
-        winner = max(matching_candidates or valid_candidates, key=self._priority)
+        eligible_candidates = matching_candidates or valid_candidates
+        candidate_ids = {
+            candidate.memory.id
+            for candidate in eligible_candidates
+            if candidate.memory is not None
+        }
+        explicitly_superseded = {
+            candidate.memory.supersedes_id
+            for candidate in eligible_candidates
+            if candidate.memory is not None
+            and candidate.memory.supersedes_id in candidate_ids
+        }
+        winner_pool = [
+            candidate
+            for candidate in eligible_candidates
+            if candidate.memory is not None
+            and candidate.memory.id not in explicitly_superseded
+        ] or eligible_candidates
+        winner_priority = max(self._priority(candidate) for candidate in winner_pool)
+        winners = [
+            candidate
+            for candidate in winner_pool
+            if self._priority(candidate) == winner_priority
+        ]
+        if len(winners) != 1:
+            return ConflictResolutionResult(
+                status=ConflictResolutionStatus.UNRESOLVED,
+                unresolved_candidates=valid_candidates,
+                resolution_reason=(
+                    "Multiple candidates have equal deterministic precedence; "
+                    "arbitration is required."
+                ),
+                metadata={"rule": "ambiguous_equal_precedence"},
+            )
+        winner = winners[0]
         winner_memory = winner.memory
         if winner_memory is None:
             return ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED, resolution_reason="The winner could not be determined.")
 
         exposed_decisions: list[ResolutionDecision] = [
             ResolutionDecision(
-                candidate_id=winner.id,
+                candidate_id=winner_memory.id,
                 action="keep",
                 reason="Highest deterministic precedence among competing memories.",
                 confidence=0.9,
@@ -230,7 +330,7 @@ class DefaultConflictResolver(ConflictResolver):
         superseded: list[ConflictCandidate] = []
         unresolved: list[ConflictCandidate] = []
         for candidate in valid_candidates:
-            if candidate.id == winner.id:
+            if candidate.memory is None or candidate.memory.id == winner_memory.id:
                 continue
             if self._is_explicitly_overridden(candidate, active_instructions):
                 unresolved.append(candidate)
@@ -267,18 +367,6 @@ class DefaultConflictResolver(ConflictResolver):
                 metadata={"rule": "explicit_user_update"},
             )
 
-        if len(valid_candidates) == 2 and winner_memory.is_active() and all(candidate.memory and candidate.memory.is_active() for candidate in valid_candidates):
-            if winner_memory.updated_at >= max((candidate.memory.updated_at for candidate in valid_candidates if candidate.id != winner.id), default=winner_memory.updated_at):
-                return ConflictResolutionResult(
-                    status=ConflictResolutionStatus.RESOLVED,
-                    decisions=exposed_decisions,
-                    preferred_candidates=[winner],
-                    superseded_candidates=superseded,
-                    unresolved_candidates=unresolved,
-                    resolution_reason="Most recent active memory wins when no explicit instruction overrides it.",
-                    metadata={"rule": "most_recent_active"},
-                )
-
         if not superseded:
             return ConflictResolutionResult(
                 status=ConflictResolutionStatus.UNRESOLVED,
@@ -310,8 +398,54 @@ class DefaultConflictResolver(ConflictResolver):
                 )
             )
 
+        selected_adapter = self._llm_adapter
+        fallback_used = False
         try:
-            raw_response = self._llm_adapter.arbitrate(context)
+            try:
+                raw_response = selected_adapter.arbitrate(context)
+            except LocalContextWindowExceededError as overflow:
+                if self._cloud_adapter is None:
+                    return Result.ok(
+                        ConflictResolutionResult(
+                            status=ConflictResolutionStatus.ABSTAINED,
+                            resolution_reason=(
+                                f"{overflow} Cloud fallback is not configured."
+                            ),
+                            model_used=True,
+                            metadata={"rule": "local_context_overflow"},
+                        )
+                    )
+                selected_adapter = self._cloud_adapter
+                fallback_used = True
+                try:
+                    raw_response = selected_adapter.arbitrate(context)
+                except Exception as cloud_error:
+                    return Result.ok(
+                        ConflictResolutionResult(
+                            status=ConflictResolutionStatus.ABSTAINED,
+                            resolution_reason=(
+                                "Local model context window was exceeded and cloud "
+                                f"fallback failed: {cloud_error}"
+                            ),
+                            model_used=True,
+                            metadata={
+                                "rule": "cloud_fallback_failed",
+                                "provider": getattr(
+                                    selected_adapter, "provider", "cloud"
+                                ),
+                                "model": getattr(selected_adapter, "model", None),
+                            },
+                        )
+                    )
+            provider = getattr(
+                selected_adapter, "provider", "cloud" if fallback_used else "local"
+            )
+            model = getattr(selected_adapter, "model", None)
+            model_metadata = {
+                "provider": provider,
+                "model": model,
+                "fallback": fallback_used,
+            }
             if hasattr(raw_response, "success"):
                 if not raw_response.success:
                     return Result.ok(
@@ -319,7 +453,7 @@ class DefaultConflictResolver(ConflictResolver):
                             status=ConflictResolutionStatus.ABSTAINED,
                             resolution_reason=raw_response.error or "LLM arbitration failed.",
                             model_used=True,
-                            metadata={"rule": "llm_failed"},
+                            metadata={"rule": "llm_failed", **model_metadata},
                         )
                     )
                 payload = raw_response.value
@@ -332,7 +466,7 @@ class DefaultConflictResolver(ConflictResolver):
                         status=ConflictResolutionStatus.ABSTAINED,
                         resolution_reason="LLM output was not a supported structured payload.",
                         model_used=True,
-                        metadata={"rule": "invalid_response"},
+                        metadata={"rule": "invalid_response", **model_metadata},
                     )
                 )
 
@@ -343,7 +477,45 @@ class DefaultConflictResolver(ConflictResolver):
                         status=ConflictResolutionStatus.ABSTAINED,
                         resolution_reason="LLM outcome was not a valid RECALL status value.",
                         model_used=True,
-                        metadata={"rule": "invalid_outcome"},
+                        metadata={"rule": "invalid_outcome", **model_metadata},
+                    )
+                )
+
+            preferred_id = payload.get("preferred_candidate")
+            candidate_ids = {
+                str(identifier)
+                for candidate in candidates
+                for identifier in (
+                    candidate.id,
+                    candidate.memory.id if candidate.memory is not None else None,
+                )
+                if identifier is not None
+            }
+            if preferred_id is not None and str(preferred_id) not in candidate_ids:
+                return Result.ok(
+                    ConflictResolutionResult(
+                        status=ConflictResolutionStatus.ABSTAINED,
+                        resolution_reason=(
+                            "Model selected an identifier that was not in the "
+                            "conflict candidate set."
+                        ),
+                        model_used=True,
+                        metadata={"rule": "invalid_candidate", **model_metadata},
+                    )
+                )
+            if outcome == ConflictResolutionStatus.RESOLVED.value and preferred_id is None:
+                return Result.ok(
+                    ConflictResolutionResult(
+                        status=ConflictResolutionStatus.ABSTAINED,
+                        resolution_reason=(
+                            "Model marked the conflict resolved without selecting "
+                            "a supplied candidate."
+                        ),
+                        model_used=True,
+                        metadata={
+                            "rule": "missing_preferred_candidate",
+                            **model_metadata,
+                        },
                     )
                 )
 
@@ -351,12 +523,14 @@ class DefaultConflictResolver(ConflictResolver):
                 status=ConflictResolutionStatus(outcome),
                 resolution_reason=str(payload.get("reason") or "Model arbitration completed."),
                 model_used=True,
-                metadata={"rule": "llm_arbitration", "payload": payload},
+                metadata={"rule": "llm_arbitration", **model_metadata},
             )
-            preferred = payload.get("preferred_candidate")
-            if preferred is not None:
+            if preferred_id is not None:
                 for candidate in candidates:
-                    if getattr(candidate, "id", None) == preferred or getattr(candidate.memory, "id", None) == preferred:
+                    if str(getattr(candidate, "id", None)) == str(preferred_id) or (
+                        candidate.memory is not None
+                        and str(candidate.memory.id) == str(preferred_id)
+                    ):
                         result.preferred_candidates.append(candidate)
                         break
             return Result.ok(result)
@@ -364,31 +538,28 @@ class DefaultConflictResolver(ConflictResolver):
             return Result.ok(
                 ConflictResolutionResult(
                     status=ConflictResolutionStatus.ABSTAINED,
-                    resolution_reason=f"LLM arbitration raised an exception: {exc}",
+                    resolution_reason=f"Local model arbitration failed: {exc}",
                     model_used=True,
-                    metadata={"rule": "llm_exception"},
+                    metadata={"rule": "llm_exception", "provider": "local"},
                 )
             )
 
     @staticmethod
-    def _priority(candidate: ConflictCandidate) -> float:
+    def _priority(candidate: ConflictCandidate) -> tuple[int, int, float]:
         memory = candidate.memory
         if memory is None:
-            return 0.0
+            return (0, 0, 0.0)
 
-        score = 0.0
-        if memory.provenance == "user_explicit":
-            score += 10.0
-        if memory.provenance == "explicit_user_update":
-            score += 9.0
-        if memory.is_active():
-            score += 5.0
-        if memory.status == MemoryStatus.ACTIVE:
-            score += 2.0
-        if isinstance(memory.metadata.get("confidence"), (int, float)):
-            score += float(memory.metadata["confidence"]) * 10
-        score += candidate.relevance_score
-        return score
+        provenance_rank = {
+            "explicit_user_update": 3,
+            "user_explicit": 2,
+            "inferred": 1,
+        }.get(memory.provenance or "", 0)
+        return (
+            provenance_rank,
+            int(memory.status == MemoryStatus.ACTIVE),
+            memory.updated_at.timestamp(),
+        )
 
     @staticmethod
     def _matches_instruction(memory: Optional[Memory], custom_instructions: list[CustomInstruction]) -> bool:
@@ -416,17 +587,29 @@ class DefaultConflictResolver(ConflictResolver):
         return False
 
     @staticmethod
-    def _build_evidence_context(candidates: list[ConflictCandidate], custom_instructions: list[CustomInstruction]) -> str:
+    def _build_evidence_context(candidates: list[ConflictCandidate], custom_instructions: list[CustomInstruction]) -> Optional[str]:
         evidence = []
+        total_chars = 0
         for candidate in candidates:
             if candidate.memory is None:
                 continue
-            evidence.append(
-                f"memory_id={candidate.memory.id}, provenance={candidate.memory.provenance}, content={candidate.memory.content}"
+            line = (
+                f"memory_id={candidate.memory.id}, provenance={candidate.memory.provenance}, "
+                f"content={candidate.memory.content}"
             )
+            added_chars = len(line) + (1 if evidence else 0)
+            if total_chars + added_chars > MAX_ARBITRATION_CONTEXT_CHARS:
+                return None
+            evidence.append(line)
+            total_chars += added_chars
         for instruction in custom_instructions:
             if instruction.is_active():
-                evidence.append(f"instruction={instruction.content}")
+                line = f"instruction={instruction.content}"
+                added_chars = len(line) + (1 if evidence else 0)
+                if total_chars + added_chars > MAX_ARBITRATION_CONTEXT_CHARS:
+                    return None
+                evidence.append(line)
+                total_chars += added_chars
         return "\n".join(evidence)
 
 
@@ -451,7 +634,16 @@ class DefaultConflictResolutionService(ConflictResolutionService):
 
         memories = [candidate.memory for candidate in request.candidates if candidate.memory is not None]
         detection = self._detector.detect(memories, query=" ".join((candidate.memory.content or "") for candidate in request.candidates if candidate.memory), project_id=getattr(request.project_context, "id", None))
-        if detection.success and detection.value and detection.value.conflicts_detected:
-            request.candidates = detection.value.candidates
+        if not detection.success:
+            return Result.err(detection.error or "Conflict detection failed.")
+        if not detection.value or not detection.value.conflicts_detected:
+            return Result.ok(
+                ConflictResolutionResult(
+                    status=ConflictResolutionStatus.UNRESOLVED,
+                    resolution_reason="No conflicting active memories were detected.",
+                    metadata={"rule": "no_conflict"},
+                )
+            )
+        request.candidates = detection.value.candidates
 
         return self._resolver.resolve(request)
