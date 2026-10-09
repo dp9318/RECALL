@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS projects (
     name TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+    metadata TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS memories (
     valid_until TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    metadata TEXT NOT NULL DEFAULT '{}',
     FOREIGN KEY (project_id) REFERENCES projects (project_id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES sessions (session_id) ON DELETE SET NULL,
     FOREIGN KEY (supersedes_id) REFERENCES memories (memory_id) ON DELETE SET NULL,
@@ -133,6 +135,8 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_custom_instructions_status ON custom_instructions (status);",
     "CREATE INDEX IF NOT EXISTS idx_custom_instructions_active_project ON custom_instructions (project_id) WHERE scope = 'project' AND status = 'active';",
     "CREATE INDEX IF NOT EXISTS idx_custom_instructions_active_global ON custom_instructions (instruction_id) WHERE scope = 'global' AND status = 'active';",
+    # Partial unique index for active project-scoped custom instructions
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_instructions_unique_active_project ON custom_instructions (scope, project_id) WHERE status = 'active' AND scope = 'project';",
     "CREATE INDEX IF NOT EXISTS idx_memory_index_metadata_chroma_id ON memory_index_metadata (chroma_id);",
     "CREATE INDEX IF NOT EXISTS idx_instruction_index_metadata_chroma_id ON instruction_index_metadata (chroma_id);",
 ]
@@ -148,4 +152,4 @@ ALL_TABLES = [
     CREATE_INSTRUCTION_INDEX_METADATA_TABLE,
 ]
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2

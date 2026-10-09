@@ -20,6 +20,7 @@ class DatabaseConfig:
     cache_size: int = -2000
     temp_store: str = "MEMORY"
     pragmas: dict[str, str | int] = field(default_factory=dict)
+    isolation_level: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.timeout <= 0:

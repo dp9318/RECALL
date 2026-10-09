@@ -34,6 +34,7 @@ class DatabaseConnection:
                 self._config.path,
                 timeout=self._config.timeout,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+                isolation_level=self._config.isolation_level,
             )
             conn.row_factory = sqlite3.Row
             self._apply_pragmas(conn)
@@ -78,15 +79,20 @@ class DatabaseConnection:
 
 
 class Transaction:
-    """Database transaction context manager."""
+    """Database transaction context manager for isolation_level=None."""
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
         self._committed = False
         self._rolled_back = False
+        self._active = False
 
     def __enter__(self) -> Transaction:
+        # With isolation_level=None, we must explicitly start a transaction
+        print(f"Transaction.__enter__: executing BEGIN, in_transaction before={self._conn.in_transaction}")
         self._conn.execute("BEGIN")
+        print(f"Transaction.__enter__: BEGIN executed, in_transaction after={self._conn.in_transaction}")
+        self._active = True
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -101,9 +107,12 @@ class Transaction:
             raise TransactionError("Transaction already committed")
         if self._rolled_back:
             raise TransactionError("Transaction already rolled back")
+        if not self._active:
+            raise TransactionError("No active transaction to commit")
         try:
             self._conn.execute("COMMIT")
             self._committed = True
+            self._active = False
         except sqlite3.Error as e:
             raise TransactionError(f"Failed to commit transaction: {e}", cause=e) from e
 
@@ -113,9 +122,12 @@ class Transaction:
             raise TransactionError("Transaction already rolled back")
         if self._committed:
             raise TransactionError("Transaction already committed")
+        if not self._active:
+            raise TransactionError("No active transaction to rollback")
         try:
             self._conn.execute("ROLLBACK")
             self._rolled_back = True
+            self._active = False
         except sqlite3.Error as e:
             raise TransactionError(f"Failed to rollback transaction: {e}", cause=e) from e
 
@@ -136,7 +148,11 @@ def transaction(conn: sqlite3.Connection) -> Iterator[Transaction]:
     """Context manager for a database transaction."""
     tx = Transaction(conn)
     try:
-        yield tx
+        print(f"transaction: before with tx")
+        with tx:
+            print(f"transaction: after with tx, before yield")
+            yield tx
+            print(f"transaction: after yield")
     except Exception:
         if not tx._committed and not tx._rolled_back:
             tx.rollback()
@@ -150,7 +166,7 @@ def initialize_database(config: DatabaseConfig) -> None:
     """Initialize database with required pragmas, run migrations, and verify connectivity."""
     from database.migrations.manager import MigrationManager
     from database.exceptions import DatabaseError
-    
+
     db = DatabaseConnection(config)
     try:
         conn = db.connect()

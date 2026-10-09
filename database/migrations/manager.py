@@ -123,18 +123,19 @@ class MigrationManager:
             return applied
 
     def _apply_migration(self, conn: sqlite3.Connection, migration: Migration) -> None:
-        """Apply a single migration within a transaction."""
-        with transaction(conn) as tx:
-            try:
-                conn.executescript(migration.sql)
-                conn.execute(
-                    f"INSERT INTO {self._migration_config.table_name} (version, description) VALUES (?, ?)",
-                    (migration.version, migration.description)
-                )
-            except sqlite3.Error as e:
-                raise MigrationError(
-                    f"Failed to apply migration {migration.version}: {e}", cause=e
-                ) from e
+        """Apply a single migration. DDL statements implicitly commit, so no transaction wrapper."""
+        try:
+            # Execute migration SQL (DDL statements implicitly commit)
+            conn.executescript(migration.sql)
+            # Record migration version (separate statement, auto-commits)
+            conn.execute(
+                f"INSERT INTO {self._migration_config.table_name} (version, description) VALUES (?, ?)",
+                (migration.version, migration.description)
+            )
+        except sqlite3.Error as e:
+            raise MigrationError(
+                f"Failed to apply migration {migration.version}: {e}", cause=e
+            ) from e
 
     def verify_schema(self, conn: Optional[sqlite3.Connection] = None) -> bool:
         """Verify that the database schema matches expectations."""
