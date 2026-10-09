@@ -900,11 +900,11 @@ class TestMemoryManager:
 
     # --- Conflict Resolution Boundary Tests ---
 
-    def test_conflict_resolution_delegates_to_service(self, manager, mock_conflict_service, sample_memory, sample_instruction):
+    def test_conflict_resolution_delegates_to_service(self, manager, mock_uow, mock_conflict_service, sample_memory, sample_instruction):
         """Test that Core delegates conflict handling to ConflictResolutionService."""
         candidates = [ConflictCandidate(memory=sample_memory)]
         instructions = [sample_instruction]
-        project_id = sample_memory.project_id
+        project_id = uuid4()
         mock_uow.projects.get.return_value = Result.ok(
             Project(id=project_id, name="Test Project")
         )
