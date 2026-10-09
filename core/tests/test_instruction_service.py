@@ -285,7 +285,7 @@ class TestCustomInstructionService:
         assert len(result.value) == 1
         assert result.value[0].scope == Scope.GLOBAL
 
-def test_get_active_for_project_deduplicates_same_instruction_id(self, mock_instruction_repo):
+    def test_get_active_for_project_deduplicates_same_instruction_id(self, mock_instruction_repo):
         project_id = uuid4()
         shared = CustomInstruction(id=uuid4(), content="Shared", scope=Scope.GLOBAL)
         mock_instruction_repo.get_active_for_scope.side_effect = [
