@@ -1,53 +1,55 @@
 # RECALL Core Memory Manager
 
-The Core Memory Manager is the central orchestration layer of the RECALL persistent memory engine.
+The Core Memory Manager is the orchestration layer of RECALL, a persistent memory engine for AI coding agents.
 
-## Structure
+## Repository layout
 
+```text
+RECALL/
+├── contracts/             # Shared DTOs and service contracts
+├── database/              # Persistence and semantic-index repository interfaces
+├── intelligence/          # Retrieval and conflict-resolution services
+├── core/
+│   ├── recall_core/        # Memory manager and context orchestration
+│   ├── tests/              # Core tests and fixtures
+│   ├── pyproject.toml
+│   └── README.md
+└── docs/                   # Architecture and module ownership
 ```
-core/
-├── core/                 # Python package (core implementation)
-│   ├── __init__.py
-│   ├── exceptions.py
-│   ├── instruction_service.py
-│   ├── context_assembly.py
-│   └── memory_manager.py
-├── contracts/            # Shared DTOs and interfaces
-├── database/             # Repository interfaces
-├── intelligence/         # Retrieval and conflict resolution interfaces
-├── tests/                # Unit tests
-├── pyproject.toml
-└── README.md
-```
+
+The `contracts`, `database`, and `intelligence` packages intentionally live beside `core`; keep these boundaries stable so parallel integrations can depend on shared contracts.
 
 ## Installation
 
-```bash
-pip install -e .[test]
-```
-
-## Running Tests
+Run from the repository root:
 
 ```bash
-python -m pytest tests/ -v
+python -m pip install -e "core[test]"
 ```
 
-## Core Components
+## Running tests
 
-- **MemoryManager**: Central orchestration for memory operations, retrieval, conflict resolution, and context assembly
-- **CustomInstructionService**: CRUD operations for user-authored custom instructions with scope filtering
-- **ContextAssemblyService**: Assembles context from projects, sessions, memories, instructions, and conflict resolutions
-- **Contracts**: Shared DTOs for memory, instructions, projects, conflicts, and retrieval
-- **Database Interfaces**: Repository interfaces for projects, sessions, memories, instructions, and semantic index
-- **Intelligence Interfaces**: Retrieval service, conflict detection, and conflict resolution service interfaces
+Run from the repository root:
 
-## Key Features
+```bash
+python -m pytest core/tests -v
+```
 
-- Memory lifecycle management (create, read, update, delete, search)
-- Custom instruction management with global/project scope
-- Retrieval delegation (structured + semantic)
-- Conflict resolution delegation (deterministic rules + LLM arbitration)
-- Context assembly with precedence enforcement (explicit instructions > inferred memories)
-- `/recall compact` - context compaction preserving lineage
-- `/recall update-context` - explicit durable context updates
-- Statistics and monitoring
+## Core components
+
+- **MemoryManager**: orchestrates memory operations, retrieval, conflict resolution, and context assembly.
+- **CustomInstructionService**: manages global and project-scoped user instructions.
+- **ContextAssemblyService**: assembles context from projects, sessions, memories, and retrieval.
+- **Contracts**: shared data-transfer objects across core and integrations.
+- **Database interfaces**: canonical persistence and derived semantic-index boundaries.
+- **Intelligence services**: retrieval and conflict resolution, including optional bounded model arbitration.
+
+## Key behaviors
+
+- Memory lifecycle management and retrieval delegation.
+- Global and project-scoped custom instructions.
+- Explicit instructions and canonical state remain authoritative.
+- Semantic index is derived and rebuildable; canonical persistence takes precedence.
+- `/recall compact` preserves history and lineage.
+- `/recall update-context` records explicit durable updates.
+- Statistics and health reporting.

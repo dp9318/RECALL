@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
@@ -38,7 +38,7 @@ class ProjectUpdateRequest:
 class Session(Identifiable, TimestampMixin):
     """Session record."""
     project_id: UUID = field(default_factory=lambda: UUID(int=0))
-    started_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     ended_at: Optional[datetime] = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

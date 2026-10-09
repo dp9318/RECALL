@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -128,8 +128,7 @@ class MemoryManager:
 
     def end_session(self, session_id: UUID) -> Result[Optional[Session]]:
         """End a session."""
-        from datetime import datetime
-        return self._uow.sessions.update(session_id, SessionUpdateRequest(ended_at=datetime.utcnow()))
+        return self._uow.sessions.update(session_id, SessionUpdateRequest(ended_at=datetime.now(timezone.utc)))
 
     # --- Memory Operations ---
 
@@ -143,11 +142,18 @@ class MemoryManager:
 
             memory = result.value
 
-            # Index in semantic store (best effort)
-            index_result = self._semantic_index.index_memory(memory)
-            if not index_result.success:
-                # Log but don't fail - semantic index is derived
-                pass
+            # Index in semantic store (best effort). Canonical persistence has
+            # succeeded, so a derived-index outage must not report creation as
+            # failed and encourage callers to retry a write that already exists.
+            try:
+                index_result = self._semantic_index.index_memory(memory)
+                if not index_result.success:
+                    return Result.ok(
+                        memory,
+                        metadata={"semantic_index_error": index_result.error or "Indexing failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
 
             return Result.ok(memory)
 
@@ -167,10 +173,17 @@ class MemoryManager:
 
             memory = result.value
 
-            # Update semantic index (best effort)
-            index_result = self._semantic_index.update_memory(memory)
-            if not index_result.success:
-                pass
+            # Updating canonical state is authoritative; index maintenance is
+            # best effort and can be reconciled by rebuilding the derived index.
+            try:
+                index_result = self._semantic_index.update_memory(memory)
+                if not index_result.success:
+                    return Result.ok(
+                        memory,
+                        metadata={"semantic_index_error": index_result.error or "Index update failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
 
             return Result.ok(memory)
 
@@ -180,11 +193,28 @@ class MemoryManager:
     def delete_memory(self, memory_id: UUID) -> Result[bool]:
         """Delete (deactivate) a memory."""
         try:
-            # Remove from semantic index first
-            self._semantic_index.remove_memory(memory_id)
+            # Canonical storage is the source of truth. Never remove a memory
+            # from the derived index unless the canonical operation succeeded.
+            delete_result = self._uow.memories.delete(memory_id)
+            if not delete_result.success or not delete_result.value:
+                return delete_result
 
-            # Delete from canonical storage
-            return self._uow.memories.delete(memory_id)
+            # The semantic index is derived and can be rebuilt. Cleanup failure
+            # must not turn a successful canonical deletion into a false failure.
+            try:
+                index_result = self._semantic_index.remove_memory(memory_id)
+                if not index_result.success:
+                    return Result.ok(
+                        delete_result.value,
+                        metadata={"semantic_index_cleanup_error": index_result.error or "Index cleanup failed"},
+                    )
+            except Exception as index_error:
+                return Result.ok(
+                    delete_result.value,
+                    metadata={"semantic_index_cleanup_error": str(index_error)},
+                )
+
+            return delete_result
 
         except Exception as e:
             return Result.err(f"Memory deletion failed: {str(e)}")
@@ -302,11 +332,17 @@ class MemoryManager:
                 return context_result
             context = context_result.value
 
-            # Apply custom instructions (highest precedence)
-            if request.include_custom_instructions and request.project_id:
+            # Apply custom instructions (highest precedence). Global instructions
+            # must also be available when no project has been selected.
+            if request.include_custom_instructions:
                 instr_result = self.get_active_instructions(request.project_id)
-                if instr_result.success:
-                    context = self._context_assembly.apply_custom_instructions(context, instr_result.value)
+                if not instr_result.success:
+                    return Result.err(
+                        instr_result.error or "Failed to load required custom instructions"
+                    )
+                context = self._context_assembly.apply_custom_instructions(
+                    context, instr_result.value or []
+                )
 
             return Result.ok(context)
 
@@ -376,7 +412,7 @@ class MemoryManager:
                             # Mark original as superseded
                             update_result = self.update_memory(memory.id, MemoryUpdateRequest(
                                 status=MemoryStatus.SUPERSEDED,
-                                metadata={**memory.metadata, "compacted_at": datetime.utcnow().isoformat()},
+                                metadata={**memory.metadata, "compacted_at": datetime.now(timezone.utc).isoformat()},
                             ))
                             if update_result.success:
                                 superseded += 1

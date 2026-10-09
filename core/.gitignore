@@ -39,3 +39,15 @@ chroma_db/
 
 # Logs
 *.log
+# Python test and build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+test_output.txt

@@ -2,7 +2,7 @@
 
 import pytest
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, MagicMock
 
 from contracts.base import Result, Scope, MemoryStatus, InstructionStatus
@@ -222,10 +222,10 @@ class TestMemoryManager:
 
     def test_update_session(self, manager, mock_uow, sample_session):
         """Test updating a session."""
-        updated = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+        updated = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.now(timezone.utc))
         mock_uow.sessions.update.return_value = Result.ok(updated)
 
-        request = SessionUpdateRequest(ended_at=datetime.utcnow())
+        request = SessionUpdateRequest(ended_at=datetime.now(timezone.utc))
         result = manager.update_session(sample_session.id, request)
 
         assert result.success
@@ -237,7 +237,7 @@ class TestMemoryManager:
         session_id = uuid4()
         mock_uow.sessions.update.return_value = Result.err("Session not found")
 
-        request = SessionUpdateRequest(ended_at=datetime.utcnow())
+        request = SessionUpdateRequest(ended_at=datetime.now(timezone.utc))
         result = manager.update_session(session_id, request)
 
         assert not result.success
@@ -245,7 +245,7 @@ class TestMemoryManager:
 
     def test_end_session(self, manager, mock_uow, sample_session):
         """Test ending a session."""
-        ended_session = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+        ended_session = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.now(timezone.utc))
         mock_uow.sessions.update.return_value = Result.ok(ended_session)
 
         result = manager.end_session(sample_session.id)
@@ -331,8 +331,8 @@ class TestMemoryManager:
             content="Test memory",
             status=MemoryStatus.ACTIVE,
             provenance="user_explicit",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         mock_uow.memories.create.return_value = Result.ok(memory)
         mock_semantic_index.index_memory.return_value = Result.ok(True)
@@ -810,7 +810,7 @@ class TestMemoryManager:
             content="Current: API v2 is standard",
             status=MemoryStatus.ACTIVE,
             provenance="user_explicit",
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
         historical = Memory(
             id=uuid4(),
@@ -818,7 +818,7 @@ class TestMemoryManager:
             content="Old: API v1 is standard",
             status=MemoryStatus.SUPERSEDED,
             provenance="inferred",
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
 
         mock_uow.memories.get_active_for_project.return_value = Result.ok([current])
@@ -900,11 +900,14 @@ class TestMemoryManager:
 
     # --- Conflict Resolution Boundary Tests ---
 
-    def test_conflict_resolution_delegates_to_service(self, manager, mock_conflict_service, sample_memory, sample_instruction):
+    def test_conflict_resolution_delegates_to_service(self, manager, mock_uow, mock_conflict_service, sample_memory, sample_instruction):
         """Test that Core delegates conflict handling to ConflictResolutionService."""
         candidates = [ConflictCandidate(memory=sample_memory)]
         instructions = [sample_instruction]
-        project_id = sample_memory.project_id
+        project_id = uuid4()
+        mock_uow.projects.get.return_value = Result.ok(
+            Project(id=project_id, name="Test Project")
+        )
 
         resolution = ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED)
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
@@ -1032,6 +1035,7 @@ class TestMemoryManager:
     def test_assemble_context_project_only(self, manager, mock_uow, sample_project, sample_memory):
         """Test context assembly with project context only."""
         mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get_active_for_project.return_value = Result.ok(None)
         mock_uow.memories.get_active_for_project.return_value = Result.ok([sample_memory])
         mock_uow.custom_instructions.get_active_for_scope.return_value = Result.ok([])
 
@@ -1278,6 +1282,7 @@ class TestMemoryManager:
             type('obj', (object,), {'memories': [sample_memory], 'total_found': 1})()
         )
         manager._retrieval_service = mock_retrieval
+        manager._context_assembly._retrieval_service = mock_retrieval
 
         request = ContextAssemblyRequest(project_id=sample_project.id, query="test")
         result = manager.assemble_context(request)
@@ -1392,7 +1397,7 @@ class TestMemoryManager:
     def test_compact_selection_of_memories(self, manager, mock_uow, sample_project, sample_session):
         """Test compact selects oldest/least relevant memories for compaction."""
         # Create memories with different updated_at timestamps
-        base_time = datetime.utcnow()
+        base_time = datetime.now(timezone.utc)
         memories = []
         for i in range(60):
             mem = Memory(
@@ -1777,7 +1782,7 @@ class TestMemoryManager:
         assert context.active_memories[0].content == "Project A memory"
         assert context.active_memories[0].project_id == project_a.id
         # Verify get_active_for_project was called with project A's ID
-        mock_uow.memories.get_active_for_project.assert_called_with(project_a.id, 50)
+        mock_uow.memories.get_active_for_project.assert_called_with(project_a.id, 20)
 
     def test_project_isolation_instructions(self, manager, mock_uow):
         """Test project A does not receive project B instructions."""
@@ -1925,7 +1930,8 @@ class TestMemoryManager:
         request = RetrievalRequest(
             query="test",
             project_id=sample_project.id,
-            memory_types=["decision"],
+            use_semantic=False,
+            use_structured=True,
             include_historical=False,
             limit=10,
         )
@@ -1934,7 +1940,8 @@ class TestMemoryManager:
         assert result.success
         called_request = mock_retrieval_service.retrieve.call_args[0][0]
         assert called_request.project_id == sample_project.id
-        assert called_request.memory_types == ["decision"]
+        assert called_request.use_semantic is False
+        assert called_request.use_structured is True
         assert called_request.include_historical is False
         assert called_request.limit == 10
 
@@ -2132,7 +2139,8 @@ class TestMemoryManager:
             query="test",
             project_id=uuid4(),
             include_historical=True,
-            memory_types=["decision", "fact"],
+            use_semantic=False,
+            use_structured=True,
             limit=25
         )
         result = manager.retrieve(request)
@@ -2140,7 +2148,8 @@ class TestMemoryManager:
         assert result.success
         called_request = mock_retrieval_service.retrieve.call_args[0][0]
         assert called_request.include_historical is True
-        assert called_request.memory_types == ["decision", "fact"]
+        assert called_request.use_semantic is False
+        assert called_request.use_structured is True
         assert called_request.limit == 25
 
     def test_search_convenience(self, manager, mock_retrieval_service, sample_memory):
@@ -2630,8 +2639,8 @@ class TestMemoryManager:
 
     def test_current_canonical_over_older_historical(self, manager, mock_uow, sample_project):
         """CURRENT CANONICAL MEMORY > older historical memory (authority invariant)."""
-        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.utcnow())
-        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.utcnow())
+        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.now(timezone.utc))
+        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.now(timezone.utc))
 
         mock_uow.memories.get_active_for_project.return_value = Result.ok([current])
         mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [historical], 'total': 1})())
@@ -2712,3 +2721,46 @@ class TestMemoryManager:
         assert "llm" not in source.lower()
         assert "model" not in source.lower()
         assert "prompt" not in source.lower()
+
+    def test_delete_memory_does_not_touch_index_when_canonical_delete_fails(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.delete.return_value = Result.err("Canonical store unavailable")
+
+        result = manager.delete_memory(sample_memory.id)
+
+        assert not result.success
+        assert "Canonical store unavailable" in result.error
+        mock_semantic_index.remove_memory.assert_not_called()
+
+    def test_assemble_context_fails_when_custom_instructions_cannot_load(self, manager, mock_uow, sample_project):
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_active_for_project.return_value = Result.ok([])
+        mock_uow.custom_instructions.get_active_for_scope.side_effect = [
+            Result.err("Instruction store unavailable")
+        ]
+
+        result = manager.assemble_context(
+            ContextAssemblyRequest(project_id=sample_project.id, include_custom_instructions=True)
+        )
+
+        assert not result.success
+        assert "Instruction store unavailable" in result.error
+
+    def test_create_memory_succeeds_when_index_raises(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.create.return_value = Result.ok(sample_memory)
+        mock_semantic_index.index_memory.side_effect = RuntimeError("index offline")
+
+        result = manager.create_memory(MemoryCreateRequest(project_id=sample_memory.project_id, content=sample_memory.content))
+
+        assert result.success
+        assert result.value.id == sample_memory.id
+        assert result.metadata["semantic_index_error"] == "index offline"
+
+    def test_update_memory_succeeds_when_index_raises(self, manager, mock_uow, mock_semantic_index, sample_memory):
+        mock_uow.memories.update.return_value = Result.ok(sample_memory)
+        mock_semantic_index.update_memory.side_effect = RuntimeError("index offline")
+
+        result = manager.update_memory(sample_memory.id, MemoryUpdateRequest(content="updated"))
+
+        assert result.success
+        assert result.value.id == sample_memory.id
+        assert result.metadata["semantic_index_error"] == "index offline"

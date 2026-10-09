@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -46,12 +46,14 @@ class ContextAssemblyService:
 
             if request.session_id:
                 session_result = self._session_repo.get(request.session_id)
-                if session_result.success:
-                    session = session_result.value
+                if not session_result.success:
+                    return Result.err(session_result.error or "Failed to load requested session")
+                session = session_result.value
             elif request.project_id:
                 session_result = self._session_repo.get_active_for_project(request.project_id)
-                if session_result.success:
-                    session = session_result.value
+                if not session_result.success:
+                    return Result.err(session_result.error or "Failed to load active session")
+                session = session_result.value
 
             # Get active custom instructions
             custom_instructions = []
@@ -64,8 +66,9 @@ class ContextAssemblyService:
             active_memories = []
             if request.project_id:
                 active_result = self._memory_repo.get_active_for_project(request.project_id, request.retrieval_limit)
-                if active_result.success:
-                    active_memories = active_result.value
+                if not active_result.success:
+                    return Result.err(active_result.error or "Failed to load active memories")
+                active_memories = active_result.value or []
 
             # Get resolved memories (memories that were part of conflict resolutions)
             resolved_memories = []
@@ -81,7 +84,9 @@ class ContextAssemblyService:
                     include_historical=True,
                 )
                 hist_result = self._memory_repo.search(hist_params)
-                if hist_result.success and hist_result.value:
+                if not hist_result.success:
+                    return Result.err(hist_result.error or "Failed to load historical memories")
+                if hist_result.value:
                     historical_memories = hist_result.value.items
 
             # Perform retrieval if query provided
@@ -95,7 +100,9 @@ class ContextAssemblyService:
                     include_historical=request.include_historical,
                 )
                 retrieval_result = self._retrieval_service.retrieve(retrieval_request)
-                if retrieval_result.success and retrieval_result.value:
+                if not retrieval_result.success:
+                    return Result.err(retrieval_result.error or "Memory retrieval failed")
+                if retrieval_result.value:
                     # Merge retrieved memories with active memories
                     for mem in retrieval_result.value.memories:
                         if mem not in active_memories and mem.status == MemoryStatus.ACTIVE:
@@ -110,7 +117,7 @@ class ContextAssemblyService:
                 historical_memories=historical_memories,
                 conflict_resolutions=conflict_resolutions,
                 query=request.query,
-                assembled_at=datetime.utcnow().isoformat(),
+                assembled_at=datetime.now(timezone.utc).isoformat(),
             )
 
             return Result.ok(context)

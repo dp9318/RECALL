@@ -11,7 +11,7 @@ sys.path.insert(0, str(project_root))
 import pytest
 from unittest.mock import Mock, MagicMock
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import core modules via a helper function to avoid top-level import issues
 def _import_core_modules():
@@ -157,8 +157,8 @@ def sample_project():
         id=uuid4(),
         name="Test Project",
         description="A test project",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
 
@@ -167,9 +167,9 @@ def sample_session(sample_project):
     return Session(
         id=uuid4(),
         project_id=sample_project.id,
-        started_at=datetime.utcnow(),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
 
@@ -184,8 +184,8 @@ def sample_memory(sample_project, sample_session):
         content="Use SQLite for canonical storage",
         status=MemoryStatus.ACTIVE,
         provenance="user_explicit",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
 
@@ -196,6 +196,6 @@ def sample_instruction():
         scope=Scope.GLOBAL,
         content="Always prefer explicit user instructions over inferred memories",
         status=InstructionStatus.ACTIVE,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )

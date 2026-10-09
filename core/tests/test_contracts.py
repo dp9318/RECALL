@@ -2,7 +2,7 @@
 
 import pytest
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 from contracts.base import Result, Scope, MemoryStatus, InstructionStatus, PaginationParams, PaginatedResult
@@ -135,7 +135,7 @@ class TestContracts:
         session = Session(ended_at=None)
         assert session.is_active()
 
-        session.ended_at = datetime.utcnow()
+        session.ended_at = datetime.now(timezone.utc)
         assert not session.is_active()
 
 
