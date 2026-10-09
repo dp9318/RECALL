@@ -66,6 +66,7 @@ class _TestSemanticIndex:
 
 def test_default_factory_initializes_and_closes_user_database(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
 
     manager = create_memory_manager()
     database_path = tmp_path / ".recall" / "recall.sqlite3"

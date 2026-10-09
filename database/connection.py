@@ -7,6 +7,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
+import threading
+
 from database.config import DatabaseConfig, MigrationConfig
 from database.exceptions import (
     ConfigurationError,
@@ -16,32 +18,166 @@ from database.exceptions import (
 )
 
 
+class ThreadSafeCursor:
+    """Thread-safe proxy for a SQLite cursor."""
+
+    def __init__(self, cursor: sqlite3.Cursor, lock: threading.RLock) -> None:
+        self._cursor = cursor
+        self._lock = lock
+
+    def fetchone(self) -> Any:
+        with self._lock:
+            return self._cursor.fetchone()
+
+    def fetchall(self) -> list[Any]:
+        with self._lock:
+            return self._cursor.fetchall()
+
+    def fetchmany(self, size: int | None = None) -> list[Any]:
+        with self._lock:
+            return self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
+
+    def __iter__(self) -> ThreadSafeCursor:
+        return self
+
+    def __next__(self) -> Any:
+        with self._lock:
+            row = self._cursor.fetchone()
+            if row is None:
+                raise StopIteration
+            return row
+
+    @property
+    def rowcount(self) -> int:
+        with self._lock:
+            return self._cursor.rowcount
+
+    @property
+    def lastrowid(self) -> int | None:
+        with self._lock:
+            return self._cursor.lastrowid
+
+    @property
+    def description(self) -> Any:
+        with self._lock:
+            return self._cursor.description
+
+    def close(self) -> None:
+        with self._lock:
+            self._cursor.close()
+
+    def __getattr__(self, name: str) -> Any:
+        with self._lock:
+            return getattr(self._cursor, name)
+
+
+class ThreadSafeConnection:
+    """Thread-safe proxy for a SQLite connection using re-entrant synchronization."""
+
+    def __init__(self, conn: sqlite3.Connection, lock: Optional[threading.RLock] = None) -> None:
+        self._conn = conn
+        self._lock = lock or threading.RLock()
+
+    @property
+    def lock(self) -> threading.RLock:
+        return self._lock
+
+    @property
+    def raw_connection(self) -> sqlite3.Connection:
+        return self._conn
+
+    def execute(self, sql: str, parameters: Any = ()) -> ThreadSafeCursor:
+        with self._lock:
+            cursor = self._conn.execute(sql, parameters)
+            return ThreadSafeCursor(cursor, self._lock)
+
+    def executemany(self, sql: str, parameters: Any) -> ThreadSafeCursor:
+        with self._lock:
+            cursor = self._conn.executemany(sql, parameters)
+            return ThreadSafeCursor(cursor, self._lock)
+
+    def executescript(self, sql_script: str) -> ThreadSafeCursor:
+        with self._lock:
+            cursor = self._conn.executescript(sql_script)
+            return ThreadSafeCursor(cursor, self._lock)
+
+    def cursor(self) -> ThreadSafeCursor:
+        with self._lock:
+            cursor = self._conn.cursor()
+            return ThreadSafeCursor(cursor, self._lock)
+
+    def commit(self) -> None:
+        with self._lock:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        with self._lock:
+            self._conn.rollback()
+
+    def close(self) -> None:
+        with self._lock:
+            self._conn.close()
+
+    @property
+    def in_transaction(self) -> bool:
+        with self._lock:
+            return self._conn.in_transaction
+
+    @property
+    def total_changes(self) -> int:
+        with self._lock:
+            return self._conn.total_changes
+
+    @property
+    def row_factory(self) -> Any:
+        return self._conn.row_factory
+
+    @row_factory.setter
+    def row_factory(self, factory: Any) -> None:
+        with self._lock:
+            self._conn.row_factory = factory
+
+    def __enter__(self) -> ThreadSafeConnection:
+        self._lock.acquire()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self._lock.release()
+
+    def __getattr__(self, name: str) -> Any:
+        with self._lock:
+            return getattr(self._conn, name)
+
+
 class DatabaseConnection:
-    """Manages SQLite connections with proper configuration."""
+    """Manages SQLite connections with proper configuration and thread synchronization."""
 
     def __init__(self, config: DatabaseConfig) -> None:
         self._config = config
-        self._connection: Optional[sqlite3.Connection] = None
+        self._connection: Optional[ThreadSafeConnection] = None
+        self._lock = threading.RLock()
 
-    def connect(self) -> sqlite3.Connection:
+    def connect(self) -> ThreadSafeConnection:
         """Create and configure a new SQLite connection."""
-        if self._connection is not None:
-            return self._connection
+        with self._lock:
+            if self._connection is not None:
+                return self._connection
 
-        try:
-            self._config.path.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(
-                self._config.path,
-                timeout=self._config.timeout,
-                detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
-                isolation_level=self._config.isolation_level,
-            )
-            conn.row_factory = sqlite3.Row
-            self._apply_pragmas(conn)
-            self._connection = conn
-            return conn
-        except sqlite3.Error as e:
-            raise ConnectionError(f"Failed to connect to database: {e}", cause=e) from e
+            try:
+                self._config.path.parent.mkdir(parents=True, exist_ok=True)
+                raw_conn = sqlite3.connect(
+                    self._config.path,
+                    timeout=self._config.timeout,
+                    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+                    isolation_level=self._config.isolation_level,
+                    check_same_thread=False,
+                )
+                raw_conn.row_factory = sqlite3.Row
+                self._apply_pragmas(raw_conn)
+                self._connection = ThreadSafeConnection(raw_conn, self._lock)
+                return self._connection
+            except sqlite3.Error as e:
+                raise ConnectionError(f"Failed to connect to database: {e}", cause=e) from e
 
     def _apply_pragmas(self, conn: sqlite3.Connection) -> None:
         """Apply all configured pragmas to the connection."""
@@ -59,45 +195,58 @@ class DatabaseConnection:
 
     def close(self) -> None:
         """Close the connection if open."""
-        if self._connection is not None:
-            try:
-                self._connection.close()
-            except sqlite3.Error:
-                pass
-            finally:
-                self._connection = None
+        with self._lock:
+            if self._connection is not None:
+                try:
+                    self._connection.close()
+                except sqlite3.Error:
+                    pass
+                finally:
+                    self._connection = None
 
     @property
     def is_connected(self) -> bool:
         return self._connection is not None
 
     @property
-    def connection(self) -> sqlite3.Connection:
+    def connection(self) -> ThreadSafeConnection:
         if self._connection is None:
             return self.connect()
         return self._connection
 
 
 class Transaction:
-    """Database transaction context manager for isolation_level=None."""
+    """Database transaction context manager with lock synchronization."""
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: Any, lock: Optional[threading.RLock] = None) -> None:
         self._conn = conn
+        self._lock = lock if lock is not None else getattr(conn, "lock", None)
         self._committed = False
         self._rolled_back = False
         self._active = False
 
     def __enter__(self) -> Transaction:
-        # With isolation_level=None, we must explicitly start a transaction
-        self._conn.execute("BEGIN")
-        self._active = True
-        return self
+        if self._lock is not None:
+            self._lock.acquire()
+        try:
+            # With isolation_level=None, we must explicitly start a transaction
+            self._conn.execute("BEGIN")
+            self._active = True
+            return self
+        except Exception:
+            if self._lock is not None:
+                self._lock.release()
+            raise
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        if exc_type is not None:
-            self.rollback()
-        elif not self._committed and not self._rolled_back:
-            self.commit()
+        try:
+            if exc_type is not None:
+                self.rollback()
+            elif not self._committed and not self._rolled_back:
+                self.commit()
+        finally:
+            if self._lock is not None:
+                self._lock.release()
 
     def commit(self) -> None:
         """Commit the transaction."""

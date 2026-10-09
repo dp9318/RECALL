@@ -219,6 +219,10 @@ class SQLiteMemoryRepository(MemoryRepository):
             conditions = []
             values = []
 
+            if params.query:
+                conditions.append("content LIKE ?")
+                values.append(f"%{params.query}%")
+
             if params.project_id:
                 conditions.append("project_id = ?")
                 values.append(uuid_to_str(params.project_id))
@@ -239,7 +243,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                 conditions.append("status = ?")
                 values.append(params.status.value)
 
-            if not params.include_historical:
+            if not params.include_historical and params.status != MemoryStatus.DELETED:
                 conditions.append("status != ?")
                 values.append(MemoryStatus.DELETED.value)
 

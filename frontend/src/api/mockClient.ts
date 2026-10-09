@@ -386,8 +386,10 @@ export const mockApiClient = {
     if (query.memory_type) {
       filtered = filtered.filter(m => m.memory_type === query.memory_type);
     }
-    if (query.status) {
+    if (query.status && query.status !== 'all') {
       filtered = filtered.filter(m => m.status === query.status);
+    } else if (!query.status) {
+      filtered = filtered.filter(m => m.status === 'active');
     }
     if (query.search) {
       const search = query.search.toLowerCase();

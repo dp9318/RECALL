@@ -1,0 +1,23 @@
+
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "portkey-gemini": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Portkey Gemini",
+      "options": {
+        "baseURL": "https://api.portkey.ai/v1",
+        "apiKey": "{env:PORTKEY_API_KEY}",
+        "headers": {
+          "x-portkey-virtual-key": "{env:PORTKEY_VIRTUAL_KEY}"
+        }
+      },
+      "models": {
+        "gemini-2.5-flash-lite": {
+          "name": "Gemini 2.5 Flash Lite"
+        }
+      }
+    }
+  },
+  "model": "portkey-gemini/gemini-2.5-flash-lite"
+}

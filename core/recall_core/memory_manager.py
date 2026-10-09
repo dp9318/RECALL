@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result, PaginationParams, Scope
+from contracts.base import Result, PaginatedResult, PaginationParams, Scope
 from contracts.conflict import ConflictResolutionRequest, ConflictResolutionResult
 from contracts.instruction import (
     CustomInstruction,
@@ -263,6 +263,10 @@ class MemoryManager:
         if result.success and result.value:
             return Result.ok(result.value.items)
         return Result.err(result.error or "Search failed")
+
+    def search_memories_paginated(self, params: MemorySearchParams) -> Result[PaginatedResult[Memory]]:
+        """Search memories with filters returning full pagination metadata."""
+        return self._uow.memories.search(params)
 
     def get_active_memories(self, project_id: UUID, limit: int = 50) -> Result[list[Memory]]:
         """Get active memories for a project."""
@@ -665,25 +669,29 @@ class MemoryManager:
             if proj_result.success:
                 stats["projects"] = len(proj_result.value)
 
-            if project_id:
-                # Session count for project
-                sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
-                if sess_result.success and sess_result.value:
-                    stats["sessions"] = sess_result.value.total
+            # Session count (scoped or system-wide)
+            sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
+            if sess_result.success and sess_result.value:
+                stats["sessions"] = sess_result.value.total
 
-                # Memory counts
-                for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
-                    mem_params = MemorySearchParams(project_id=project_id, status=status, limit=1000)
-                    mem_result = self._uow.memories.search(mem_params)
-                    if mem_result.success and mem_result.value:
-                        stats["memories"][status.value] = mem_result.value.total
+            # Memory counts (scoped or system-wide)
+            for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
+                mem_params = MemorySearchParams(
+                    project_id=project_id,
+                    status=status,
+                    limit=1000,
+                    include_historical=(status == MemoryStatus.DELETED),
+                )
+                mem_result = self._uow.memories.search(mem_params)
+                if mem_result.success and mem_result.value:
+                    stats["memories"][status.value] = mem_result.value.total
 
-                # Instruction counts
-                for status_val in [InstructionStatus.ACTIVE, InstructionStatus.INACTIVE]:
-                    instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1000)
-                    instr_result = self._uow.custom_instructions.list(instr_params)
-                    if instr_result.success and instr_result.value:
-                        stats["custom_instructions"][status_val.value] = instr_result.value.total
+            # Instruction counts (scoped or system-wide)
+            for status_val in [InstructionStatus.ACTIVE, InstructionStatus.INACTIVE]:
+                instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1000)
+                instr_result = self._uow.custom_instructions.list(instr_params)
+                if instr_result.success and instr_result.value:
+                    stats["custom_instructions"][status_val.value] = instr_result.value.total
 
             # Semantic index health
             index_health = self._semantic_index.health_check()

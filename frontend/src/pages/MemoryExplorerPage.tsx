@@ -20,11 +20,13 @@ const MEMORY_TYPES = [
 ] as const satisfies Array<{ value: string; label: string }>;
 
 const STATUSES = [
-  { value: '', label: 'All Statuses' },
+  { value: '', label: 'Active (Default)' },
+  { value: 'all', label: 'All (Non-Deleted)' },
   { value: 'active', label: 'Active' },
   { value: 'superseded', label: 'Superseded' },
   { value: 'archived', label: 'Archived' },
   { value: 'conflicted', label: 'Conflicted' },
+  { value: 'deleted', label: 'Deleted' },
 ] as const satisfies Array<{ value: string; label: string }>;
 
 export function MemoryExplorerPage() {
@@ -234,10 +236,10 @@ export function MemoryExplorerPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Avatar name={memory.project_name || 'Project'} size="sm" />
+                      <Avatar name={memory.project_name || (memory.project_id ? 'Project' : 'Global')} size="sm" />
                       <div className="min-w-0">
                         <Link to={`/memories/${memory.memory_id}`} className="font-medium text-text-primary hover:text-primary truncate block">
-                          {memory.project_name || memory.project_id}
+                          {memory.project_name || memory.project_id || 'Global Memory'}
                         </Link>
                         <p className="text-xs text-text-secondary truncate">{memory.provenance}</p>
                       </div>

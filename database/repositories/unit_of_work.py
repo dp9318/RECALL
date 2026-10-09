@@ -99,12 +99,20 @@ class SQLiteUnitOfWork:
 
     def begin(self) -> _TransactionContextManager:
         """Begin a transaction."""
-        if self._transaction is not None:
-            raise RuntimeError("Transaction already in progress")
-
         conn = self._ensure_connection()
-        self._transaction = Transaction(conn)
-        return _TransactionContextManager(self._transaction, self._clear_transaction)
+        lock = getattr(conn, "lock", None)
+        if lock is not None:
+            lock.acquire()
+        try:
+            if self._transaction is not None:
+                raise RuntimeError("Transaction already in progress")
+
+            self._transaction = Transaction(conn, lock=None)
+            return _TransactionContextManager(self._transaction, self._clear_transaction, lock=lock)
+        except Exception:
+            if lock is not None:
+                lock.release()
+            raise
 
 
     def _clear_transaction(self) -> None:
@@ -159,11 +167,12 @@ class SQLiteUnitOfWork:
 
 
 class _TransactionContextManager:
-    """Context manager for transactions that properly handles rollback."""
+    """Context manager for transactions that properly handles rollback and lock release."""
 
-    def __init__(self, transaction: Transaction, clear_callback: callable) -> None:
+    def __init__(self, transaction: Transaction, clear_callback: callable, lock: Optional[Any] = None) -> None:
         self._transaction = transaction
         self._clear_callback = clear_callback
+        self._lock = lock
 
     def __enter__(self) -> Transaction:
         self._transaction.__enter__()
@@ -173,8 +182,11 @@ class _TransactionContextManager:
         try:
             self._transaction.__exit__(exc_type, exc_val, exc_tb)
         finally:
-            # Clear the transaction reference in the UnitOfWork
-            self._clear_callback()
+            try:
+                self._clear_callback()
+            finally:
+                if self._lock is not None:
+                    self._lock.release()
         # Don't suppress exceptions
         return False
 

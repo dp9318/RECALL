@@ -94,11 +94,15 @@ export function MemoryDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
           <div className="flex items-center gap-3">
-            <Avatar name={memory.project_name || 'Project'} size="lg" />
+            <Avatar name={memory.project_name || (memory.project_id ? 'Project' : 'Global')} size="lg" />
             <div>
-              <Link to={`/memories?project=${memory.project_id}`} className="font-semibold text-text-primary hover:text-primary">
-                {memory.project_name || memory.project_id}
-              </Link>
+              {memory.project_id ? (
+                <Link to={`/memories?project=${memory.project_id}`} className="font-semibold text-text-primary hover:text-primary">
+                  {memory.project_name || memory.project_id}
+                </Link>
+              ) : (
+                <span className="font-semibold text-text-primary">Global Memory</span>
+              )}
               <p className="text-sm text-text-secondary">{memory.provenance}</p>
             </div>
           </div>

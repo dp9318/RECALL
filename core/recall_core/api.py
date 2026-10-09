@@ -251,6 +251,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         project_id: str | None = None,
         memory_type: str | None = None,
         status: str | None = None,
+        include_historical: bool = False,
         search: str | None = None,
         page: int = Query(1, ge=1),
         page_size: int = Query(50, ge=1, le=200),
@@ -259,22 +260,44 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
     ) -> dict[str, Any]:
         manager = get_manager()
         project_uuid = _parse_uuid(project_id, "project_id", allow_missing=True) if project_id else None
+
+        if status == "deleted":
+            status_filter = MemoryStatus.DELETED
+            include_historical = True
+        elif status == "all":
+            status_filter = None
+        elif status:
+            status_filter = _parse_status(status, MemoryStatus, "status")
+        else:
+            status_filter = MemoryStatus.ACTIVE
+
         params = MemorySearchParams(
             query=search,
             project_id=project_uuid,
             memory_type=memory_type,
-            status=_parse_status(status, MemoryStatus, "status"),
+            status=status_filter,
             limit=page_size,
             offset=(page - 1) * page_size,
-            include_historical=True,
+            include_historical=include_historical,
         )
-        result = manager.search_memories(params)
-        if not result.success:
-            raise HTTPException(status_code=500, detail=result.error or "Unable to list memories")
-        memories = list(result.value or [])
+
+        if hasattr(manager, "search_memories_paginated"):
+            result = manager.search_memories_paginated(params)
+            if not result.success:
+                raise HTTPException(status_code=500, detail=result.error or "Unable to list memories")
+            paginated = result.value
+            memories = list(paginated.items if paginated else [])
+            total = paginated.total if paginated else 0
+        else:
+            result = manager.search_memories(params)
+            if not result.success:
+                raise HTTPException(status_code=500, detail=result.error or "Unable to list memories")
+            memories = list(result.value or [])
+            total = len(memories)
+
         payload = {
             "memories": [_serialize_memory(manager, memory) for memory in memories],
-            "total": len(memories),
+            "total": total,
             "page": page,
             "page_size": page_size,
         }
@@ -285,7 +308,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
         result = manager.get_memory(memory_uuid)
-        if not result.success or result.value is None:
+        if not result.success or result.value is None or result.value.status == MemoryStatus.DELETED:
             raise HTTPException(status_code=404, detail="Memory not found")
         return _serialize_memory(manager, result.value)
 
@@ -335,7 +358,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
         result = manager.delete_memory(memory_uuid)
-        if not result.success:
+        if not result.success or not result.value:
             raise HTTPException(status_code=404, detail=result.error or "Memory not found")
         return Response(status_code=204)
 
