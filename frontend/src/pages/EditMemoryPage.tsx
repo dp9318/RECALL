@@ -87,16 +87,12 @@ export function EditMemoryPage() {
     setError(null);
 
     const pid = projectId || memory.project_id;
+    const pname = projects.find(p => p.project_id === pid)?.name || memory.project_name;
 
-      try {
-        await api.updateMemory(id, {
-          project_id: (pid: string),
-          project_name: (projects.find(p => p.project_id === (projectId || memory.project_id))?.name || memory.project_name) as string,
-
-      try {
-        await api.updateMemory(id, {
-          project_id: pid,
-          project_name: pname,
+    try {
+      await api.updateMemory(id, {
+        project_id: pid,
+        project_name: pname,
         memory_type: memoryType,
         content: memory.content,
         status: status,
