@@ -2,7 +2,7 @@
 
 import pytest
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 from contracts.base import Result, Scope, MemoryStatus
@@ -365,8 +365,8 @@ class TestContextAssemblyService:
             semantic_index=mock_uow.semantic_index,
         )
 
-        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.utcnow().isoformat())
-        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.utcnow().isoformat())
+        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.now(timezone.utc).isoformat())
+        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.now(timezone.utc).isoformat())
 
         mock_uow.memories.get_active_for_project.return_value = Result.ok([current])
         mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [historical], 'total': 1})())

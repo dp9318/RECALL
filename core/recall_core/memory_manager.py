@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -128,8 +128,7 @@ class MemoryManager:
 
     def end_session(self, session_id: UUID) -> Result[Optional[Session]]:
         """End a session."""
-        from datetime import datetime
-        return self._uow.sessions.update(session_id, SessionUpdateRequest(ended_at=datetime.utcnow()))
+        return self._uow.sessions.update(session_id, SessionUpdateRequest(ended_at=datetime.now(timezone.utc)))
 
     # --- Memory Operations ---
 
@@ -413,7 +412,7 @@ class MemoryManager:
                             # Mark original as superseded
                             update_result = self.update_memory(memory.id, MemoryUpdateRequest(
                                 status=MemoryStatus.SUPERSEDED,
-                                metadata={**memory.metadata, "compacted_at": datetime.utcnow().isoformat()},
+                                metadata={**memory.metadata, "compacted_at": datetime.now(timezone.utc).isoformat()},
                             ))
                             if update_result.success:
                                 superseded += 1

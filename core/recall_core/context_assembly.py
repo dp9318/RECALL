@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -117,7 +117,7 @@ class ContextAssemblyService:
                 historical_memories=historical_memories,
                 conflict_resolutions=conflict_resolutions,
                 query=request.query,
-                assembled_at=datetime.utcnow().isoformat(),
+                assembled_at=datetime.now(timezone.utc).isoformat(),
             )
 
             return Result.ok(context)

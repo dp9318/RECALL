@@ -2,7 +2,7 @@
 
 import pytest
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, MagicMock
 
 from contracts.base import Result, Scope, MemoryStatus, InstructionStatus
@@ -222,10 +222,10 @@ class TestMemoryManager:
 
     def test_update_session(self, manager, mock_uow, sample_session):
         """Test updating a session."""
-        updated = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+        updated = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.now(timezone.utc))
         mock_uow.sessions.update.return_value = Result.ok(updated)
 
-        request = SessionUpdateRequest(ended_at=datetime.utcnow())
+        request = SessionUpdateRequest(ended_at=datetime.now(timezone.utc))
         result = manager.update_session(sample_session.id, request)
 
         assert result.success
@@ -237,7 +237,7 @@ class TestMemoryManager:
         session_id = uuid4()
         mock_uow.sessions.update.return_value = Result.err("Session not found")
 
-        request = SessionUpdateRequest(ended_at=datetime.utcnow())
+        request = SessionUpdateRequest(ended_at=datetime.now(timezone.utc))
         result = manager.update_session(session_id, request)
 
         assert not result.success
@@ -245,7 +245,7 @@ class TestMemoryManager:
 
     def test_end_session(self, manager, mock_uow, sample_session):
         """Test ending a session."""
-        ended_session = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.utcnow())
+        ended_session = Session(id=sample_session.id, project_id=sample_session.project_id, ended_at=datetime.now(timezone.utc))
         mock_uow.sessions.update.return_value = Result.ok(ended_session)
 
         result = manager.end_session(sample_session.id)
@@ -331,8 +331,8 @@ class TestMemoryManager:
             content="Test memory",
             status=MemoryStatus.ACTIVE,
             provenance="user_explicit",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         mock_uow.memories.create.return_value = Result.ok(memory)
         mock_semantic_index.index_memory.return_value = Result.ok(True)
@@ -810,7 +810,7 @@ class TestMemoryManager:
             content="Current: API v2 is standard",
             status=MemoryStatus.ACTIVE,
             provenance="user_explicit",
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
         historical = Memory(
             id=uuid4(),
@@ -818,7 +818,7 @@ class TestMemoryManager:
             content="Old: API v1 is standard",
             status=MemoryStatus.SUPERSEDED,
             provenance="inferred",
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
 
         mock_uow.memories.get_active_for_project.return_value = Result.ok([current])
@@ -1397,7 +1397,7 @@ class TestMemoryManager:
     def test_compact_selection_of_memories(self, manager, mock_uow, sample_project, sample_session):
         """Test compact selects oldest/least relevant memories for compaction."""
         # Create memories with different updated_at timestamps
-        base_time = datetime.utcnow()
+        base_time = datetime.now(timezone.utc)
         memories = []
         for i in range(60):
             mem = Memory(
@@ -2639,8 +2639,8 @@ class TestMemoryManager:
 
     def test_current_canonical_over_older_historical(self, manager, mock_uow, sample_project):
         """CURRENT CANONICAL MEMORY > older historical memory (authority invariant)."""
-        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.utcnow())
-        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.utcnow())
+        current = Memory(id=uuid4(), project_id=sample_project.id, content="Current: API v2 is standard", status=MemoryStatus.ACTIVE, provenance="user_explicit", updated_at=datetime.now(timezone.utc))
+        historical = Memory(id=uuid4(), project_id=sample_project.id, content="Old: API v1 is standard", status=MemoryStatus.SUPERSEDED, provenance="inferred", updated_at=datetime.now(timezone.utc))
 
         mock_uow.memories.get_active_for_project.return_value = Result.ok([current])
         mock_uow.memories.search.return_value = Result.ok(type('obj', (object,), {'items': [historical], 'total': 1})())
