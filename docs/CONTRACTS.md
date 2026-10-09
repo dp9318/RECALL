@@ -39,7 +39,7 @@ The conflict resolver should return a structured result containing enough inform
 - confidence where available;
 - evidence identifiers;
 - resolution reason;
-- whether the local model was used.
+- whether a model was used and the selected provider when available.
 
 ## API Contract
 
@@ -68,4 +68,17 @@ Exact route names may evolve; the domain capability must remain stable.
 
 ## MCP Contract
 
-The MCP layer should expose equivalent core capabilities needed by OpenCode. MCP handlers should remain thin adapters over core services.
+The MCP layer exposes the OpenCode operations using thin adapters over Core.
+Its current public tools are:
+
+- `recall_search`, `recall_get_context`, and `recall_save_memory`;
+- `recall_update_context` and `recall_compact`;
+- `recall_list_custom_instructions`, `recall_create_custom_instruction`,
+  `recall_update_custom_instruction`, and `recall_delete_custom_instruction`.
+
+Inputs map to existing Core request models, and outputs serialize existing
+public DTOs/results. MCP handlers must not implement persistence, retrieval,
+context assembly, compaction, or instruction business logic. Exact input
+properties, defaults, scope rules, output shapes, and errors are documented in
+[`modules/MCP.md`](./modules/MCP.md). Changes to these public names or shapes
+require deliberate contract updates.

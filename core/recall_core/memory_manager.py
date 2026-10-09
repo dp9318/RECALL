@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result, PaginationParams
+from contracts.base import Result, PaginationParams, Scope
 from contracts.conflict import ConflictResolutionRequest, ConflictResolutionResult
 from contracts.instruction import (
     CustomInstruction,
@@ -15,7 +15,7 @@ from contracts.instruction import (
     CustomInstructionUpdateRequest,
     InstructionStatus,
 )
-from contracts.memory import Memory, MemoryCreateRequest, MemorySearchParams, MemoryStatus, MemoryUpdateRequest
+from contracts.memory import Memory, MemoryCreateRequest, MemoryLineage, MemorySearchParams, MemoryStatus, MemoryUpdateRequest
 from contracts.project import Project, ProjectCreateRequest, ProjectUpdateRequest, Session, SessionCreateRequest, SessionUpdateRequest
 from contracts.retrieval import (
     AssembledContext,
@@ -145,17 +145,28 @@ class MemoryManager:
             # Index in semantic store (best effort). Canonical persistence has
             # succeeded, so a derived-index outage must not report creation as
             # failed and encourage callers to retry a write that already exists.
+            index_metadata = {}
+            if memory.supersedes_id is not None:
+                try:
+                    cleanup_result = self._semantic_index.remove_memory(
+                        memory.supersedes_id
+                    )
+                    if not cleanup_result.success:
+                        index_metadata["semantic_index_cleanup_error"] = (
+                            cleanup_result.error or "Superseded memory cleanup failed"
+                        )
+                except Exception as cleanup_error:
+                    index_metadata["semantic_index_cleanup_error"] = str(cleanup_error)
             try:
                 index_result = self._semantic_index.index_memory(memory)
                 if not index_result.success:
-                    return Result.ok(
-                        memory,
-                        metadata={"semantic_index_error": index_result.error or "Indexing failed"},
+                    index_metadata["semantic_index_error"] = (
+                        index_result.error or "Indexing failed"
                     )
             except Exception as index_error:
-                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
+                index_metadata["semantic_index_error"] = str(index_error)
 
-            return Result.ok(memory)
+            return Result.ok(memory, metadata=index_metadata)
 
         except Exception as e:
             return Result.err(f"Memory creation failed: {str(e)}")
@@ -218,6 +229,33 @@ class MemoryManager:
 
         except Exception as e:
             return Result.err(f"Memory deletion failed: {str(e)}")
+
+    def rebuild_semantic_index(self) -> Result[int]:
+        """Re-embed all active canonical memories into the derived index."""
+        try:
+            page_size = 200
+            offset = 0
+            memories: list[Memory] = []
+            while True:
+                result = self._uow.memories.search(
+                    MemorySearchParams(
+                        status=MemoryStatus.ACTIVE,
+                        limit=page_size,
+                        offset=offset,
+                    )
+                )
+                if not result.success:
+                    return Result.err(
+                        result.error or "Failed to load canonical memories for rebuild"
+                    )
+                page = result.value.items if result.value else []
+                memories.extend(page)
+                if not result.value or len(page) < page_size:
+                    break
+                offset += len(page)
+            return self._semantic_index.rebuild_from_canonical(memories)
+        except Exception as exc:
+            return Result.err(f"Failed to rebuild semantic index: {exc}")
 
     def search_memories(self, params: MemorySearchParams) -> Result[list[Memory]]:
         """Search memories with filters."""
@@ -288,31 +326,100 @@ class MemoryManager:
         """Detect and resolve conflicts among memory candidates."""
         try:
             from contracts.conflict import ConflictCandidate
-            from contracts.project import Project, Session
 
-            # Package candidates
-            conflict_candidates = []
+            supplied_candidates: list[ConflictCandidate] = []
             for c in candidates:
                 if isinstance(c, ConflictCandidate):
-                    conflict_candidates.append(c)
+                    if c.memory is not None:
+                        supplied_candidates.append(c)
                 elif isinstance(c, Memory):
-                    conflict_candidates.append(ConflictCandidate(memory=c))
+                    supplied_candidates.append(
+                        ConflictCandidate(id=c.id, memory=c)
+                    )
 
-            # Get project/session context
             project = None
             session = None
             if project_id:
                 proj_result = self._uow.projects.get(project_id)
-                if proj_result.success:
-                    project = proj_result.value
+                if not proj_result.success or proj_result.value is None:
+                    return Result.err(
+                        proj_result.error or "The requested project was not found"
+                    )
+                project = proj_result.value
             if session_id:
                 sess_result = self._uow.sessions.get(session_id)
-                if sess_result.success:
-                    session = sess_result.value
+                if not sess_result.success or sess_result.value is None:
+                    return Result.err(
+                        sess_result.error or "The requested session was not found"
+                    )
+                session = sess_result.value
+                if project_id is not None and session.project_id != project_id:
+                    return Result.err("The requested session does not belong to project")
+
+            canonical_candidates: list[ConflictCandidate] = []
+            if supplied_candidates:
+                requested_ids = list(
+                    dict.fromkeys(
+                        candidate.memory.id
+                        for candidate in supplied_candidates
+                        if candidate.memory is not None
+                    )
+                )
+                canonical_result = self._uow.memories.get_by_ids(requested_ids)
+                if not canonical_result.success:
+                    return Result.err(
+                        canonical_result.error
+                        or "Failed to validate conflict candidates against canonical memory"
+                    )
+                canonical = {
+                    memory.id: memory
+                    for memory in (canonical_result.value or [])
+                }
+                for candidate in supplied_candidates:
+                    if candidate.memory is None:
+                        continue
+                    memory = canonical.get(candidate.memory.id)
+                    if memory is None or not memory.is_active():
+                        continue
+                    if project_id is not None and (
+                        memory.project_id != project_id
+                        and not (
+                            memory.project_id is None
+                            and memory.scope == Scope.GLOBAL
+                        )
+                    ):
+                        continue
+                    if session_id is not None and (
+                        memory.session_id not in {None, session_id}
+                    ):
+                        continue
+                    canonical_candidates.append(
+                        ConflictCandidate(
+                            id=memory.id,
+                            memory=memory,
+                            relevance_score=candidate.relevance_score,
+                            conflict_type=candidate.conflict_type,
+                            evidence=list(candidate.evidence),
+                        )
+                    )
+
+            eligible_instructions = [
+                instruction
+                for instruction in custom_instructions
+                if instruction.is_active()
+                and (
+                    instruction.scope == Scope.GLOBAL
+                    or (
+                        project_id is not None
+                        and instruction.scope == Scope.PROJECT
+                        and instruction.project_id == project_id
+                    )
+                )
+            ]
 
             request = ConflictResolutionRequest(
-                candidates=conflict_candidates,
-                custom_instructions=custom_instructions,
+                candidates=canonical_candidates,
+                custom_instructions=eligible_instructions,
                 project_context=project,
                 session_context=session,
             )
@@ -355,11 +462,9 @@ class MemoryManager:
         """
         Compact eligible context while preserving canonical history and lineage.
 
-        This operation:
-        1. Identifies memories eligible for compaction (old, superseded, low relevance)
-        2. Creates supersession relationships where appropriate
-        3. Archives old memories instead of deleting
-        4. Preserves lineage metadata
+        The oldest active memories above the configured cap are replaced by
+        one active summary; source records remain canonical and superseded.
+        Compaction lineage is mandatory.
         """
         try:
             compacted = 0
@@ -370,6 +475,25 @@ class MemoryManager:
 
             if not request.project_id:
                 return Result.err("Project ID required for compaction")
+            if request.preserve_lineage is not True:
+                return Result.err(
+                    "Lineage preservation is mandatory for compaction"
+                )
+            if (
+                isinstance(request.max_active_memories, bool)
+                or not isinstance(request.max_active_memories, int)
+                or request.max_active_memories < 1
+            ):
+                return Result.err("max_active_memories must be a positive integer")
+            project_result = self.get_project(request.project_id)
+            if not project_result.success or project_result.value is None:
+                return Result.err(project_result.error or "Project not found")
+            if request.session_id is not None:
+                session_result = self.get_session(request.session_id)
+                if not session_result.success or session_result.value is None:
+                    return Result.err(session_result.error or "Session not found")
+                if session_result.value.project_id != request.project_id:
+                    return Result.err("Session does not belong to the requested project")
 
             # Get all memories for the project
             search_params = MemorySearchParams(
@@ -378,50 +502,87 @@ class MemoryManager:
                 limit=1000,
             )
             search_result = self._uow.memories.search(search_params)
-            if not search_result.success or not search_result.value:
-                return Result.ok(CompactResult(errors=["No memories found"]))
+            if not search_result.success:
+                return Result.err(search_result.error or "Failed to load memories for compaction")
+            if not search_result.value or not search_result.value.items:
+                return Result.ok(CompactResult())
 
             all_memories = search_result.value.items
             active_memories = [m for m in all_memories if m.status == MemoryStatus.ACTIVE]
 
-            # If we have too many active memories, compact the oldest/least relevant
+            summary_created = False
+
+            # Replace the selected source memories with one compact summary.
             if len(active_memories) > request.max_active_memories:
-                # Sort by updated_at (oldest first) and relevance
                 active_memories.sort(key=lambda m: m.updated_at)
 
-                to_compact = active_memories[:-request.max_active_memories]
-                to_preserve = active_memories[-request.max_active_memories:]
+                compact_count = len(active_memories) - request.max_active_memories + 1
+                to_compact = active_memories[:compact_count]
+                summary_content = "\n".join(
+                    f"[{memory.id}] {memory.content[:500]}" for memory in to_compact
+                )
+                source_sessions = {memory.session_id for memory in to_compact}
+                summary_session_id = (
+                    next(iter(source_sessions)) if len(source_sessions) == 1 else None
+                )
+                summary_request = MemoryCreateRequest(
+                    project_id=request.project_id,
+                    session_id=summary_session_id,
+                    scope=Scope.PROJECT,
+                    memory_type="compaction_summary",
+                    content=f"[Compacted]\n{summary_content}",
+                    provenance="compaction_summary",
+                    metadata={
+                        "compacted": True,
+                        "original_ids": [str(memory.id) for memory in to_compact],
+                    },
+                )
 
+                try:
+                    summary_result = self.create_memory(summary_request)
+                except Exception as e:
+                    return Result.err(f"Compaction failed while creating summary: {e}")
+                if not summary_result.success or summary_result.value is None:
+                    return Result.err(
+                        summary_result.error or "Failed to create compaction summary"
+                    )
+
+                summary_created = True
+                summary = summary_result.value
                 for memory in to_compact:
                     try:
-                        # Create a summary/superseding memory
-                        summary_content = f"[Compacted] {memory.content[:500]}"
-                        summary_request = MemoryCreateRequest(
-                            project_id=memory.project_id,
-                            session_id=memory.session_id,
-                            scope=memory.scope,
-                            memory_type="compaction_summary",
-                            content=summary_content,
-                            provenance=f"compacted_from_{memory.id}",
-                            supersedes_id=memory.id,
-                            metadata={"compacted": True, "original_id": str(memory.id)},
+                        lineage_result = self._uow.memories.create_lineage(
+                            MemoryLineage(
+                                parent_id=memory.id,
+                                child_id=summary.id,
+                                relationship="supersedes",
+                                reason="compaction_summary",
+                            )
                         )
+                        if not lineage_result.success:
+                            errors.append(
+                                f"Failed to preserve lineage for {memory.id}: "
+                                f"{lineage_result.error}"
+                            )
+                            continue
 
-                        summary_result = self.create_memory(summary_request)
-                        if summary_result.success and summary_result.value:
-                            # Mark original as superseded
-                            update_result = self.update_memory(memory.id, MemoryUpdateRequest(
+                        update_result = self.update_memory(
+                            memory.id,
+                            MemoryUpdateRequest(
                                 status=MemoryStatus.SUPERSEDED,
-                                metadata={**memory.metadata, "compacted_at": datetime.now(timezone.utc).isoformat()},
-                            ))
-                            if update_result.success:
-                                superseded += 1
-                                compacted += 1
-                            else:
-                                errors.append(f"Failed to supersede {memory.id}: {update_result.error}")
+                                metadata={
+                                    **memory.metadata,
+                                    "compacted_at": datetime.now(timezone.utc).isoformat(),
+                                },
+                            ),
+                        )
+                        if update_result.success and update_result.value is not None:
+                            superseded += 1
+                            compacted += 1
                         else:
-                            errors.append(f"Failed to create summary for {memory.id}: {summary_result.error}")
-
+                            errors.append(
+                                f"Failed to supersede {memory.id}: {update_result.error}"
+                            )
                     except Exception as e:
                         errors.append(f"Error compacting {memory.id}: {str(e)}")
 
@@ -441,7 +602,7 @@ class MemoryManager:
                     except Exception as e:
                         errors.append(f"Error archiving {memory.id}: {str(e)}")
 
-            preserved = len(to_preserve) if 'to_preserve' in locals() else len(active_memories)
+            preserved = len(active_memories) - compacted + int(summary_created)
 
             return Result.ok(CompactResult(
                 compacted_count=compacted,
@@ -470,8 +631,8 @@ class MemoryManager:
             memory_request = MemoryCreateRequest(
                 project_id=request.project_id,
                 session_id=request.session_id,
-                scope=request.project_id and "project" or "global",
-                memory_type=request.memory_type,
+                scope=Scope.PROJECT if request.project_id else Scope.GLOBAL,
+                memory_type=(request.memory_type or "context_update").strip() or "context_update",
                 content=request.content,
                 provenance=request.provenance,
                 metadata={"explicit_update": True},

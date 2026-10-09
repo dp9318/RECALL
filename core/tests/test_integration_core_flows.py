@@ -230,8 +230,8 @@ class TestCompactIntegration:
         result = manager.compact(CompactRequest(project_id=sample_project.id, max_active_memories=50))
 
         assert result.success
-        assert result.value.compacted_count == 10
-        assert result.value.superseded_count == 10
+        assert result.value.compacted_count == 11
+        assert result.value.superseded_count == 11
         assert result.value.preserved_count == 50
 
     def test_compact_with_index_failure_still_succeeds(self, manager, mock_uow, mock_semantic_index, sample_project):

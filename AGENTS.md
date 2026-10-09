@@ -59,7 +59,7 @@ If working from the architecture image, read `docs/ARCHITECTURE_REFERENCE.md`. T
 
 - SQLite is the canonical source of truth for sessions, messages/events, memories, lineage, projects, and custom instructions.
 - ChromaDB is derived semantic state. It must be rebuildable from SQLite.
-- The local 1B–3B model is a bounded conflict-arbitration component. It is not canonical memory and cannot directly mutate canonical storage.
+- The local 1B–3B model is the primary bounded conflict-arbitration component. An explicitly configured cloud API may be used only when local arbitration reports context-window overflow. Neither model is canonical memory or can directly mutate canonical storage.
 - Explicit user-authored custom instructions have higher authority than inferred historical memory.
 - `/recall custom-instructions` must support view/list, create, update, and delete.
 - Custom instructions must support at least global/personal scope and project scope.

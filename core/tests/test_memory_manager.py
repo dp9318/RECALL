@@ -14,6 +14,16 @@ from contracts.retrieval import RetrievalRequest, RetrievalResult, ContextAssemb
 from core.recall_core.memory_manager import MemoryManager
 
 
+def _set_canonical_conflict_memories(manager, candidates):
+    memories = [
+        candidate.memory if isinstance(candidate, ConflictCandidate) else candidate
+        for candidate in candidates
+    ]
+    manager._uow.memories.get_by_ids.return_value = Result.ok(
+        [memory for memory in memories if memory is not None]
+    )
+
+
 class TestMemoryManager:
     """Tests for MemoryManager."""
 
@@ -904,10 +914,11 @@ class TestMemoryManager:
         """Test that Core delegates conflict handling to ConflictResolutionService."""
         candidates = [ConflictCandidate(memory=sample_memory)]
         instructions = [sample_instruction]
-        project_id = uuid4()
+        project_id = sample_memory.project_id
         mock_uow.projects.get.return_value = Result.ok(
             Project(id=project_id, name="Test Project")
         )
+        _set_canonical_conflict_memories(manager, candidates)
 
         resolution = ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED)
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
@@ -918,10 +929,72 @@ class TestMemoryManager:
         # Verify service was called with correct request structure
         mock_conflict_service.detect_and_resolve.assert_called_once()
         call_args = mock_conflict_service.detect_and_resolve.call_args[0][0]
-        assert call_args.candidates == candidates
+        assert [candidate.memory.id for candidate in call_args.candidates] == [
+            sample_memory.id
+        ]
         assert call_args.custom_instructions == instructions
         assert call_args.project_context is not None
         assert call_args.project_context.id == project_id
+
+    def test_conflict_resolution_uses_active_canonical_memory_without_mutating_it(
+        self, manager, mock_uow, mock_conflict_service, sample_memory, sample_project
+    ):
+        stale_candidate_memory = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content="Stale candidate copy",
+            status=MemoryStatus.ACTIVE,
+            provenance="inferred",
+        )
+        canonical_memory = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content="Canonical SQLite content",
+            status=MemoryStatus.ACTIVE,
+            provenance="user_explicit",
+        )
+        candidate = ConflictCandidate(memory=stale_candidate_memory)
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_by_ids.return_value = Result.ok([canonical_memory])
+        mock_conflict_service.detect_and_resolve.return_value = Result.ok(
+            ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED)
+        )
+
+        result = manager.detect_and_resolve_conflicts(
+            [candidate], [], project_id=sample_project.id
+        )
+
+        assert result.success
+        request = mock_conflict_service.detect_and_resolve.call_args.args[0]
+        assert request.candidates[0].memory.content == "Canonical SQLite content"
+        assert request.candidates[0].memory.provenance == "user_explicit"
+        mock_uow.memories.update.assert_not_called()
+        mock_uow.memories.delete.assert_not_called()
+
+    def test_conflict_resolution_excludes_inactive_canonical_records(
+        self, manager, mock_uow, mock_conflict_service, sample_memory, sample_project
+    ):
+        inactive = Memory(
+            id=sample_memory.id,
+            project_id=sample_project.id,
+            content=sample_memory.content,
+            status=MemoryStatus.ARCHIVED,
+        )
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.get_by_ids.return_value = Result.ok([inactive])
+        mock_conflict_service.detect_and_resolve.return_value = Result.ok(
+            ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED)
+        )
+
+        result = manager.detect_and_resolve_conflicts(
+            [ConflictCandidate(memory=sample_memory)],
+            [],
+            project_id=sample_project.id,
+        )
+
+        assert result.success
+        request = mock_conflict_service.detect_and_resolve.call_args.args[0]
+        assert request.candidates == []
 
     def test_conflict_resolution_does_not_implement_arbitration(self, manager, mock_conflict_service, sample_memory, sample_instruction):
         """Test that Core does not implement arbitration logic itself."""
@@ -947,7 +1020,9 @@ class TestMemoryManager:
         )
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [sample_instruction])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
         assert result.value.status == ConflictResolutionStatus.RESOLVED
@@ -958,7 +1033,9 @@ class TestMemoryManager:
         """Test resolver failure is handled according to contract."""
         mock_conflict_service.detect_and_resolve.return_value = Result.err("Resolver timeout")
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [sample_instruction])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert not result.success
         assert "timeout" in result.error.lower()
@@ -981,6 +1058,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=sample_memory), ConflictCandidate(memory=Memory(id=uuid4(), content="Other"))]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
@@ -996,7 +1074,9 @@ class TestMemoryManager:
         )
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
 
         assert result.success
         assert result.value.status == ConflictResolutionStatus.ABSTAINED
@@ -1022,6 +1102,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=memory1), ConflictCandidate(memory=memory2)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [instruction], project_id=sample_project.id)
 
         assert result.success
@@ -1388,11 +1469,11 @@ class TestMemoryManager:
         result = manager.compact(request)
 
         assert result.success
-        assert result.value.compacted_count == 10
-        assert result.value.superseded_count == 10
+        assert result.value.compacted_count == 11
+        assert result.value.superseded_count == 11
         assert result.value.preserved_count == 50
-        assert summary_count == 10
-        assert supersede_count == 10
+        assert summary_count == 1
+        assert supersede_count == 11
 
     def test_compact_selection_of_memories(self, manager, mock_uow, sample_project, sample_session):
         """Test compact selects oldest/least relevant memories for compaction."""
@@ -1424,12 +1505,13 @@ class TestMemoryManager:
         result = manager.compact(request)
 
         assert result.success
-        # Should have compacted 10 oldest
-        assert result.value.compacted_count == 10
-        assert len(created_summaries) == 10
+        assert result.value.compacted_count == 11
+        assert len(created_summaries) == 1
+        assert "Memory 0" in created_summaries[0]
+        assert "Memory 10" in created_summaries[0]
 
     def test_compact_summary_preserves_lineage(self, manager, mock_uow, sample_project, sample_session):
-        """Test compact preserves lineage via supersedes_id."""
+        """Test compact creates a lineage edge for each superseded source."""
         memory = Memory(id=uuid4(), project_id=sample_project.id, content="Original", status=MemoryStatus.ACTIVE)
         from contracts.base import PaginatedResult
         mock_uow.memories.search.return_value = Result.ok(PaginatedResult(items=[memory] * 60, total=60, limit=1000, offset=0))
@@ -1445,10 +1527,14 @@ class TestMemoryManager:
         result = manager.compact(request)
 
         assert result.success
-        # All summaries should have supersedes_id pointing to original memories
-        assert len(created_supersedes) == 10
-        for supersedes_id in created_supersedes:
-            assert supersedes_id is not None
+        assert created_supersedes == [None]
+        lineage_calls = mock_uow.memories.create_lineage.call_args_list
+        assert len(lineage_calls) == 11
+        assert all(
+            call.args[0].relationship == "supersedes"
+            and call.args[0].reason == "compaction_summary"
+            for call in lineage_calls
+        )
 
     def test_compact_preserves_provenance(self, manager, mock_uow, sample_project, sample_session):
         """Test compact preserves provenance of original memories."""
@@ -1468,11 +1554,10 @@ class TestMemoryManager:
         result = manager.compact(request)
 
         assert result.success
-        # Summaries should preserve original metadata plus compaction info
-        for meta in created_metadata:
-            assert "compacted" in meta
-            assert "original_id" in meta
-            assert meta["original_id"] == str(original_id)
+        assert len(created_metadata) == 1
+        assert created_metadata[0]["compacted"] is True
+        assert len(created_metadata[0]["original_ids"]) == 11
+        assert set(created_metadata[0]["original_ids"]) == {str(original_id)}
 
     def test_compact_preserves_project_session_scope(self, manager, mock_uow, sample_project, sample_session):
         """Test compact preserves project/session scope."""
@@ -1522,30 +1607,18 @@ class TestMemoryManager:
         assert result.value.archived_count == 50
         assert len(archived_ids) == 50
 
-    def test_compact_transactional_behavior(self, manager, mock_uow, sample_project, sample_session):
-        """Test compact behaves transactionally where defined."""
+    def test_compact_reports_summary_creation_failure(self, manager, mock_uow, sample_project):
         memories = [Memory(id=uuid4(), project_id=sample_project.id, content=f"M{i}", status=MemoryStatus.ACTIVE) for i in range(60)]
         from contracts.base import PaginatedResult
         mock_uow.memories.search.return_value = Result.ok(PaginatedResult(items=memories, total=60, limit=1000, offset=0))
 
-        # Fail on 5th summary creation
-        call_count = 0
-        def create_summary_fail(req):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 5:
-                return Result.err("Storage full")
-            return Result.ok(Memory(id=uuid4(), project_id=sample_project.id, content=req.content, status=MemoryStatus.ACTIVE))
-        manager.create_memory = Mock(side_effect=create_summary_fail)
-        manager.update_memory = Mock(return_value=Result.ok(Memory(id=uuid4(), status=MemoryStatus.SUPERSEDED)))
+        manager.create_memory = Mock(return_value=Result.err("Storage full"))
 
         request = CompactRequest(project_id=sample_project.id, max_active_memories=50)
         result = manager.compact(request)
 
-        # Should handle partial failure gracefully
-        assert result.success
-        # Errors should be recorded
-        assert len(result.value.errors) > 0
+        assert not result.success
+        assert "Storage full" in result.error
 
     def test_compact_partial_operation_failure(self, manager, mock_uow, sample_project, sample_session):
         """Test compact handles partial operation failure."""
@@ -2009,7 +2082,9 @@ class TestMemoryManager:
         """Test ConflictResolutionService failure handling."""
         mock_conflict_service.detect_and_resolve.return_value = Result.err("Resolver crashed")
 
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
 
         assert not result.success
         assert "crashed" in result.error.lower()
@@ -2291,6 +2366,7 @@ class TestMemoryManager:
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(resolution)
 
         candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
 
         assert result.success
@@ -2322,6 +2398,99 @@ class TestMemoryManager:
         assert not result.success
         assert "Project ID required" in result.error
 
+    def test_compact_rejects_disabled_lineage(self, manager):
+        result = manager.compact(
+            CompactRequest(project_id=uuid4(), preserve_lineage=False)
+        )
+
+        assert not result.success
+        assert "Lineage preservation is mandatory" in result.error
+
+    def test_compact_rejects_invalid_active_memory_cap(self, manager):
+        for invalid_cap in (0, -1, True, 1.5):
+            result = manager.compact(
+                CompactRequest(
+                    project_id=uuid4(),
+                    max_active_memories=invalid_cap,
+                )
+            )
+            assert not result.success
+            assert "positive integer" in result.error
+
+    def test_compact_rejects_invalid_project_and_session_scope(
+        self, manager, mock_uow, sample_project
+    ):
+        mock_uow.projects.get.return_value = Result.ok(None)
+        missing_project = manager.compact(
+            CompactRequest(project_id=sample_project.id)
+        )
+        assert not missing_project.success
+        assert "Project not found" in missing_project.error
+
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.sessions.get.return_value = Result.ok(
+            Session(id=uuid4(), project_id=uuid4())
+        )
+        mismatched_session = manager.compact(
+            CompactRequest(project_id=sample_project.id, session_id=uuid4())
+        )
+        assert not mismatched_session.success
+        assert "does not belong" in mismatched_session.error
+        mock_uow.memories.search.assert_not_called()
+
+    def test_compact_propagates_memory_search_failure(
+        self, manager, mock_uow, sample_project
+    ):
+        mock_uow.projects.get.return_value = Result.ok(sample_project)
+        mock_uow.memories.search.return_value = Result.err("SQLite unavailable")
+
+        result = manager.compact(CompactRequest(project_id=sample_project.id))
+
+        assert not result.success
+        assert result.error == "SQLite unavailable"
+
+    def test_compact_does_not_supersede_sources_when_lineage_write_fails(
+        self, manager, mock_uow, sample_project
+    ):
+        from contracts.base import PaginatedResult
+
+        memories = [
+            Memory(
+                id=uuid4(),
+                project_id=sample_project.id,
+                content=f"Evidence {index}",
+                status=MemoryStatus.ACTIVE,
+            )
+            for index in range(3)
+        ]
+        mock_uow.memories.search.return_value = Result.ok(
+            PaginatedResult(items=memories, total=3, limit=1000, offset=0)
+        )
+        mock_uow.memories.create_lineage.return_value = Result.err(
+            "Lineage storage unavailable"
+        )
+        manager.create_memory = Mock(
+            return_value=Result.ok(
+                Memory(
+                    id=uuid4(),
+                    project_id=sample_project.id,
+                    content="Aggregate summary",
+                    status=MemoryStatus.ACTIVE,
+                )
+            )
+        )
+        manager.update_memory = Mock()
+
+        result = manager.compact(
+            CompactRequest(project_id=sample_project.id, max_active_memories=2)
+        )
+
+        assert result.success
+        assert result.value.compacted_count == 0
+        assert result.value.preserved_count == 4
+        assert all("Lineage storage unavailable" in error for error in result.value.errors)
+        manager.update_memory.assert_not_called()
+
     def test_compact_creates_summaries(self, manager, mock_uow, sample_project, sample_memory):
         """Test compact creates summary memories for excess active memories."""
         # Create many active memories
@@ -2344,8 +2513,8 @@ class TestMemoryManager:
         result = manager.compact(request)
 
         assert result.success
-        assert result.value.compacted_count == 10
-        assert result.value.superseded_count == 10
+        assert result.value.compacted_count == 11
+        assert result.value.superseded_count == 11
         assert result.value.preserved_count == 50
 
     def test_compact_archives_old_historical(self, manager, mock_uow, sample_project):
@@ -2466,6 +2635,7 @@ class TestMemoryManager:
         """Test detect_and_resolve_conflicts fully delegates to ConflictResolutionService."""
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(ConflictResolutionResult(status=ConflictResolutionStatus.RESOLVED))
         candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(candidates, [sample_instruction])
         assert result.success
         mock_conflict_service.detect_and_resolve.assert_called_once()
@@ -2478,7 +2648,9 @@ class TestMemoryManager:
     def test_detect_and_resolve_conflicts_no_instructions(self, manager, mock_conflict_service, sample_memory):
         """Test detect_and_resolve_conflicts with no custom instructions."""
         mock_conflict_service.detect_and_resolve.return_value = Result.ok(ConflictResolutionResult(status=ConflictResolutionStatus.ABSTAINED))
-        result = manager.detect_and_resolve_conflicts([ConflictCandidate(memory=sample_memory)], [])
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
+        result = manager.detect_and_resolve_conflicts(candidates, [])
         assert result.success
         assert result.value.status == ConflictResolutionStatus.ABSTAINED
 
@@ -2670,8 +2842,10 @@ class TestMemoryManager:
         instruction = CustomInstruction(id=uuid4(), scope=Scope.PROJECT, project_id=sample_project.id, content="Explicit: always prefer user intent", status=InstructionStatus.ACTIVE)
 
         # Manager passes instruction to resolver
+        candidates = [ConflictCandidate(memory=sample_memory)]
+        _set_canonical_conflict_memories(manager, candidates)
         result = manager.detect_and_resolve_conflicts(
-            [ConflictCandidate(memory=sample_memory)],
+            candidates,
             [instruction],
             project_id=sample_project.id
         )

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result
+from contracts.base import Result, Scope
 from contracts.memory import Memory, MemorySearchParams
 from contracts.retrieval import RetrievalRequest, RetrievalResult
 
@@ -56,7 +56,7 @@ class EmbeddingService(ABC):
 
 
 class DefaultEmbeddingService(EmbeddingService):
-    """Deterministic bag-of-words embedding generator used when no external model is present."""
+    """Deterministic lexical vector utility; it is not semantic retrieval."""
 
     def __init__(self, dimensions: int = 64):
         self.dimensions = max(8, dimensions)
@@ -98,12 +98,13 @@ class DefaultRetrievalService(RetrievalService):
     ) -> None:
         self.memory_repo = memory_repo
         self.semantic_index = semantic_index
-        self.embedding_service = embedding_service or DefaultEmbeddingService()
+        self.embedding_service = embedding_service
         self.limit = limit
 
     def retrieve(self, request: RetrievalRequest) -> Result[RetrievalResult]:
         memories: list[Memory] = []
         structured_memories: list[Memory] = []
+        semantic_scores: dict[UUID, float] = {}
 
         if request.use_structured:
             search_params = MemorySearchParams(
@@ -119,30 +120,65 @@ class DefaultRetrievalService(RetrievalService):
             structured_memories = structured.value or []
             memories.extend(structured_memories)
 
-        if request.use_semantic and self.semantic_index is not None:
+        semantic_result_count = 0
+        if request.use_semantic:
             semantic_hits = self.search_semantic(request.query, request.project_id, request.limit)
             if not semantic_hits.success:
                 return Result.err(semantic_hits.error or "Semantic retrieval failed")
             if semantic_hits.value:
+                hit_scores = dict(semantic_hits.value)
                 semantic_ids = [memory_id for memory_id, _ in semantic_hits.value]
                 if self.memory_repo is not None:
                     fetch_result = self.memory_repo.get_by_ids(semantic_ids)
-                    if fetch_result.success:
-                        memories.extend(fetch_result.value or [])
+                    if not fetch_result.success:
+                        return Result.err(
+                            fetch_result.error or "Failed to load canonical semantic results"
+                        )
+                    canonical = {
+                        memory.id: memory for memory in (fetch_result.value or [])
+                    }
+                    for memory_id, _score in semantic_hits.value:
+                        memory = canonical.get(memory_id)
+                        if memory is None or not memory.is_active():
+                            continue
+                        if request.project_id is not None and (
+                            memory.project_id != request.project_id
+                            and not (
+                                memory.project_id is None
+                                and memory.scope == Scope.GLOBAL
+                            )
+                        ):
+                            continue
+                        if (
+                            request.session_id is not None
+                            and memory.session_id != request.session_id
+                        ):
+                            continue
+                        memories.append(memory)
+                        semantic_scores[memory_id] = hit_scores[memory_id]
+                        semantic_result_count += 1
+                else:
+                    semantic_scores = hit_scores
+                    semantic_result_count = len(semantic_hits.value)
 
         deduped: dict[UUID, Memory] = {}
         for memory in memories:
             if memory.id not in deduped:
                 deduped[memory.id] = memory
 
-        ranked = self.rank_results(list(deduped.values()), request.query, request.project_id)
+        ranked = self._rank_with_semantic_scores(
+            list(deduped.values()),
+            request.query,
+            request.project_id,
+            semantic_scores,
+        )
         ranked = ranked[: request.limit]
 
         return Result.ok(
             RetrievalResult(
                 memories=ranked,
                 total_found=len(ranked),
-                semantic_results=len([1 for _, _ in (self.search_semantic(request.query, request.project_id, request.limit).value or [])]) if request.use_semantic and self.semantic_index is not None else 0,
+                semantic_results=semantic_result_count,
                 structured_results=len(structured_memories),
                 query=request.query,
                 project_id=request.project_id,
@@ -165,21 +201,11 @@ class DefaultRetrievalService(RetrievalService):
                 return Result.err(result.error or "Semantic search failed")
             return Result.ok(result.value or [])
 
-        if self.memory_repo is None:
-            return Result.ok([])
-
-        search_result = self.memory_repo.search(
-            MemorySearchParams(query=query, project_id=project_id, limit=limit, include_historical=True)
+        return Result.err(
+            "Semantic retrieval is unavailable because no semantic index is configured. "
+            "Install and configure RECALL's semantic extra, or disable semantic "
+            "retrieval explicitly for this request."
         )
-        if not search_result.success:
-            return Result.err(search_result.error or "Semantic fallback search failed")
-        items = search_result.value.items if hasattr(search_result.value, "items") else search_result.value
-        scored: list[tuple[UUID, float]] = []
-        for memory in items or []:
-            score = self._keyword_similarity(memory.content, query)
-            scored.append((memory.id, score))
-        scored.sort(key=lambda item: item[1], reverse=True)
-        return Result.ok(scored[:limit])
 
     def rank_results(self, memories: list[Memory], query: str, project_id: Optional[UUID]) -> list[Memory]:
         if not memories:
@@ -187,14 +213,45 @@ class DefaultRetrievalService(RetrievalService):
 
         ranked = []
         for memory in memories:
-            score = self._keyword_similarity(memory.content, query)
-            score += 0.15 if memory.project_id == project_id else 0.0
-            score += 0.2 if memory.is_active() else 0.0
-            score += 0.1 if memory.provenance in {"user_explicit", "explicit_user_update"} else 0.0
+            score = self._base_result_score(memory, query, project_id)
             ranked.append((memory, score))
 
         ranked.sort(key=lambda item: item[1], reverse=True)
         return [memory for memory, _ in ranked]
+
+    def _rank_with_semantic_scores(
+        self,
+        memories: list[Memory],
+        query: str,
+        project_id: Optional[UUID],
+        semantic_scores: dict[UUID, float],
+    ) -> list[Memory]:
+        ranked = [
+            (
+                memory,
+                self._base_result_score(memory, query, project_id)
+                + max(semantic_scores.get(memory.id, 0.0), 0.0) * 0.5,
+            )
+            for memory in memories
+        ]
+        ranked.sort(key=lambda item: item[1], reverse=True)
+        return [memory for memory, _ in ranked]
+
+    def _base_result_score(
+        self,
+        memory: Memory,
+        query: str,
+        project_id: Optional[UUID],
+    ) -> float:
+        score = self._keyword_similarity(memory.content, query)
+        score += 0.15 if memory.project_id == project_id else 0.0
+        score += 0.2 if memory.is_active() else 0.0
+        score += (
+            0.1
+            if memory.provenance in {"user_explicit", "explicit_user_update"}
+            else 0.0
+        )
+        return score
 
     def detect_conflicts(self, memories: list[Memory], query: str) -> Result[list[Memory]]:
         if len(memories) < 2:

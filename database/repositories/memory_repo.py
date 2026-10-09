@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from contracts.base import PaginatedResult, PaginationParams, Result
+from contracts.base import PaginatedResult, PaginationParams, Result, Scope
 from contracts.memory import (
     Memory,
     MemoryCreateRequest,
@@ -152,7 +152,7 @@ class SQLiteMemoryRepository(MemoryRepository):
             id=row_to_uuid(row["memory_id"]),
             project_id=row_to_uuid(row["project_id"]),
             session_id=row_to_uuid(row["session_id"]),
-            scope=row["scope"],
+            scope=Scope(row["scope"]),
             memory_type=row["memory_type"],
             content=row["content"],
             status=MemoryStatus(row["status"]),

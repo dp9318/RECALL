@@ -57,8 +57,9 @@ The resolver must use staged resolution:
 2. validate scope and canonical status;
 3. apply deterministic precedence;
 4. invoke the local 1B–3B model only if ambiguity remains;
-5. validate structured model output;
-6. allow an unresolved/abstain result.
+5. use an explicitly configured cloud provider only if the local model reports that its context window was exceeded;
+6. validate structured model output;
+7. allow an unresolved/abstain result.
 
 ### 6. OpenCode Integration
 

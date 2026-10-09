@@ -69,7 +69,7 @@ This document defines responsibilities by work stream, not by person.
 - conflict detection;
 - deterministic conflict rules;
 - candidate packaging;
-- local LLM resolver adapter;
+- local LLM and cloud-overflow resolver adapters;
 - resolver output validation;
 - abstention behavior.
 

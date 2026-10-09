@@ -43,6 +43,12 @@ Both surfaces invoke the same core application services.
               │ canonical│     │ derived   │    │ LLM 1B–3B │
               │ truth     │     │ semantic  │    │ arbitration│
               └──────────┘     └───────────┘    └────────────┘
+                                                        │ context overflow only
+                                                        ▼
+                                                ┌────────────────┐
+                                                │ Configured     │
+                                                │ cloud API      │
+                                                └────────────────┘
 ```
 
 ## 3. Core Components
@@ -87,7 +93,8 @@ Performs:
 - conflict detection;
 - deterministic precedence rules;
 - bounded candidate packaging;
-- local-model arbitration when needed;
+- local-model arbitration when deterministic rules are insufficient;
+- configured cloud arbitration only when the local adapter reports context-window overflow;
 - validation and abstention.
 
 ### 3.6 Context Assembly
@@ -130,7 +137,7 @@ Local LLM arbitration
 Unresolved/abstain
 ```
 
-The local LLM never directly writes authoritative state.
+Model arbitration is advisory. Neither the local model nor the cloud API directly writes authoritative state. Cloud evidence transfer is disabled unless a cloud provider, model, and API key are explicitly configured.
 
 ## 6. Dashboard Boundary
 
@@ -151,7 +158,8 @@ SQLite + ChromaDB + resolver adapter
 ## 7. Failure Behavior
 
 - ChromaDB unavailable: canonical operations still work; semantic retrieval may be degraded.
-- Local LLM unavailable: deterministic conflict rules still run; unresolved conflicts may be returned.
+- Local LLM unavailable: deterministic conflict rules still run; unresolved conflicts may be returned. Cloud fallback is not used for general local failures.
+- Local context window exceeded: use the explicitly configured cloud provider, otherwise abstain unresolved.
 - Dashboard unavailable: OpenCode/MCP continues to function.
 - MCP unavailable: dashboard/API still works.
 - Index corruption: rebuild ChromaDB from SQLite.

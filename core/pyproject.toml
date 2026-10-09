@@ -30,6 +30,10 @@ test = [
 mcp = [
     "mcp>=1.28,<2",
 ]
+semantic = [
+    "chromadb>=1.0,<2",
+    "sentence-transformers>=3.0,<6",
+]
 
 [project.scripts]
 recall-mcp = "recall_mcp.server:main"
