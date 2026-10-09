@@ -65,9 +65,10 @@ class AssembledContext:
 
 @dataclass
 class CompactRequest:
-    """Request for context compaction."""
+    """Request for context compaction; canonical lineage is always preserved."""
     project_id: Optional[UUID] = None
     session_id: Optional[UUID] = None
+    # Retained for request compatibility; MemoryManager rejects false.
     preserve_lineage: bool = True
     max_active_memories: int = 50
 

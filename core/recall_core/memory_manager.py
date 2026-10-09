@@ -15,7 +15,7 @@ from contracts.instruction import (
     CustomInstructionUpdateRequest,
     InstructionStatus,
 )
-from contracts.memory import Memory, MemoryCreateRequest, MemorySearchParams, MemoryStatus, MemoryUpdateRequest
+from contracts.memory import Memory, MemoryCreateRequest, MemoryLineage, MemorySearchParams, MemoryStatus, MemoryUpdateRequest
 from contracts.project import Project, ProjectCreateRequest, ProjectUpdateRequest, Session, SessionCreateRequest, SessionUpdateRequest
 from contracts.retrieval import (
     AssembledContext,
@@ -462,11 +462,9 @@ class MemoryManager:
         """
         Compact eligible context while preserving canonical history and lineage.
 
-        This operation:
-        1. Identifies memories eligible for compaction (old, superseded, low relevance)
-        2. Creates supersession relationships where appropriate
-        3. Archives old memories instead of deleting
-        4. Preserves lineage metadata
+        The oldest active memories above the configured cap are replaced by
+        one active summary; source records remain canonical and superseded.
+        Compaction lineage is mandatory.
         """
         try:
             compacted = 0
@@ -477,6 +475,25 @@ class MemoryManager:
 
             if not request.project_id:
                 return Result.err("Project ID required for compaction")
+            if request.preserve_lineage is not True:
+                return Result.err(
+                    "Lineage preservation is mandatory for compaction"
+                )
+            if (
+                isinstance(request.max_active_memories, bool)
+                or not isinstance(request.max_active_memories, int)
+                or request.max_active_memories < 1
+            ):
+                return Result.err("max_active_memories must be a positive integer")
+            project_result = self.get_project(request.project_id)
+            if not project_result.success or project_result.value is None:
+                return Result.err(project_result.error or "Project not found")
+            if request.session_id is not None:
+                session_result = self.get_session(request.session_id)
+                if not session_result.success or session_result.value is None:
+                    return Result.err(session_result.error or "Session not found")
+                if session_result.value.project_id != request.project_id:
+                    return Result.err("Session does not belong to the requested project")
 
             # Get all memories for the project
             search_params = MemorySearchParams(
@@ -485,50 +502,87 @@ class MemoryManager:
                 limit=1000,
             )
             search_result = self._uow.memories.search(search_params)
-            if not search_result.success or not search_result.value:
-                return Result.ok(CompactResult(errors=["No memories found"]))
+            if not search_result.success:
+                return Result.err(search_result.error or "Failed to load memories for compaction")
+            if not search_result.value or not search_result.value.items:
+                return Result.ok(CompactResult())
 
             all_memories = search_result.value.items
             active_memories = [m for m in all_memories if m.status == MemoryStatus.ACTIVE]
 
-            # If we have too many active memories, compact the oldest/least relevant
+            summary_created = False
+
+            # Replace the selected source memories with one compact summary.
             if len(active_memories) > request.max_active_memories:
-                # Sort by updated_at (oldest first) and relevance
                 active_memories.sort(key=lambda m: m.updated_at)
 
-                to_compact = active_memories[:-request.max_active_memories]
-                to_preserve = active_memories[-request.max_active_memories:]
+                compact_count = len(active_memories) - request.max_active_memories + 1
+                to_compact = active_memories[:compact_count]
+                summary_content = "\n".join(
+                    f"[{memory.id}] {memory.content[:500]}" for memory in to_compact
+                )
+                source_sessions = {memory.session_id for memory in to_compact}
+                summary_session_id = (
+                    next(iter(source_sessions)) if len(source_sessions) == 1 else None
+                )
+                summary_request = MemoryCreateRequest(
+                    project_id=request.project_id,
+                    session_id=summary_session_id,
+                    scope=Scope.PROJECT,
+                    memory_type="compaction_summary",
+                    content=f"[Compacted]\n{summary_content}",
+                    provenance="compaction_summary",
+                    metadata={
+                        "compacted": True,
+                        "original_ids": [str(memory.id) for memory in to_compact],
+                    },
+                )
 
+                try:
+                    summary_result = self.create_memory(summary_request)
+                except Exception as e:
+                    return Result.err(f"Compaction failed while creating summary: {e}")
+                if not summary_result.success or summary_result.value is None:
+                    return Result.err(
+                        summary_result.error or "Failed to create compaction summary"
+                    )
+
+                summary_created = True
+                summary = summary_result.value
                 for memory in to_compact:
                     try:
-                        # Create a summary/superseding memory
-                        summary_content = f"[Compacted] {memory.content[:500]}"
-                        summary_request = MemoryCreateRequest(
-                            project_id=memory.project_id,
-                            session_id=memory.session_id,
-                            scope=memory.scope,
-                            memory_type="compaction_summary",
-                            content=summary_content,
-                            provenance=f"compacted_from_{memory.id}",
-                            supersedes_id=memory.id,
-                            metadata={"compacted": True, "original_id": str(memory.id)},
+                        lineage_result = self._uow.memories.create_lineage(
+                            MemoryLineage(
+                                parent_id=memory.id,
+                                child_id=summary.id,
+                                relationship="supersedes",
+                                reason="compaction_summary",
+                            )
                         )
+                        if not lineage_result.success:
+                            errors.append(
+                                f"Failed to preserve lineage for {memory.id}: "
+                                f"{lineage_result.error}"
+                            )
+                            continue
 
-                        summary_result = self.create_memory(summary_request)
-                        if summary_result.success and summary_result.value:
-                            # Mark original as superseded
-                            update_result = self.update_memory(memory.id, MemoryUpdateRequest(
+                        update_result = self.update_memory(
+                            memory.id,
+                            MemoryUpdateRequest(
                                 status=MemoryStatus.SUPERSEDED,
-                                metadata={**memory.metadata, "compacted_at": datetime.now(timezone.utc).isoformat()},
-                            ))
-                            if update_result.success:
-                                superseded += 1
-                                compacted += 1
-                            else:
-                                errors.append(f"Failed to supersede {memory.id}: {update_result.error}")
+                                metadata={
+                                    **memory.metadata,
+                                    "compacted_at": datetime.now(timezone.utc).isoformat(),
+                                },
+                            ),
+                        )
+                        if update_result.success and update_result.value is not None:
+                            superseded += 1
+                            compacted += 1
                         else:
-                            errors.append(f"Failed to create summary for {memory.id}: {summary_result.error}")
-
+                            errors.append(
+                                f"Failed to supersede {memory.id}: {update_result.error}"
+                            )
                     except Exception as e:
                         errors.append(f"Error compacting {memory.id}: {str(e)}")
 
@@ -548,7 +602,7 @@ class MemoryManager:
                     except Exception as e:
                         errors.append(f"Error archiving {memory.id}: {str(e)}")
 
-            preserved = len(to_preserve) if 'to_preserve' in locals() else len(active_memories)
+            preserved = len(active_memories) - compacted + int(summary_created)
 
             return Result.ok(CompactResult(
                 compacted_count=compacted,
@@ -577,8 +631,8 @@ class MemoryManager:
             memory_request = MemoryCreateRequest(
                 project_id=request.project_id,
                 session_id=request.session_id,
-                scope=request.project_id and "project" or "global",
-                memory_type=request.memory_type,
+                scope=Scope.PROJECT if request.project_id else Scope.GLOBAL,
+                memory_type=(request.memory_type or "context_update").strip() or "context_update",
                 content=request.content,
                 provenance=request.provenance,
                 metadata={"explicit_update": True},

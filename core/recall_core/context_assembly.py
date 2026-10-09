@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result
+from contracts.base import Result, Scope
 from contracts.conflict import ConflictResolutionResult
 from contracts.instruction import CustomInstruction
 from contracts.memory import Memory, MemorySearchParams, MemoryStatus
@@ -69,6 +69,25 @@ class ContextAssemblyService:
                 if not active_result.success:
                     return Result.err(active_result.error or "Failed to load active memories")
                 active_memories = active_result.value or []
+
+                global_result = self._memory_repo.search(
+                    MemorySearchParams(
+                        scope=Scope.GLOBAL,
+                        status=MemoryStatus.ACTIVE,
+                        limit=request.retrieval_limit,
+                    )
+                )
+                if not global_result.success:
+                    return Result.err(
+                        global_result.error or "Failed to load active global memories"
+                    )
+                if global_result.value:
+                    active_ids = {memory.id for memory in active_memories}
+                    active_memories.extend(
+                        memory
+                        for memory in global_result.value.items
+                        if memory.project_id is None and memory.id not in active_ids
+                    )
 
             # Get resolved memories (memories that were part of conflict resolutions)
             resolved_memories = []

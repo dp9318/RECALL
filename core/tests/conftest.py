@@ -85,6 +85,9 @@ def mock_memory_repo():
     repo.update = Mock()
     repo.delete = Mock()
     repo.search = Mock()
+    repo.search.return_value = Result.ok(
+        PaginatedResult(items=[], total=0, limit=50, offset=0)
+    )
     repo.get_active_for_project = Mock()
     repo.get_by_ids = Mock()
     repo.create_lineage = Mock()
