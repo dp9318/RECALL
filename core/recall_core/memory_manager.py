@@ -145,17 +145,28 @@ class MemoryManager:
             # Index in semantic store (best effort). Canonical persistence has
             # succeeded, so a derived-index outage must not report creation as
             # failed and encourage callers to retry a write that already exists.
+            index_metadata = {}
+            if memory.supersedes_id is not None:
+                try:
+                    cleanup_result = self._semantic_index.remove_memory(
+                        memory.supersedes_id
+                    )
+                    if not cleanup_result.success:
+                        index_metadata["semantic_index_cleanup_error"] = (
+                            cleanup_result.error or "Superseded memory cleanup failed"
+                        )
+                except Exception as cleanup_error:
+                    index_metadata["semantic_index_cleanup_error"] = str(cleanup_error)
             try:
                 index_result = self._semantic_index.index_memory(memory)
                 if not index_result.success:
-                    return Result.ok(
-                        memory,
-                        metadata={"semantic_index_error": index_result.error or "Indexing failed"},
+                    index_metadata["semantic_index_error"] = (
+                        index_result.error or "Indexing failed"
                     )
             except Exception as index_error:
-                return Result.ok(memory, metadata={"semantic_index_error": str(index_error)})
+                index_metadata["semantic_index_error"] = str(index_error)
 
-            return Result.ok(memory)
+            return Result.ok(memory, metadata=index_metadata)
 
         except Exception as e:
             return Result.err(f"Memory creation failed: {str(e)}")
@@ -218,6 +229,33 @@ class MemoryManager:
 
         except Exception as e:
             return Result.err(f"Memory deletion failed: {str(e)}")
+
+    def rebuild_semantic_index(self) -> Result[int]:
+        """Re-embed all active canonical memories into the derived index."""
+        try:
+            page_size = 200
+            offset = 0
+            memories: list[Memory] = []
+            while True:
+                result = self._uow.memories.search(
+                    MemorySearchParams(
+                        status=MemoryStatus.ACTIVE,
+                        limit=page_size,
+                        offset=offset,
+                    )
+                )
+                if not result.success:
+                    return Result.err(
+                        result.error or "Failed to load canonical memories for rebuild"
+                    )
+                page = result.value.items if result.value else []
+                memories.extend(page)
+                if not result.value or len(page) < page_size:
+                    break
+                offset += len(page)
+            return self._semantic_index.rebuild_from_canonical(memories)
+        except Exception as exc:
+            return Result.err(f"Failed to rebuild semantic index: {exc}")
 
     def search_memories(self, params: MemorySearchParams) -> Result[list[Memory]]:
         """Search memories with filters."""

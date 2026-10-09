@@ -7,6 +7,8 @@
 - HTTP/JSON API for the dashboard; FastAPI is the preferred implementation
 - SQLite for canonical persistence
 - ChromaDB for derived semantic retrieval
+- Sentence Transformers with `sentence-transformers/all-MiniLM-L6-v2` as the
+  default local embedding provider/model (CPU by default)
 - local 1B–3B LLM runtime behind a narrow resolver adapter (runtime/model configurable)
 
 ## Frontend

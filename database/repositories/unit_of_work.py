@@ -28,18 +28,28 @@ from database.repositories.session_repo import SQLiteSessionRepository
 class SQLiteUnitOfWork:
     """SQLite implementation of Unit of Work pattern."""
 
-    def __init__(self, config: DatabaseConfig) -> None:
+    def __init__(
+        self,
+        config: DatabaseConfig,
+        semantic_index: Optional[SemanticIndexRepository] = None,
+        embedding_function: Any = None,
+        embedding_provider: Optional[str] = None,
+        embedding_model: Optional[str] = None,
+    ) -> None:
         self._config = config
         self._db_connection = DatabaseConnection(config)
         self._conn: Optional[sqlite3.Connection] = None
         self._transaction: Optional[Transaction] = None
+        self._embedding_function = embedding_function
+        self._embedding_provider = embedding_provider
+        self._embedding_model = embedding_model
 
         # Lazy-initialized repositories
         self._projects: Optional[SQLiteProjectRepository] = None
         self._sessions: Optional[SQLiteSessionRepository] = None
         self._memories: Optional[SQLiteMemoryRepository] = None
         self._custom_instructions: Optional[SQLiteCustomInstructionRepository] = None
-        self._semantic_index: Optional[SemanticIndexRepository] = None
+        self._semantic_index = semantic_index
 
     def _ensure_connection(self) -> sqlite3.Connection:
         """Ensure we have an active connection."""
@@ -76,7 +86,15 @@ class SQLiteUnitOfWork:
         if self._semantic_index is None:
             # Lazy import to avoid circular dependency
             from database.repositories.semantic_index_repo import SQLiteSemanticIndexRepository
-            self._semantic_index = SQLiteSemanticIndexRepository(self._ensure_connection())
+            self._semantic_index = SQLiteSemanticIndexRepository(
+                self._ensure_connection(),
+                persist_directory=self._config.path.with_suffix(
+                    self._config.path.suffix + ".chromadb"
+                ),
+                embedding_function=self._embedding_function,
+                embedding_provider=self._embedding_provider,
+                embedding_model=self._embedding_model,
+            )
         return self._semantic_index
 
     def begin(self) -> _TransactionContextManager:
@@ -115,17 +133,23 @@ class SQLiteUnitOfWork:
 
     def close(self) -> None:
         """Close the unit of work and release resources."""
-        # Rollback any pending transaction
-        if self._transaction and not self._transaction._committed and not self._transaction._rolled_back:
-            try:
-                self._transaction.rollback()
-            except Exception:
-                pass
-        self._transaction = None
+        try:
+            if self._semantic_index is not None:
+                close = getattr(self._semantic_index, "close", None)
+                if callable(close):
+                    close()
+        finally:
+            # Rollback any pending transaction
+            if self._transaction and not self._transaction._committed and not self._transaction._rolled_back:
+                try:
+                    self._transaction.rollback()
+                except Exception:
+                    pass
+            self._transaction = None
 
-        # Close the database connection
-        self._db_connection.close()
-        self._conn = None
+            # Close the database connection
+            self._db_connection.close()
+            self._conn = None
 
     def __enter__(self) -> SQLiteUnitOfWork:
         return self

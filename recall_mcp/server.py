@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import logging
 import os
 from dataclasses import fields, is_dataclass
 from datetime import date, datetime
@@ -17,9 +16,8 @@ from mcp.server.fastmcp.exceptions import ToolError
 from contracts.base import Scope
 from contracts.memory import MemoryCreateRequest
 from contracts.retrieval import ContextAssemblyRequest, RetrievalRequest
+from core.recall_core.bootstrap import create_memory_manager
 from core.recall_core.memory_manager import MemoryManager
-
-logger = logging.getLogger(__name__)
 
 MAX_QUERY_LENGTH = 1_000
 MAX_CONTENT_LENGTH = 10_000
@@ -178,25 +176,51 @@ def _load_core_factory(factory_path: str) -> MemoryManager:
     if not separator or not module_name or not attribute_name:
         raise RuntimeError("RECALL_CORE_FACTORY must use the format 'package.module:factory'")
 
-    factory = getattr(importlib.import_module(module_name), attribute_name)
-    memory_manager = factory()
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise RuntimeError(
+            f"Could not import RECALL_CORE_FACTORY module '{module_name}': {exc}"
+        ) from exc
+    try:
+        factory = getattr(module, attribute_name)
+    except AttributeError as exc:
+        raise RuntimeError(
+            f"RECALL_CORE_FACTORY module '{module_name}' has no factory '{attribute_name}'"
+        ) from exc
+    if not callable(factory):
+        raise RuntimeError(
+            f"RECALL_CORE_FACTORY target '{factory_path}' is not callable"
+        )
+
+    try:
+        memory_manager = factory()
+    except Exception as exc:
+        raise RuntimeError(
+            f"RECALL_CORE_FACTORY '{factory_path}' failed to initialize: {exc}"
+        ) from exc
     if not isinstance(memory_manager, MemoryManager):
         raise TypeError("The configured RECALL core factory must return a MemoryManager")
     return memory_manager
 
 
 def main() -> None:
-    """Start the local stdio MCP server from an application-provided Core factory."""
+    """Start MCP with the default Core composition or an application override."""
     factory_path = os.environ.get("RECALL_CORE_FACTORY")
-    if not factory_path:
-        raise SystemExit(
-            "RECALL_CORE_FACTORY is required. This checkout has no default Core "
-            "composition factory; configure a factory returning MemoryManager."
+    try:
+        memory_manager = (
+            _load_core_factory(factory_path)
+            if factory_path
+            else create_memory_manager()
         )
+    except Exception as exc:
+        source = f"RECALL_CORE_FACTORY '{factory_path}'" if factory_path else "default Core composition"
+        raise SystemExit(f"RECALL startup failed using {source}: {exc}") from exc
 
-    memory_manager = _load_core_factory(factory_path)
-    logger.info("Starting RECALL MCP server with the configured Core factory")
-    create_server(memory_manager).run(transport="stdio")
+    try:
+        create_server(memory_manager).run(transport="stdio")
+    finally:
+        memory_manager.close()
 
 
 if __name__ == "__main__":

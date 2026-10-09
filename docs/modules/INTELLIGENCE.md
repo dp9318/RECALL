@@ -10,10 +10,25 @@ Support:
 
 - project-aware filtering;
 - keyword/structured retrieval;
-- semantic retrieval from ChromaDB;
+- semantic retrieval from ChromaDB using the local Sentence Transformers
+  model `sentence-transformers/all-MiniLM-L6-v2` by default;
 - result ranking;
 - bounded candidate sets;
 - provenance preservation.
+
+The provider is configured with `RECALL_EMBEDDING_PROVIDER`,
+`RECALL_EMBEDDING_MODEL`, and `RECALL_EMBEDDING_DEVICE`. Defaults are
+`sentence-transformers`, `sentence-transformers/all-MiniLM-L6-v2`, and `cpu`.
+The model loads lazily and runs locally; its first use may need to download the
+model files. Install the `core[semantic]` extra. Provider, model, and vector
+dimension must match for document and query embeddings. A missing provider,
+model, or Chroma index is reported as an error; semantic requests do not
+silently fall back to keyword search.
+
+If the model changes, call `MemoryManager.rebuild_semantic_index()` using the
+configured Core factory. The explicit rebuild replaces a collection with a
+different recorded model identity and re-embeds active canonical memories from
+SQLite. SQLite remains authoritative if indexing or rebuilding fails.
 
 ## Conflict Detection
 
