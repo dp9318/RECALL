@@ -2713,7 +2713,7 @@ class TestMemoryManager:
         assert "model" not in source.lower()
         assert "prompt" not in source.lower()
 
-def test_delete_memory_does_not_touch_index_when_canonical_delete_fails(self, manager, mock_uow, mock_semantic_index, sample_memory):
+    def test_delete_memory_does_not_touch_index_when_canonical_delete_fails(self, manager, mock_uow, mock_semantic_index, sample_memory):
         mock_uow.memories.delete.return_value = Result.err("Canonical store unavailable")
 
         result = manager.delete_memory(sample_memory.id)
