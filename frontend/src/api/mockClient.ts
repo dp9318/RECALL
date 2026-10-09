@@ -10,8 +10,10 @@ import type {
   ConflictListResponse,
   Project,
   ProjectListResponse,
+  CreateProjectRequest,
   Session,
   SessionListResponse,
+  CreateSessionRequest,
   Stats,
   ChatRequest,
   ChatResponse,
@@ -504,6 +506,22 @@ export const mockApiClient = {
     return { projects: mockProjects, total: mockProjects.length };
   },
 
+  async createProject(request: CreateProjectRequest): Promise<Project> {
+    await sleep(200);
+    const now = new Date().toISOString();
+    const newProject: Project = {
+      project_id: `proj-${String(mockProjects.length + 1).padStart(3, '0')}`,
+      name: request.name,
+      description: request.description,
+      created_at: now,
+      updated_at: now,
+      memory_count: 0,
+      session_count: 0,
+    };
+    mockProjects.push(newProject);
+    return newProject;
+  },
+
   // Sessions
   async getSessions(projectId?: string): Promise<SessionListResponse> {
     await sleep(200);
@@ -512,6 +530,22 @@ export const mockApiClient = {
       filtered = filtered.filter(s => s.project_id === projectId);
     }
     return { sessions: filtered, total: filtered.length };
+  },
+
+  async createSession(request: CreateSessionRequest): Promise<Session> {
+    await sleep(200);
+    const now = new Date().toISOString();
+    const proj = mockProjects.find(p => p.project_id === request.project_id);
+    const newSession: Session = {
+      session_id: request.session_id || `sess-${String(mockSessions.length + 1).padStart(3, '0')}`,
+      project_id: request.project_id,
+      project_name: proj?.name || 'Mock Project',
+      started_at: now,
+      message_count: 0,
+      memory_captures: 0,
+    };
+    mockSessions.push(newSession);
+    return newSession;
   },
 
   // Stats

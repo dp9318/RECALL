@@ -10,8 +10,10 @@ import type {
   ConflictListResponse,
   Project,
   ProjectListResponse,
+  CreateProjectRequest,
   Session,
   SessionListResponse,
+  CreateSessionRequest,
   Stats,
   ChatRequest,
   ChatResponse,
@@ -136,10 +138,28 @@ const apiClient = {
     return handleResponse(response);
   },
 
+  async createProject(request: CreateProjectRequest): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return handleResponse(response);
+  },
+
   // Sessions
   async getSessions(projectId?: string): Promise<SessionListResponse> {
     const params = projectId ? `?project_id=${projectId}` : '';
     const response = await fetch(`${API_BASE_URL}/sessions${params}`);
+    return handleResponse(response);
+  },
+
+  async createSession(request: CreateSessionRequest): Promise<Session> {
+    const response = await fetch(`${API_BASE_URL}/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
     return handleResponse(response);
   },
 

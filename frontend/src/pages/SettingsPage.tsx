@@ -17,6 +17,7 @@ export function SettingsPage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   
   const fetchData = async () => {
     try {
@@ -44,16 +45,21 @@ export function SettingsPage() {
   
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProjectName.trim() || creating) return;
+    const name = newProjectName.trim();
+    if (!name || creating) return;
     
     setCreating(true);
+    setCreateError(null);
     try {
-      // Note: This would need a backend endpoint. For now, just refresh.
-      // await api.createProject({ name: newProjectName, description: newProjectDesc });
+      await api.createProject({
+        name,
+        description: newProjectDesc.trim() || undefined,
+      });
       setNewProjectName('');
       setNewProjectDesc('');
-      fetchData();
+      await fetchData();
     } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create project');
       console.error('Failed to create project:', err);
     } finally {
       setCreating(false);
@@ -124,6 +130,11 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateProject} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                {createError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                    {createError}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
                     value={newProjectName}

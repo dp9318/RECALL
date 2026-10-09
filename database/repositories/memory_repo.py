@@ -172,7 +172,11 @@ class SQLiteMemoryRepository(MemoryRepository):
         memory = existing.value
         updated_content = request.content if request.content is not None else memory.content
         updated_status = request.status if request.status is not None else memory.status
-        updated_metadata = request.metadata if request.metadata is not None else memory.metadata
+        existing_meta = dict(memory.metadata) if memory.metadata else {}
+        if request.metadata is not None:
+            updated_metadata = {**existing_meta, **request.metadata}
+        else:
+            updated_metadata = existing_meta
         updated_supersedes_id = request.supersedes_id if request.supersedes_id is not None else memory.supersedes_id
 
         try:
@@ -185,7 +189,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                 (
                     updated_content,
                     updated_status.value if hasattr(updated_status, 'value') else updated_status,
-                    dict_to_json(request.metadata) if request.metadata else "{}",
+                    dict_to_json(updated_metadata),
                     uuid_to_str(updated_supersedes_id),
                     datetime.now().isoformat(),
                     uuid_to_str(memory_id),

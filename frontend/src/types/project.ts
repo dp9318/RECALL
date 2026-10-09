@@ -13,6 +13,12 @@ export interface ProjectListResponse {
   total: number;
 }
 
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Session {
   session_id: string;
   project_id: string;
@@ -26,6 +32,12 @@ export interface Session {
 export interface SessionListResponse {
   sessions: Session[];
   total: number;
+}
+
+export interface CreateSessionRequest {
+  project_id: string;
+  session_id?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Stats {

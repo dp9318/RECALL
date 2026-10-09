@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, type CustomInstruction, type CustomInstructionListResponse, type CreateCustomInstructionRequest } from '../api';
+import { api, type CustomInstruction, type CustomInstructionListResponse, type CreateCustomInstructionRequest, type Project } from '../api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
@@ -17,6 +17,12 @@ export function CustomInstructionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [editActive, setEditActive] = useState(true);
+
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   
   // Create form state
   const [createScope, setCreateScope] = useState<'global' | 'project'>('global');
@@ -37,29 +43,69 @@ export function CustomInstructionsPage() {
       setLoading(false);
     }
   };
+
+  const fetchProjects = async () => {
+    try {
+      setProjectsLoading(true);
+      setProjectsError(null);
+      const response = await api.getProjects();
+      setProjects(response.projects || []);
+    } catch (err) {
+      setProjectsError(err instanceof Error ? err.message : 'Failed to load projects');
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
   
   useEffect(() => {
     fetchInstructions();
+    fetchProjects();
   }, []);
+
+  useEffect(() => {
+    if (showCreateModal) {
+      fetchProjects();
+    }
+  }, [showCreateModal]);
+
+  const handleOpenCreateModal = () => {
+    setModalError(null);
+    setCreateScope('global');
+    setCreateProjectId('');
+    setCreateContent('');
+    setCreateActive(true);
+    setShowCreateModal(true);
+  };
   
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createContent.trim()) return;
+    setModalError(null);
+    if (!createContent.trim()) {
+      setModalError('Instruction content cannot be empty');
+      return;
+    }
+    if (createScope === 'project' && !createProjectId) {
+      setModalError('Please select a project for project-scoped instructions');
+      return;
+    }
     
     try {
       const request: CreateCustomInstructionRequest = {
         scope: createScope,
         project_id: createScope === 'project' ? createProjectId : undefined,
-        content: createContent,
+        content: createContent.trim(),
         active: createActive,
       };
       
       await api.createCustomInstruction(request);
       setShowCreateModal(false);
       setCreateContent('');
+      setCreateProjectId('');
+      setCreateScope('global');
+      setModalError(null);
       fetchInstructions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create instruction');
+      setModalError(err instanceof Error ? err.message : 'Failed to create instruction');
     }
   };
   
@@ -125,7 +171,7 @@ export function CustomInstructionsPage() {
             Manage {total} user-authored instruction{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+        <Button variant="primary" onClick={handleOpenCreateModal}>
           <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -150,7 +196,7 @@ export function CustomInstructionsPage() {
             </svg>
             <h2 className="text-xl font-semibold text-text-primary mb-2">No custom instructions</h2>
             <p className="text-text-secondary mb-4">Create your first instruction to guide RECALL's behavior.</p>
-            <Button variant="primary" onClick={() => setShowCreateModal(true)}>Create Instruction</Button>
+            <Button variant="primary" onClick={handleOpenCreateModal}>Create Instruction</Button>
           </CardContent>
         </Card>
       ) : (
@@ -250,6 +296,12 @@ export function CustomInstructionsPage() {
               <CardTitle>Create Custom Instruction</CardTitle>
             </CardHeader>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
+              {modalError && (
+                <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-error text-sm flex items-center justify-between" role="alert">
+                  <span>{modalError}</span>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => setModalError(null)}>Dismiss</Button>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">Scope</label>
                 <div className="flex gap-4">
@@ -259,7 +311,11 @@ export function CustomInstructionsPage() {
                       name="scope"
                       value="global"
                       checked={createScope === 'global'}
-                      onChange={() => setCreateScope('global')}
+                      onChange={() => {
+                        setCreateScope('global');
+                        setCreateProjectId('');
+                        if (modalError) setModalError(null);
+                      }}
                       className="w-4 h-4 text-primary border-border focus:ring-primary"
                     />
                     <span className="text-sm text-text-primary">Global</span>
@@ -270,7 +326,10 @@ export function CustomInstructionsPage() {
                       name="scope"
                       value="project"
                       checked={createScope === 'project'}
-                      onChange={() => setCreateScope('project')}
+                      onChange={() => {
+                        setCreateScope('project');
+                        if (modalError) setModalError(null);
+                      }}
                       className="w-4 h-4 text-primary border-border focus:ring-primary"
                     />
                     <span className="text-sm text-text-primary">Project</span>
@@ -279,16 +338,48 @@ export function CustomInstructionsPage() {
               </div>
               
               {createScope === 'project' && (
-                <Select
-                  value={createProjectId}
-                  onChange={(e) => setCreateProjectId(e.target.value)}
-                  options={[
-                    { value: '', label: 'Select project...' },
-                    // Projects would be loaded from API
-                  ]}
-                  label="Project"
-                  placeholder="Select project"
-                />
+                <div className="space-y-1.5">
+                  <Select
+                    value={createProjectId}
+                    onChange={(e) => {
+                      setCreateProjectId(e.target.value);
+                      if (modalError) setModalError(null);
+                    }}
+                    options={
+                      projectsLoading
+                        ? [{ value: '', label: 'Loading projects...' }]
+                        : projectsError
+                        ? [{ value: '', label: 'Failed to load projects' }]
+                        : projects.length === 0
+                        ? [{ value: '', label: 'No projects available' }]
+                        : [
+                            { value: '', label: 'Select a project...' },
+                            ...projects.map((p) => ({ value: p.project_id, label: p.name })),
+                          ]
+                    }
+                    disabled={projectsLoading || (projects.length === 0 && !projectsError)}
+                    label="Project"
+                    error={projectsError || undefined}
+                    helperText={
+                      projectsLoading
+                        ? 'Loading available projects...'
+                        : projects.length === 0 && !projectsError
+                        ? 'No projects found. Please create a project in Settings first.'
+                        : undefined
+                    }
+                  />
+                  {projectsError && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={fetchProjects}
+                      className="text-xs text-primary"
+                    >
+                      Retry loading projects
+                    </Button>
+                  )}
+                </div>
               )}
               
               <Textarea

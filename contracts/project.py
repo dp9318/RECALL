@@ -51,6 +51,7 @@ class SessionCreateRequest:
     """Request to create a session."""
     project_id: UUID = field(default_factory=lambda: UUID(int=0))
     metadata: dict[str, Any] = field(default_factory=dict)
+    id: Optional[UUID] = None
 
 
 @dataclass

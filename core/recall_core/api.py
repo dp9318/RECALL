@@ -23,7 +23,7 @@ from contracts.instruction import (
     CustomInstructionUpdateRequest,
 )
 from contracts.memory import MemoryCreateRequest, MemorySearchParams, MemoryUpdateRequest
-from contracts.project import Project, Session, SessionCreateRequest
+from contracts.project import Project, ProjectCreateRequest, Session, SessionCreateRequest
 from contracts.retrieval import CompactRequest, RetrievalRequest
 from core.recall_core.bootstrap import create_memory_manager
 from core.recall_core.memory_manager import MemoryManager
@@ -87,12 +87,15 @@ def _serialize_memory(memory_manager: MemoryManager, memory: Any) -> dict[str, A
     }
 
 
-def _serialize_instruction(instruction: Any) -> dict[str, Any]:
+def _serialize_instruction(instruction: Any, memory_manager: MemoryManager | None = None) -> dict[str, Any]:
+    project_name = None
+    if memory_manager is not None and getattr(instruction, "project_id", None):
+        project_name = _project_name_for(memory_manager, instruction.project_id)
     return {
         "instruction_id": str(instruction.id),
         "scope": instruction.scope.value if hasattr(instruction.scope, "value") else str(instruction.scope),
         "project_id": str(instruction.project_id) if instruction.project_id is not None else None,
-        "project_name": None,
+        "project_name": project_name,
         "content": instruction.content,
         "active": instruction.is_active() if hasattr(instruction, "is_active") else instruction.status == InstructionStatus.ACTIVE,
         "created_at": instruction.created_at.isoformat(),
@@ -101,15 +104,64 @@ def _serialize_instruction(instruction: Any) -> dict[str, Any]:
     }
 
 
-def _serialize_session(session: Session) -> dict[str, Any]:
+def _serialize_project(project: Project, memory_manager: MemoryManager | None = None) -> dict[str, Any]:
+    memory_count = 0
+    session_count = 0
+    if memory_manager is not None:
+        try:
+            mem_res = memory_manager._uow.memories.search(
+                MemorySearchParams(project_id=project.id, status=MemoryStatus.ACTIVE, limit=1)
+            )
+            if mem_res.success and mem_res.value:
+                memory_count = mem_res.value.total
+        except Exception:
+            memory_count = 0
+        try:
+            sess_res = memory_manager._uow.sessions.list(
+                PaginationParams(limit=1), project_id=project.id
+            )
+            if sess_res.success and sess_res.value:
+                session_count = sess_res.value.total
+        except Exception:
+            session_count = 0
     return {
+        "project_id": str(project.id),
+        "name": project.name,
+        "description": project.description,
+        "created_at": project.created_at.isoformat(),
+        "updated_at": project.updated_at.isoformat(),
+        "memory_count": memory_count,
+        "session_count": session_count,
+    }
+
+
+def _serialize_session(session: Session, memory_manager: MemoryManager | None = None) -> dict[str, Any]:
+    project_name = None
+    memory_captures = 0
+    if memory_manager is not None:
+        if getattr(session, "project_id", None):
+            project_name = _project_name_for(memory_manager, session.project_id)
+        try:
+            mem_res = memory_manager._uow.memories.search(
+                MemorySearchParams(session_id=session.id, limit=1, include_historical=True)
+            )
+            if mem_res.success and mem_res.value:
+                memory_captures = mem_res.value.total
+        except Exception:
+            memory_captures = 0
+    status = "active" if session.is_active() else "closed"
+    return {
+        "id": str(session.id),
         "session_id": str(session.id),
         "project_id": str(session.project_id),
-        "project_name": None,
+        "project_name": project_name,
+        "status": status,
         "started_at": session.started_at.isoformat(),
         "ended_at": session.ended_at.isoformat() if session.ended_at else None,
+        "created_at": getattr(session, "created_at", session.started_at).isoformat(),
+        "updated_at": getattr(session, "updated_at", session.started_at).isoformat(),
         "message_count": 0,
-        "memory_captures": 0,
+        "memory_captures": memory_captures,
     }
 
 
@@ -225,26 +277,38 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
     @app.get("/projects")
     def list_projects(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> dict[str, Any]:
         manager = get_manager()
-        result = manager.list_projects(limit=limit, offset=offset)
-        if not result.success:
-            raise HTTPException(status_code=500, detail=result.error or "Unable to list projects")
-        projects = list(result.value or [])
+        paginated_result = manager._uow.projects.list(PaginationParams(limit=limit, offset=offset))
+        if not paginated_result.success or paginated_result.value is None:
+            raise HTTPException(status_code=500, detail=paginated_result.error or "Unable to list projects")
+        paginated = paginated_result.value
+        projects = list(paginated.items)
         payload = {
-            "projects": [
-                {
-                    "project_id": str(project.id),
-                    "name": project.name,
-                    "description": project.description,
-                    "created_at": project.created_at.isoformat(),
-                    "updated_at": project.updated_at.isoformat(),
-                    "memory_count": 0,
-                    "session_count": 0,
-                }
-                for project in projects
-            ],
-            "total": len(projects),
+            "projects": [_serialize_project(project, manager) for project in projects],
+            "total": paginated.total,
         }
         return payload
+
+    @app.post("/projects")
+    def create_project(payload: dict[str, Any]) -> dict[str, Any]:
+        manager = get_manager()
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Project name is required")
+        description = payload.get("description")
+        if description is not None:
+            description = str(description).strip() or None
+        metadata = payload.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise HTTPException(status_code=400, detail="metadata must be a dictionary")
+        request = ProjectCreateRequest(
+            name=name,
+            description=description,
+            metadata=metadata or {},
+        )
+        result = manager.create_project(request)
+        if not result.success or result.value is None:
+            raise HTTPException(status_code=400, detail=result.error or "Project creation failed")
+        return _serialize_project(result.value, manager)
 
     @app.get("/memories")
     def list_memories(
@@ -341,16 +405,42 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
     def update_memory(memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         manager = get_manager()
         memory_uuid = _parse_uuid(memory_id, "memory_id")
+        existing_result = manager.get_memory(memory_uuid)
+        if not existing_result.success or existing_result.value is None or existing_result.value.status == MemoryStatus.DELETED:
+            raise HTTPException(status_code=404, detail="Memory not found")
+        existing_memory = existing_result.value
+
+        content_val = payload.get("content")
+        if content_val is not None:
+            content_val = str(content_val).strip()
+            if not content_val:
+                raise HTTPException(status_code=400, detail="Content cannot be empty")
+
         status_value = _parse_status(payload.get("status"), MemoryStatus, "status")
+
+        # Metadata merging: preserve existing metadata, apply payload["metadata"], and merge top-level importance/tags
+        metadata_update: dict[str, Any] = {}
+        if isinstance(payload.get("metadata"), dict):
+            metadata_update.update(payload["metadata"])
+        if "importance" in payload and payload["importance"] is not None:
+            try:
+                metadata_update["importance"] = int(payload["importance"])
+            except (ValueError, TypeError) as exc:
+                raise HTTPException(status_code=400, detail="importance must be an integer between 0 and 100") from exc
+        if "tags" in payload and payload["tags"] is not None:
+            if not isinstance(payload["tags"], list):
+                raise HTTPException(status_code=400, detail="tags must be a list of strings")
+            metadata_update["tags"] = [str(t).strip() for t in payload["tags"] if str(t).strip()]
+
         update_request = MemoryUpdateRequest(
-            content=payload.get("content"),
+            content=content_val,
             status=status_value,
-            metadata=payload.get("metadata"),
+            metadata=metadata_update if metadata_update else (payload.get("metadata") if "metadata" in payload else None),
             supersedes_id=_parse_uuid(payload.get("supersedes_id"), "supersedes_id", allow_missing=True),
         )
         result = manager.update_memory(memory_uuid, update_request)
         if not result.success or result.value is None:
-            raise HTTPException(status_code=404, detail=result.error or "Memory not found")
+            raise HTTPException(status_code=400, detail=result.error or "Memory update failed")
         return _serialize_memory(manager, result.value)
 
     @app.delete("/memories/{memory_id}")
@@ -384,7 +474,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
             raise HTTPException(status_code=500, detail=result.error or "Unable to list instructions")
         instructions = list(result.value or [])
         return {
-            "instructions": [_serialize_instruction(instruction) for instruction in instructions],
+            "instructions": [_serialize_instruction(instruction, manager) for instruction in instructions],
             "total": len(instructions),
         }
 
@@ -393,6 +483,12 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         manager = get_manager()
         scope_value = Scope(payload.get("scope") or Scope.GLOBAL.value)
         project_id = _parse_uuid(payload.get("project_id"), "project_id", allow_missing=True)
+        if scope_value == Scope.PROJECT:
+            if not project_id:
+                raise HTTPException(status_code=400, detail="project_id is required for project-scoped instructions")
+            project_result = manager.get_project(project_id)
+            if not project_result.success or project_result.value is None:
+                raise HTTPException(status_code=404, detail="Project not found")
         request = CustomInstructionCreateRequest(
             scope=scope_value,
             project_id=project_id,
@@ -404,7 +500,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         if payload.get("active") is False:
             update = CustomInstructionUpdateRequest(status=InstructionStatus.INACTIVE)
             manager.update_instruction(result.value.id, update)
-        return _serialize_instruction(result.value)
+        return _serialize_instruction(result.value, manager)
 
     @app.patch("/custom-instructions/{instruction_id}")
     def update_custom_instruction(instruction_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -426,7 +522,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         result = manager.update_instruction(instruction_uuid, request)
         if not result.success or result.value is None:
             raise HTTPException(status_code=404, detail=result.error or "Instruction not found")
-        return _serialize_instruction(result.value)
+        return _serialize_instruction(result.value, manager)
 
     @app.delete("/custom-instructions/{instruction_id}")
     def delete_custom_instruction(instruction_id: str) -> Response:
@@ -467,7 +563,42 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         if not result.success:
             raise HTTPException(status_code=500, detail=result.error or "Unable to list sessions")
         sessions = list(result.value.items if result.value is not None else [])
-        return {"sessions": [_serialize_session(session) for session in sessions], "total": result.value.total if result.value is not None else len(sessions)}
+        return {
+            "sessions": [_serialize_session(session, manager) for session in sessions],
+            "total": result.value.total if result.value is not None else len(sessions),
+        }
+
+    @app.post("/sessions")
+    def create_session(payload: dict[str, Any]) -> dict[str, Any]:
+        manager = get_manager()
+        project_uuid = _parse_uuid(payload.get("project_id"), "project_id")
+        project_result = manager.get_project(project_uuid)
+        if not project_result.success or project_result.value is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        session_id_raw = payload.get("session_id") or payload.get("id")
+        session_uuid = _parse_uuid(session_id_raw, "session_id", allow_missing=True) if session_id_raw else None
+
+        if session_uuid is not None:
+            existing = manager.get_session(session_uuid)
+            if existing.success and existing.value is not None:
+                if existing.value.project_id != project_uuid:
+                    raise HTTPException(status_code=409, detail="Session already belongs to a different project")
+                return _serialize_session(existing.value, manager)
+
+        metadata = payload.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise HTTPException(status_code=400, detail="metadata must be a dictionary")
+
+        request = SessionCreateRequest(
+            project_id=project_uuid,
+            id=session_uuid,
+            metadata=metadata or {},
+        )
+        result = manager.create_session(request)
+        if not result.success or result.value is None:
+            raise HTTPException(status_code=400, detail=result.error or "Session creation failed")
+        return _serialize_session(result.value, manager)
 
     @app.get("/stats")
     def get_stats() -> dict[str, Any]:
@@ -481,6 +612,17 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         total_memories = sum(int(v) for v in memory_payload.values()) if isinstance(memory_payload, dict) else 0
         total_instructions = sum(int(v) for v in instruction_payload.values()) if isinstance(instruction_payload, dict) else 0
         semantic_health = payload.get("semantic_index", {})
+
+        unresolved_conflicts = 0
+        try:
+            conflicts_data = list_conflicts()
+            unresolved_conflicts = sum(
+                1 for c in conflicts_data.get("conflicts", [])
+                if c.get("status") in {"unresolved", "detected"}
+            )
+        except Exception:
+            unresolved_conflicts = 0
+
         return {
             "total_memories": total_memories,
             "active_memories": int(memory_payload.get("active", 0)) if isinstance(memory_payload, dict) else 0,
@@ -488,7 +630,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
             "total_sessions": int(payload.get("sessions", 0)),
             "total_instructions": total_instructions,
             "active_instructions": int(instruction_payload.get("active", 0)) if isinstance(instruction_payload, dict) else 0,
-            "unresolved_conflicts": 0,
+            "unresolved_conflicts": unresolved_conflicts,
             "semantic_index_status": "healthy" if (semantic_health.get("status") == "healthy" or semantic_health.get("available") is True) else "degraded",
             "last_indexed_at": semantic_health.get("last_indexed_at"),
             "database_connected": True,

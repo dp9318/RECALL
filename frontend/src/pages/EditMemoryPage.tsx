@@ -16,6 +16,7 @@ export function EditMemoryPage() {
   const navigate = useNavigate();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [content, setContent] = useState('');
   const [memoryType, setMemoryType] = useState<Memory['memory_type']>('fact');
   const [status, setStatus] = useState<Memory['status']>('active');
   const [importance, setImportance] = useState(50);
@@ -40,6 +41,13 @@ export function EditMemoryPage() {
         setError(null);
         const data = await api.getMemory(memoryId);
         setMemory(data);
+        setContent(data.content || '');
+        setMemoryType(data.memory_type || 'fact');
+        setStatus(data.status || 'active');
+        setImportance(data.importance ?? 50);
+        setProvenance(data.provenance || '');
+        setTags(data.tags || []);
+        setProjectId(data.project_id || '');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load memory for edit');
         navigate('/memories');
@@ -61,11 +69,11 @@ export function EditMemoryPage() {
     fetchMemory();
   }, [id]);
 
-  if (!memory) {
+  if (!memory && !loading) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
         <svg className="w-16 h-16 mx-auto text-error mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <h2 className="text-xl font-semibold text-text-primary mb-2">Memory not found</h2>
         <p className="text-text-secondary mb-4">Memory not found</p>
@@ -76,13 +84,6 @@ export function EditMemoryPage() {
     );
   }
 
-  // Load projects for the form (run after memory is loaded)
-  useEffect(() => {
-    if (memory) {
-      api.getProjects().then(res => setProjects(res.projects)).catch(console.error);
-    }
-  }, [memory]);
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memoryId) {
@@ -90,22 +91,19 @@ export function EditMemoryPage() {
       return;
     }
 
+    if (!content.trim()) {
+      setError('Memory content cannot be empty');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const pid = projectId || memory.project_id;
-    const pname = projects.find(p => p.project_id === pid)?.name || memory.project_name;
-
     try {
       await api.updateMemory(memoryId, {
-        project_id: pid,
-        project_name: pname,
-        memory_type: memoryType,
-        content: memory.content,
+        content: content.trim(),
         status: status,
         importance: importance,
-        provenance: provenance || memory.provenance,
-        lineage: memory.lineage,
         tags: tags,
       });
 
@@ -127,160 +125,136 @@ export function EditMemoryPage() {
     );
   }
 
+  if (!memory) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Link to="/memories" className="text-secondary hover:text-primary">
+            ← Back to Memories
+          </Link>
+          <h1 className="text-2xl font-bold text-text-primary">Memory Not Found</h1>
+        </div>
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {error || 'Memory could not be loaded.'}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header for edit page */}
       <div className="flex items-center justify-between gap-4 mb-6">
-        <Link to="/memories" className="text-secondary hover:text-primary">
-          ← Back to Memories
+        <Link to={`/memories/${id}`} className="text-secondary hover:text-primary">
+          ← Back to Memory
         </Link>
         <h1 className="text-2xl font-bold text-text-primary">Edit Memory</h1>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm mb-4">
+          {error}
+        </div>
+      )}
+
       {/* Summary of the memory being edited */}
-      <div className="p-4 bg-gray-50 rounded mb-6">
+      <div className="p-4 bg-gray-50 rounded mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Avatar name={memory.project_name || 'Project'} size="sm" />
-        </div>
-        <div>
-          <p className="text-lg text-text-primary">{memory.content}</p>
-          <p className="text-sm text-text-secondary">Memory ID: {memory.memory_id}</p>
-        </div>
-      </div>
-
-      {/* Project selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Project</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={projectId}
-            onChange={(e) => setProjectId((e.target as any).value)}
-            options={[
-              { value: '', label: 'Select project...' },
-              ...projects.map(p => ({ value: p.project_id, label: p.name })),
-            ]}
-            label="Project"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Memory type */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Memory Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={memoryType}
-            onChange={(e) => setMemoryType((e.target as any).value)}
-            options={[
-              { value: 'fact', label: 'Fact' },
-              { value: 'decision', label: 'Decision' },
-              { value: 'pattern', label: 'Pattern' },
-              { value: 'preference', label: 'Preference' },
-              { value: 'context', label: 'Context' },
-              { value: 'constraint', label: 'Constraint' },
-            ]}
-            label="Type"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={status}
-            onChange={(e) => setStatus((e.target as any).value)}
-            options={[
-              { value: 'active', label: 'Active' },
-              { value: 'superseded', label: 'Superseded' },
-              { value: 'archived', label: 'Archived' },
-              { value: 'conflicted', label: 'Conflicted' },
-            ]}
-            label="Status"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Importance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Importance (0-100)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-text-secondary">{importance}</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={importance}
-              onChange={(e) => setImportance(Number((e.target as any).value))}
-              className="w-48 appearance-none rounded-lg bg-primary/20"
-              aria-label="Importance"
-            />
+          <Avatar name={memory.project_name || (memory.project_id ? 'Project' : 'Global')} size="sm" />
+          <div>
+            <p className="font-medium text-text-primary">
+              {memory.project_name || (memory.project_id ? memory.project_id : 'Global Scope')}
+            </p>
+            <p className="text-xs text-text-secondary">ID: {memory.memory_id}</p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Content</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-text-primary whitespace-pre-wrap">{memory.content}</p>
-          <textarea
-            className="mt-2 w-full px-4 py-2 rounded-lg border bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            rows={4}
-            defaultValue={memory.content}
-            readOnly
-          />
-        </CardContent>
-      </Card>
-
-      {/* Provenance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Provenance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Input
-            value={provenance}
-            onChange={(e) => setProvenance((e.target as any).value)}
-            label="Provenance"
-            placeholder="e.g., Architecture decision recorded during initial design"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Tags */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tags (comma-separated, optional)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Input
-            value={tags.join(', ')}
-            onChange={(e) => setTags((e.target.value || '').split(',').map(t => t.trim()).filter(t => t.length > 0))}
-            label="Tags"
-            placeholder="architecture, database, core"
-          />
-          <p className="text-xs text-text-muted mt-1">Leave blank if none.</p>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-border">
-        <Button type="button" variant="outline" onClick={() => navigate(`/memories/${id}`)}>Cancel</Button>
-        <Button type="submit" variant="primary" onClick={handleUpdate}>Update Memory</Button>
+        </div>
+        <Badge variant={status === 'active' ? 'success' : status === 'superseded' ? 'warning' : 'default'}>
+          {status}
+        </Badge>
       </div>
+
+      <form onSubmit={handleUpdate} className="space-y-6">
+        {/* Content */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Content</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <textarea
+              className="w-full px-4 py-2 rounded-lg border bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={5}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter memory content..."
+              required
+            />
+          </CardContent>
+        </Card>
+
+        {/* Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={status}
+              onChange={(e) => setStatus((e.target as any).value)}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'superseded', label: 'Superseded' },
+                { value: 'archived', label: 'Archived' },
+              ]}
+              label="Status"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Importance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Importance (0-100)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold text-text-primary w-8">{importance}</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={importance}
+                onChange={(e) => setImportance(Number((e.target as any).value))}
+                className="w-64 appearance-none rounded-lg bg-primary/20"
+                aria-label="Importance"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tags */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Tags (comma-separated, optional)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Input
+              value={tags.join(', ')}
+              onChange={(e) => setTags((e.target.value || '').split(',').map(t => t.trim()).filter(t => t.length > 0))}
+              label="Tags"
+              placeholder="architecture, database, core"
+            />
+            <p className="text-xs text-text-muted mt-1">Leave blank if none.</p>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-4 border-t border-border">
+          <Button type="button" variant="outline" onClick={() => navigate(`/memories/${id}`)}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={loading || !content.trim()}>
+            {loading ? 'Updating...' : 'Update Memory'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

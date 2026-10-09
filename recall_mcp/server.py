@@ -20,6 +20,7 @@ from contracts.instruction import (
     CustomInstructionUpdateRequest,
 )
 from contracts.memory import MemoryCreateRequest
+from contracts.project import SessionCreateRequest
 from contracts.retrieval import (
     CompactRequest,
     ContextAssemblyRequest,
@@ -339,12 +340,31 @@ def _validate_optional_scope(
     if session_uuid is not None:
         if project_uuid is None:
             raise ToolError("project_id is required when session_id is provided")
-        result = memory_manager.get_session(session_uuid)
-        if not result.success or result.value is None:
-            raise ToolError(result.error or "The requested session was not found")
+        session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
+    return project_uuid, session_uuid
+
+
+def _resolve_or_create_session(
+    memory_manager: MemoryManager,
+    project_uuid: UUID,
+    session_uuid: UUID,
+) -> UUID:
+    result = memory_manager.get_session(session_uuid)
+    if result.success and result.value is not None:
         if result.value.project_id != project_uuid:
             raise ToolError("session_id does not belong to project_id")
-    return project_uuid, session_uuid
+        return session_uuid
+
+    create_req = SessionCreateRequest(project_id=project_uuid, id=session_uuid)
+    create_result = memory_manager.create_session(create_req)
+    if not create_result.success or create_result.value is None:
+        existing = memory_manager.get_session(session_uuid)
+        if existing.success and existing.value is not None:
+            if existing.value.project_id != project_uuid:
+                raise ToolError("session_id does not belong to project_id")
+            return session_uuid
+        raise ToolError(create_result.error or "Failed to register session")
+    return session_uuid
 
 
 def _validate_project_exists(memory_manager: MemoryManager, project_id: UUID) -> None:
@@ -398,11 +418,7 @@ def _validate_scope(
         except (ValueError, TypeError, AttributeError) as exc:
             raise ToolError("session_id must be a valid UUID") from exc
 
-        result = memory_manager.get_session(session_uuid)
-        if not result.success or result.value is None:
-            raise ToolError(result.error or "The requested session was not found")
-        if result.value.project_id != project_uuid:
-            raise ToolError("session_id does not belong to project_id")
+        session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
 
     return project_uuid, session_uuid
 

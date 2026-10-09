@@ -665,9 +665,9 @@ class MemoryManager:
             }
 
             # Project count
-            proj_result = self.list_projects(limit=1000)
-            if proj_result.success:
-                stats["projects"] = len(proj_result.value)
+            proj_result = self._uow.projects.list(PaginationParams(limit=1))
+            if proj_result.success and proj_result.value:
+                stats["projects"] = proj_result.value.total
 
             # Session count (scoped or system-wide)
             sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
