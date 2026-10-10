@@ -8,14 +8,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', disabled, children, asChild, ...props }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none';
     
     const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
-      primary: 'bg-primary text-white hover:bg-primary-hover focus:ring-primary',
-      secondary: 'bg-secondary text-white hover:bg-slate-600 focus:ring-secondary',
-      outline: 'border-2 border-primary text-primary hover:bg-primary-light focus:ring-primary',
-      ghost: 'text-primary hover:bg-primary-light focus:ring-primary',
-      danger: 'bg-error text-white hover:bg-red-600 focus:ring-error',
+      primary: 'bg-primary text-white hover:bg-primary-hover shadow-xs focus-visible:ring-primary',
+      secondary: 'bg-secondary text-white hover:bg-slate-600 focus-visible:ring-secondary',
+      outline: 'border border-border bg-surface text-text-primary hover:bg-surface-hover hover:text-primary hover:border-primary/50 focus-visible:ring-primary',
+      ghost: 'text-text-secondary hover:text-text-primary hover:bg-surface-hover focus-visible:ring-primary',
+      danger: 'bg-error text-white hover:bg-red-600 focus-visible:ring-error',
     };
     
     const sizes: Record<NonNullable<ButtonProps['size']>, string> = {

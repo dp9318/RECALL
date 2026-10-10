@@ -101,7 +101,7 @@ export const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
       <div
         ref={ref}
         className={`
-          px-6 py-4 border-t border-border bg-gray-50 rounded-b-xl
+          px-6 py-4 border-t border-border bg-surface-hover/30 rounded-b-xl
           ${className}
         `}
         {...props}

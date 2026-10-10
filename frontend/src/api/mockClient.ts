@@ -390,6 +390,8 @@ export const mockApiClient = {
     }
     if (query.status && query.status !== 'all') {
       filtered = filtered.filter(m => m.status === query.status);
+    } else if (query.status === 'all') {
+      filtered = filtered.filter(m => m.status !== 'deleted');
     } else if (!query.status) {
       filtered = filtered.filter(m => m.status === 'active');
     }
@@ -453,7 +455,8 @@ export const mockApiClient = {
     await sleep(150);
     const index = findMemoryIndex(id);
     if (index < 0) throw new Error(`Memory ${id} not found`);
-    mockMemories.splice(index, 1);
+    const existing = mockMemories[index]!;
+    mockMemories[index] = { ...existing, status: 'deleted', updated_at: new Date().toISOString() };
   },
 
   // Custom Instructions
@@ -503,7 +506,12 @@ export const mockApiClient = {
   // Projects
   async getProjects(): Promise<ProjectListResponse> {
     await sleep(200);
-    return { projects: mockProjects, total: mockProjects.length };
+    const mappedProjects = mockProjects.map(p => ({
+      ...p,
+      memory_count: mockMemories.filter(m => m.project_id === p.project_id && m.status === 'active').length,
+      session_count: mockSessions.filter(s => s.project_id === p.project_id).length,
+    }));
+    return { projects: mappedProjects, total: mappedProjects.length };
   },
 
   async createProject(request: CreateProjectRequest): Promise<Project> {
@@ -551,7 +559,19 @@ export const mockApiClient = {
   // Stats
   async getStats(): Promise<Stats> {
     await sleep(200);
-    return mockStats;
+    const activeCount = mockMemories.filter(m => m.status === 'active').length;
+    const activeInstructions = mockInstructions.filter(i => i.active).length;
+    const unresolvedConflicts = mockConflicts.filter(c => c.status === 'unresolved' || c.status === 'detected').length;
+    return {
+      ...mockStats,
+      total_memories: mockMemories.length,
+      active_memories: activeCount,
+      total_projects: mockProjects.length,
+      total_sessions: mockSessions.length,
+      total_instructions: mockInstructions.length,
+      active_instructions: activeInstructions,
+      unresolved_conflicts: unresolvedConflicts,
+    };
   },
 
   // Chat

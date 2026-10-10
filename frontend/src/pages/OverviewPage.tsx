@@ -48,19 +48,19 @@ export function OverviewPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="pt-6">
-                <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
-                <div className="h-8 bg-gray-200 rounded w-1/2" />
+              <CardContent className="p-5">
+                <div className="h-3.5 bg-surface-hover rounded w-1/2 mb-3" />
+                <div className="h-7 bg-surface-hover rounded w-1/3" />
               </CardContent>
             </Card>
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="animate-pulse"><CardContent className="pt-6"><div className="h-64 bg-gray-200 rounded" /></CardContent></Card>
-          <Card className="animate-pulse"><CardContent className="pt-6"><div className="h-64 bg-gray-200 rounded" /></CardContent></Card>
+          <Card className="animate-pulse"><CardContent className="pt-6"><div className="h-64 bg-surface-hover rounded" /></CardContent></Card>
+          <Card className="animate-pulse"><CardContent className="pt-6"><div className="h-64 bg-surface-hover rounded" /></CardContent></Card>
         </div>
       </div>
     );
@@ -98,14 +98,14 @@ export function OverviewPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Overview</h1>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Overview</h1>
           <p className="text-text-secondary mt-1">System-wide memory statistics and recent activity</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
             <Link to="/memories">View All Memories</Link>
           </Button>
-          <Button variant="primary" asChild>
+          <Button variant="primary" size="sm" asChild>
             <Link to="/chat">Ask RECALL</Link>
           </Button>
         </div>
@@ -114,16 +114,18 @@ export function OverviewPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-text-secondary">{stat.label}</p>
-                  <p className="text-3xl font-bold text-text-primary mt-1">
+          <Card key={stat.label} className="hover:border-primary/40 transition-colors">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider truncate">{stat.label}</p>
+                  <p className="text-2xl lg:text-3xl font-bold text-text-primary mt-1.5 tracking-tight">
                     {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                   </p>
                 </div>
-                <span className="text-3xl" aria-hidden="true">{stat.icon}</span>
+                <span className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-surface-hover/80 border border-border/50 flex-shrink-0" aria-hidden="true">
+                  {stat.icon}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -133,14 +135,14 @@ export function OverviewPage() {
       {/* Projects & Recent Sessions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Projects */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle>Projects</CardTitle>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/settings">View All</Link>
             </Button>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="flex-1 pt-0">
             {projects.length === 0 ? (
               <div className="text-center py-8">
                 <svg className="w-12 h-12 mx-auto text-text-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -152,28 +154,28 @@ export function OverviewPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto">
+              <div className="space-y-2.5 max-h-80 overflow-y-auto scrollbar-thin">
                 {projects.slice(0, 5).map((project) => (
                   <Link
                     key={project.project_id}
                     to={`/memories?project=${project.project_id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border/70 hover:bg-surface-hover hover:border-primary/40 transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar name={project.name} size="md" />
                       <div className="min-w-0">
-                        <p className="font-medium text-text-primary truncate">{project.name}</p>
-                        <p className="text-sm text-text-secondary truncate">{project.description || 'No description'}</p>
+                        <p className="font-semibold text-sm text-text-primary truncate">{project.name}</p>
+                        <p className="text-xs text-text-secondary truncate mt-0.5">{project.description || 'No description'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                       <Badge variant="outline" size="sm">{project.memory_count} memories</Badge>
                       <Badge variant="outline" size="sm">{project.session_count} sessions</Badge>
                     </div>
                   </Link>
                 ))}
                 {projects.length > 5 && (
-                  <Button variant="ghost" size="sm" className="w-full" asChild>
+                  <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
                     <Link to="/settings">View all {projects.length} projects</Link>
                   </Button>
                 )}
@@ -183,14 +185,14 @@ export function OverviewPage() {
         </Card>
         
         {/* Recent Sessions */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle>Recent Sessions</CardTitle>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/settings">View All</Link>
             </Button>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="flex-1 pt-0">
             {sessions.length === 0 ? (
               <div className="text-center py-8">
                 <svg className="w-12 h-12 mx-auto text-text-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -199,29 +201,29 @@ export function OverviewPage() {
                 <p className="text-text-secondary">No recent sessions</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto">
+              <div className="space-y-2.5 max-h-80 overflow-y-auto scrollbar-thin">
                 {sessions.slice(0, 5).map((session) => (
                   <div
                     key={session.session_id}
-                    className="p-3 rounded-lg hover:bg-gray-50 transition-colors border border-border"
+                    className="p-3 rounded-lg border border-border/70 hover:bg-surface-hover transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-text-primary truncate">{session.project_name}</p>
-                        <p className="text-sm text-text-secondary">
+                        <p className="font-semibold text-sm text-text-primary truncate">{session.project_name}</p>
+                        <p className="text-xs text-text-secondary truncate mt-0.5">
                           {new Date(session.started_at).toLocaleString()} · {session.message_count} messages · {session.memory_captures} memories
                         </p>
                       </div>
                       {session.ended_at && (
-                        <span className="text-xs text-text-muted whitespace-nowrap">
-                          Ended {new Date(session.ended_at).toLocaleTimeString()}
+                        <span className="text-xs text-text-muted whitespace-nowrap flex-shrink-0">
+                          Ended {new Date(session.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
                     </div>
                   </div>
                 ))}
                 {sessions.length > 5 && (
-                  <Button variant="ghost" size="sm" className="w-full" asChild>
+                  <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
                     <Link to="/settings">View all {sessions.length} sessions</Link>
                   </Button>
                 )}
@@ -233,35 +235,35 @@ export function OverviewPage() {
       
       {/* System Status */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle>System Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-text-secondary">Database</p>
-              <p className="font-medium text-text-primary flex items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-lg border border-border bg-surface-hover/30">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Database</p>
+              <p className="font-semibold text-text-primary flex items-center gap-2 mt-1.5">
                 <span className={`w-2 h-2 rounded-full ${stats?.database_connected ? 'bg-success' : 'bg-error'}`} />
                 {stats?.database_connected ? 'Connected' : 'Disconnected'}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-text-secondary">ChromaDB</p>
-              <p className="font-medium text-text-primary flex items-center gap-2">
+            <div className="p-4 rounded-lg border border-border bg-surface-hover/30">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">ChromaDB</p>
+              <p className="font-semibold text-text-primary flex items-center gap-2 mt-1.5">
                 <span className={`w-2 h-2 rounded-full ${stats?.chromadb_connected ? 'bg-success' : 'bg-error'}`} />
                 {stats?.chromadb_connected ? 'Connected' : 'Disconnected'}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-text-secondary">Local LLM</p>
-              <p className="font-medium text-text-primary flex items-center gap-2">
+            <div className="p-4 rounded-lg border border-border bg-surface-hover/30">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Local LLM</p>
+              <p className="font-semibold text-text-primary flex items-center gap-2 mt-1.5">
                 <span className={`w-2 h-2 rounded-full ${stats?.local_llm_available ? 'bg-success' : 'bg-warning'}`} />
                 {stats?.local_llm_available ? 'Available' : 'Unavailable'}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-text-secondary">Last Indexed</p>
-              <p className="font-medium text-text-primary">
+            <div className="p-4 rounded-lg border border-border bg-surface-hover/30">
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Last Indexed</p>
+              <p className="font-semibold text-text-primary mt-1.5 truncate">
                 {stats?.last_indexed_at ? new Date(stats.last_indexed_at).toLocaleString() : 'Never'}
               </p>
             </div>

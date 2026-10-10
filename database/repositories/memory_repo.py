@@ -373,3 +373,41 @@ class SQLiteMemoryRepository(MemoryRepository):
             return Result.ok(lineage)
         except sqlite3.Error as e:
             return Result.err(f"Database error: {e}")
+
+    def count(self, project_id: Optional[UUID] = None, status: Optional[MemoryStatus] = None) -> Result[int]:
+        """Count memories with optional project and status filters."""
+        try:
+            conditions = []
+            values = []
+            if project_id is not None:
+                conditions.append("project_id = ?")
+                values.append(uuid_to_str(project_id))
+            if status is not None:
+                conditions.append("status = ?")
+                values.append(status.value if hasattr(status, "value") else str(status))
+            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+            cursor = self._conn.execute(f"SELECT COUNT(*) FROM memories {where_clause}", values)
+            total = cursor.fetchone()[0]
+            return Result.ok(total)
+        except sqlite3.Error as e:
+            return Result.err(f"Database error: {e}")
+
+    def count_by_status(self, project_id: Optional[UUID] = None) -> Result[dict[str, int]]:
+        """Count memories grouped by status."""
+        try:
+            conditions = []
+            values = []
+            if project_id is not None:
+                conditions.append("project_id = ?")
+                values.append(uuid_to_str(project_id))
+            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+            cursor = self._conn.execute(
+                f"SELECT status, COUNT(*) FROM memories {where_clause} GROUP BY status",
+                values,
+            )
+            counts = {s.value: 0 for s in MemoryStatus}
+            for row in cursor.fetchall():
+                counts[row[0]] = row[1]
+            return Result.ok(counts)
+        except sqlite3.Error as e:
+            return Result.err(f"Database error: {e}")

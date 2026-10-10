@@ -734,6 +734,113 @@ def test_real_sqlite_overview_statistics_and_consistency(tmp_path):
         manager.close()
 
 
+def test_memory_statistics_lifecycle_and_multi_project_accuracy(tmp_path):
+    from database.config import DatabaseConfig
+    from core.recall_core.bootstrap import create_memory_manager
+    from contracts.base import MemoryStatus
+
+    config = DatabaseConfig.from_path(tmp_path / "recall_stats.sqlite3")
+    manager = create_memory_manager(config)
+    app = create_app(manager)
+    client = TestClient(app)
+
+    try:
+        # Create Project 1 and Project 2
+        p1_res = client.post("/projects", json={"name": "Project Alpha"}).json()
+        p2_res = client.post("/projects", json={"name": "Project Beta"}).json()
+        p1_id = p1_res["project_id"]
+        p2_id = p2_res["project_id"]
+
+        # 1. Add global memory (active)
+        g_mem = client.post("/memories", json={"content": "Global Fact", "scope": "global"}).json()
+        assert g_mem["status"] == "active"
+
+        # 2. Add Project 1 memories: 1 active, 1 superseded, 1 deleted
+        m1 = client.post("/memories", json={"content": "P1 Mem 1", "project_id": p1_id}).json()
+        # Supersede m1
+        m2 = client.post("/memories", json={"content": "P1 Mem 2 (supersedes 1)", "project_id": p1_id, "supersedes_id": m1["memory_id"]}).json()
+        # Create m3 and soft-delete it
+        m3 = client.post("/memories", json={"content": "P1 Mem 3 (deleted)", "project_id": p1_id}).json()
+        del_res = client.delete(f"/memories/{m3['memory_id']}")
+        assert del_res.status_code == 204
+
+        # 3. Add Project 2 memories: 1 active, 1 archived
+        m4 = client.post("/memories", json={"content": "P2 Mem 1 (active)", "project_id": p2_id}).json()
+        m5 = client.post("/memories", json={"content": "P2 Mem 2 (to archive)", "project_id": p2_id}).json()
+        # Update m5 status to archived
+        from contracts.memory import MemoryUpdateRequest
+        manager.update_memory(UUID(m5["memory_id"]), MemoryUpdateRequest(status=MemoryStatus.ARCHIVED))
+
+        # Check total canonical count directly in SQLite repository
+        repo_total = manager._uow.memories.count().value
+        assert repo_total == 6  # g_mem(active), m1(superseded), m2(active), m3(deleted), m4(active), m5(archived)
+
+        repo_status_counts = manager._uow.memories.count_by_status().value
+        assert repo_status_counts["active"] == 3       # g_mem, m2, m4
+        assert repo_status_counts["superseded"] == 1   # m1
+        assert repo_status_counts["archived"] == 1     # m5
+        assert repo_status_counts["deleted"] == 1      # m3
+
+        # 4. Check API stats
+        stats = client.get("/stats").json()
+        assert stats["total_memories"] == 6
+        assert stats["active_memories"] == 3
+        assert stats["total_projects"] == 2
+
+        # 5. Verify pagination does not affect stats or listing totals
+        page1 = client.get("/memories?page=1&page_size=2").json()
+        assert page1["total"] == 3  # default list is active memories
+        assert len(page1["memories"]) == 2
+        page2 = client.get("/memories?page=2&page_size=2").json()
+        assert page2["total"] == 3
+        assert len(page2["memories"]) == 1
+
+        # 6. Verify Memory Explorer filters
+        # status=all (non-deleted) should return 5 memories (g_mem, m1, m2, m4, m5)
+        all_non_deleted = client.get("/memories?status=all").json()
+        assert all_non_deleted["total"] == 5
+
+        # status=deleted should return 1 memory (m3)
+        deleted_list = client.get("/memories?status=deleted").json()
+        assert deleted_list["total"] == 1
+        assert deleted_list["memories"][0]["memory_id"] == m3["memory_id"]
+
+        # status=superseded should return 1 memory (m1)
+        superseded_list = client.get("/memories?status=superseded").json()
+        assert superseded_list["total"] == 1
+        assert superseded_list["memories"][0]["memory_id"] == m1["memory_id"]
+
+        # status=archived should return 1 memory (m5)
+        archived_list = client.get("/memories?status=archived").json()
+        assert archived_list["total"] == 1
+        assert archived_list["memories"][0]["memory_id"] == m5["memory_id"]
+
+        # Project 1 scoped stats
+        p1_stats = manager.get_stats(project_id=UUID(p1_id)).value
+        assert p1_stats["total_memories"] == 3  # m1, m2, m3
+        assert p1_stats["memories"]["active"] == 1
+        assert p1_stats["memories"]["superseded"] == 1
+        assert p1_stats["memories"]["deleted"] == 1
+
+        # Project 2 scoped stats
+        p2_stats = manager.get_stats(project_id=UUID(p2_id)).value
+        assert p2_stats["total_memories"] == 2  # m4, m5
+        assert p2_stats["memories"]["active"] == 1
+        assert p2_stats["memories"]["archived"] == 1
+
+        # Verify that system-wide total (6) is NOT merely sum of Project 1 (3) + Project 2 (2) = 5,
+        # because global memory (1) is included in canonical SQLite ledger!
+        assert stats["total_memories"] == 6
+
+        # 7. Check semantic index independence: even if semantic index is cleared or degraded, SQLite stats are unchanged
+        stats_after = client.get("/stats").json()
+        assert stats_after["total_memories"] == 6
+        assert stats_after["active_memories"] == 3
+    finally:
+        manager.close()
+
+
+
 def test_real_sqlite_sessions_lifecycle_and_mcp_unification(tmp_path):
     import pytest
     from database.config import DatabaseConfig

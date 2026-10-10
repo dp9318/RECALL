@@ -108,7 +108,7 @@ export function SettingsPage() {
             >
               {tab.label}
               {tab.count !== null && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 rounded-full">{tab.count}</span>
+                <span className="ml-2 px-2 py-0.5 text-xs bg-surface-hover text-text-secondary rounded-full border border-border">{tab.count}</span>
               )}
             </button>
           ))}
@@ -129,9 +129,9 @@ export function SettingsPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreateProject} className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <form onSubmit={handleCreateProject} className="mb-6 p-4 bg-surface-hover/30 border border-border rounded-lg">
                 {createError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-md text-sm">
                     {createError}
                   </div>
                 )}
@@ -169,18 +169,18 @@ export function SettingsPage() {
                   {projects.map(project => (
                     <div
                       key={project.project_id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-border hover:bg-gray-50 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-border hover:bg-surface-hover transition-colors"
                     >
-                      <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                      <div className="flex items-center gap-3 mb-3 sm:mb-0 min-w-0">
                         <Avatar name={project.name} size="md" />
-                        <div>
-                          <Link to={`/memories?project=${project.project_id}`} className="font-semibold text-text-primary hover:text-primary">
+                        <div className="min-w-0">
+                          <Link to={`/memories?project=${project.project_id}`} className="font-semibold text-text-primary hover:text-primary truncate block">
                             {project.name}
                           </Link>
-                          <p className="text-sm text-text-secondary">{project.description || 'No description'}</p>
+                          <p className="text-sm text-text-secondary truncate">{project.description || 'No description'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-shrink-0">
                         <Badge variant="outline" size="sm">{project.memory_count} memories</Badge>
                         <Badge variant="outline" size="sm">{project.session_count} sessions</Badge>
                         <span className="text-xs text-text-muted">
@@ -211,27 +211,27 @@ export function SettingsPage() {
                 <p className="text-text-secondary">No sessions recorded</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin">
                 {sessions.map(session => (
                   <div
                     key={session.session_id}
-                    className="p-4 rounded-lg border border-border hover:bg-gray-50 transition-colors"
+                    className="p-4 rounded-lg border border-border hover:bg-surface-hover transition-colors"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <Avatar name={session.project_name} size="sm" />
-                        <div>
-                          <p className="font-medium text-text-primary">{session.project_name}</p>
-                          <p className="text-sm text-text-secondary">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-text-primary truncate">{session.project_name}</p>
+                          <p className="text-sm text-text-secondary truncate">
                             {new Date(session.started_at).toLocaleString()} · {session.message_count} messages · {session.memory_captures} memories
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-text-muted">
+                      <div className="flex items-center gap-3 text-sm text-text-muted flex-shrink-0">
                         {session.ended_at && (
                           <span>Ended {new Date(session.ended_at).toLocaleTimeString()}</span>
                         )}
-                        <span className="font-mono">{session.session_id.slice(0, 8)}...</span>
+                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-surface-hover border border-border">{session.session_id.slice(0, 8)}...</span>
                       </div>
                     </div>
                   </div>
@@ -253,37 +253,37 @@ export function SettingsPage() {
               {stats && (
                 <dl className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Total Memories</dt>
-                      <dd className="text-2xl font-bold text-text-primary">{stats.total_memories}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Total Memories</dt>
+                      <dd className="text-2xl font-bold text-text-primary mt-1">{stats.total_memories}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Active Memories</dt>
-                      <dd className="text-2xl font-bold text-success">{stats.active_memories}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Active Memories</dt>
+                      <dd className="text-2xl font-bold text-success mt-1">{stats.active_memories}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Projects</dt>
-                      <dd className="text-2xl font-bold text-text-primary">{stats.total_projects}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Projects</dt>
+                      <dd className="text-2xl font-bold text-text-primary mt-1">{stats.total_projects}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Sessions</dt>
-                      <dd className="text-2xl font-bold text-text-primary">{stats.total_sessions}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Sessions</dt>
+                      <dd className="text-2xl font-bold text-text-primary mt-1">{stats.total_sessions}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Instructions</dt>
-                      <dd className="text-2xl font-bold text-text-primary">{stats.total_instructions}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Instructions</dt>
+                      <dd className="text-2xl font-bold text-text-primary mt-1">{stats.total_instructions}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Active Instructions</dt>
-                      <dd className="text-2xl font-bold text-success">{stats.active_instructions}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Active Instructions</dt>
+                      <dd className="text-2xl font-bold text-success mt-1">{stats.active_instructions}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Unresolved Conflicts</dt>
-                      <dd className="text-2xl font-bold {stats.unresolved_conflicts > 0 ? 'text-error' : 'text-success'}">{stats.unresolved_conflicts}</dd>
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Unresolved Conflicts</dt>
+                      <dd className={`text-2xl font-bold mt-1 ${stats.unresolved_conflicts > 0 ? 'text-error' : 'text-success'}`}>{stats.unresolved_conflicts}</dd>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <dt className="text-sm text-text-secondary">Semantic Index</dt>
-                      <dd className="flex items-center gap-2">
+                    <div className="p-3 rounded-lg border border-border bg-surface-hover/30">
+                      <dt className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Semantic Index</dt>
+                      <dd className="flex items-center gap-2 mt-1">
                         <Badge variant={stats.semantic_index_status === 'healthy' ? 'success' : 'warning'}>
                           {stats.semantic_index_status}
                         </Badge>
@@ -293,7 +293,7 @@ export function SettingsPage() {
                   {stats.last_indexed_at && (
                     <div className="pt-4 border-t border-border">
                       <dt className="text-sm text-text-secondary">Last Indexed</dt>
-                      <dd className="text-text-primary">{new Date(stats.last_indexed_at).toLocaleString()}</dd>
+                      <dd className="text-text-primary font-medium mt-0.5">{new Date(stats.last_indexed_at).toLocaleString()}</dd>
                     </div>
                   )}
                 </dl>
@@ -307,42 +307,42 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent>
               {health && (
-                <dl className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                <dl className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">Overall Status</dt>
                     <dd className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${health.status === 'healthy' ? 'bg-success' : health.status === 'degraded' ? 'bg-warning' : 'bg-error'}`} />
-                      <span className="font-medium capitalize">{health.status}</span>
+                      <span className="font-semibold capitalize text-text-primary">{health.status}</span>
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">Database</dt>
-                    <dd className="flex items-center gap-2">
+                    <dd className="flex items-center gap-2 text-text-primary font-medium">
                       <span className={`w-2 h-2 rounded-full ${health.database_connected ? 'bg-success' : 'bg-error'}`} />
                       <span>{health.database_connected ? 'Connected' : 'Disconnected'}</span>
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">ChromaDB</dt>
-                    <dd className="flex items-center gap-2">
+                    <dd className="flex items-center gap-2 text-text-primary font-medium">
                       <span className={`w-2 h-2 rounded-full ${health.chromadb_connected ? 'bg-success' : 'bg-error'}`} />
                       <span>{health.chromadb_connected ? 'Connected' : 'Disconnected'}</span>
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">Local LLM</dt>
-                    <dd className="flex items-center gap-2">
+                    <dd className="flex items-center gap-2 text-text-primary font-medium">
                       <span className={`w-2 h-2 rounded-full ${health.local_llm_available ? 'bg-success' : 'bg-warning'}`} />
                       <span>{health.local_llm_available ? 'Available' : 'Unavailable'}</span>
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">API Version</dt>
-                    <dd className="font-mono text-sm">{health.api_version}</dd>
+                    <dd className="font-mono text-xs font-semibold text-text-primary px-2 py-0.5 rounded bg-surface-hover border border-border">{health.api_version}</dd>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-hover/30">
                     <dt className="text-sm text-text-secondary">Last Check</dt>
-                    <dd className="text-text-muted">{new Date(health.timestamp).toLocaleString()}</dd>
+                    <dd className="text-text-muted text-xs">{new Date(health.timestamp).toLocaleString()}</dd>
                   </div>
                 </dl>
               )}
@@ -404,7 +404,7 @@ export function SettingsPage() {
                   'POST /context/query',
                   'POST /context/compact',
                 ].map(endpoint => (
-                  <code key={endpoint} className="block px-3 py-2 bg-gray-100 rounded font-mono text-primary">{endpoint}</code>
+                  <code key={endpoint} className="block px-3 py-2 bg-surface-hover/70 border border-border rounded font-mono text-primary text-xs sm:text-sm">{endpoint}</code>
                 ))}
               </div>
             </CardContent>

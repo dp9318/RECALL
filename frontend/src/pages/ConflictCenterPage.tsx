@@ -66,11 +66,11 @@ export function ConflictCenterPage() {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3" />
+          <div className="h-8 bg-surface-hover rounded w-1/3" />
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
-            <Card key={i}><CardContent className="pt-6"><div className="h-32 bg-gray-200 rounded" /></CardContent></Card>
+            <Card key={i}><CardContent className="pt-6"><div className="h-32 bg-surface-hover rounded" /></CardContent></Card>
           ))}
         </div>
       </div>
@@ -175,7 +175,7 @@ export function ConflictCenterPage() {
                     {conflict.conflicting_memories.map((cm, i) => (
                       <div
                         key={`${conflict.conflict_id}-${i}`}
-                        className="p-3 rounded-lg border border-border bg-gray-50"
+                        className="p-3 rounded-lg border border-border bg-surface-hover/30"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm text-text-primary flex-1">{cm.content}</p>
@@ -183,7 +183,7 @@ export function ConflictCenterPage() {
                         </div>
                         {cm.confidence !== undefined && (
                           <div className="mt-2 flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-primary rounded-full transition-all"
                                 style={{ width: `${cm.confidence * 100}%` }}

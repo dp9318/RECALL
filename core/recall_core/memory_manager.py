@@ -670,25 +670,42 @@ class MemoryManager:
                 stats["projects"] = proj_result.value.total
 
             # Session count (scoped or system-wide)
-            sess_result = self._uow.sessions.list(PaginationParams(limit=1000), project_id)
+            sess_result = self._uow.sessions.list(PaginationParams(limit=1), project_id)
             if sess_result.success and sess_result.value:
                 stats["sessions"] = sess_result.value.total
 
             # Memory counts (scoped or system-wide)
-            for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
-                mem_params = MemorySearchParams(
-                    project_id=project_id,
-                    status=status,
-                    limit=1000,
-                    include_historical=(status == MemoryStatus.DELETED),
-                )
-                mem_result = self._uow.memories.search(mem_params)
-                if mem_result.success and mem_result.value:
-                    stats["memories"][status.value] = mem_result.value.total
+            counted = False
+            if hasattr(self._uow.memories, "count_by_status"):
+                status_res = self._uow.memories.count_by_status(project_id)
+                if status_res.success and isinstance(status_res.value, dict):
+                    stats["memories"].update(status_res.value)
+                    counted = True
+
+            if not counted:
+                for status in [MemoryStatus.ACTIVE, MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED, MemoryStatus.DELETED]:
+                    mem_params = MemorySearchParams(
+                        project_id=project_id,
+                        status=status,
+                        limit=1,
+                        include_historical=(status == MemoryStatus.DELETED),
+                    )
+                    mem_result = self._uow.memories.search(mem_params)
+                    if mem_result.success and mem_result.value:
+                        stats["memories"][status.value] = mem_result.value.total
+
+            if hasattr(self._uow.memories, "count"):
+                total_res = self._uow.memories.count(project_id)
+                if total_res.success and isinstance(total_res.value, int):
+                    stats["total_memories"] = total_res.value
+                else:
+                    stats["total_memories"] = sum(stats["memories"].values())
+            else:
+                stats["total_memories"] = sum(stats["memories"].values())
 
             # Instruction counts (scoped or system-wide)
             for status_val in [InstructionStatus.ACTIVE, InstructionStatus.INACTIVE]:
-                instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1000)
+                instr_params = CustomInstructionListParams(project_id=project_id, status=status_val, limit=1)
                 instr_result = self._uow.custom_instructions.list(instr_params)
                 if instr_result.success and instr_result.value:
                     stats["custom_instructions"][status_val.value] = instr_result.value.total

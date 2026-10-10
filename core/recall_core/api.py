@@ -109,11 +109,16 @@ def _serialize_project(project: Project, memory_manager: MemoryManager | None = 
     session_count = 0
     if memory_manager is not None:
         try:
-            mem_res = memory_manager._uow.memories.search(
-                MemorySearchParams(project_id=project.id, status=MemoryStatus.ACTIVE, limit=1)
-            )
-            if mem_res.success and mem_res.value:
-                memory_count = mem_res.value.total
+            if hasattr(memory_manager._uow.memories, "count"):
+                c_res = memory_manager._uow.memories.count(project_id=project.id, status=MemoryStatus.ACTIVE)
+                if c_res.success and c_res.value is not None:
+                    memory_count = c_res.value
+            else:
+                mem_res = memory_manager._uow.memories.search(
+                    MemorySearchParams(project_id=project.id, status=MemoryStatus.ACTIVE, limit=1)
+                )
+                if mem_res.success and mem_res.value:
+                    memory_count = mem_res.value.total
         except Exception:
             memory_count = 0
         try:
@@ -609,7 +614,9 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         payload = result.value or {}
         memory_payload = payload.get("memories", {})
         instruction_payload = payload.get("custom_instructions", {})
-        total_memories = sum(int(v) for v in memory_payload.values()) if isinstance(memory_payload, dict) else 0
+        total_memories = payload.get("total_memories")
+        if total_memories is None:
+            total_memories = sum(int(v) for v in memory_payload.values()) if isinstance(memory_payload, dict) else 0
         total_instructions = sum(int(v) for v in instruction_payload.values()) if isinstance(instruction_payload, dict) else 0
         semantic_health = payload.get("semantic_index", {})
 

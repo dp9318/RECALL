@@ -34,9 +34,9 @@ export function MemoryDetailPage() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
-        <Card><CardContent className="pt-6"><div className="h-8 bg-gray-200 rounded w-1/3 mb-2" /><div className="h-4 bg-gray-200 rounded w-1/4" /></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="h-32 bg-gray-200 rounded" /></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="h-4 bg-gray-200 rounded w-1/2 mb-2" /><div className="h-4 bg-gray-200 rounded w-1/3" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-8 bg-surface-hover rounded w-1/3 mb-2" /><div className="h-4 bg-surface-hover rounded w-1/4" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-32 bg-surface-hover rounded" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-4 bg-surface-hover rounded w-1/2 mb-2" /><div className="h-4 bg-surface-hover rounded w-1/3" /></CardContent></Card>
       </div>
     );
   }

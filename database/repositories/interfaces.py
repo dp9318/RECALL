@@ -123,6 +123,16 @@ class MemoryRepository(ABC):
         """Get lineage for a memory."""
         ...
 
+    @abstractmethod
+    def count(self, project_id: Optional[UUID] = None, status: Optional[MemoryStatus] = None) -> Result[int]:
+        """Count memories with optional project and status filters."""
+        ...
+
+    @abstractmethod
+    def count_by_status(self, project_id: Optional[UUID] = None) -> Result[dict[str, int]]:
+        """Count memories grouped by status."""
+        ...
+
 
 class CustomInstructionRepository(ABC):
     """Repository interface for custom instruction operations."""

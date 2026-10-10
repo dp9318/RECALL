@@ -1,164 +1,177 @@
+<p align="center">
+  <img src="readme_src/recall_hero_simple.png" alt="RECALL — Persistent memory for AI coding agents" width="100%" />
+</p>
+
 # RECALL — Persistent Memory Engine for AI Coding Agents
 
-RECALL is a local, persistent memory engine designed for AI coding agents. Its purpose is to preserve useful project context across development sessions, retrieve relevant historical context, manage explicit user-authored custom instructions, detect and arbitrate conflicting memories, and expose unified context through both an **MCP server** for agent-integrated IDEs and a **Web Dashboard** for developers.
+> **Persistent project memory, custom instruction enforcement, and deterministic context retrieval for AI coding agents.**
 
-RECALL is the memory engine itself — not a standalone chatbot or a coding agent. It acts as the persistent cognitive layer that makes any coding agent smarter over time.
+AI coding assistants lose critical context the moment a session ends. Every new conversation forgets past architectural decisions, project conventions, library choices, and user preferences. Repeatedly explaining the same constraints wastes time and leads to conflicting suggestions.
+
+**RECALL** solves this by providing a local, persistent cognitive memory layer for AI coding agents. It records key project facts, tracks lineage across sessions, respects explicit user instructions above all else, arbitrates conflicting historical context, and exposes unified context via the **Model Context Protocol (MCP)** and a human-facing **Web Dashboard**.
+
+RECALL is the memory engine itself — not a standalone chatbot or a coding agent. It is designed to pair seamlessly with agents such as OpenCode, Google Antigravity, Cursor, and Claude.
 
 ---
 
-## 🏗️ Architecture & Memory Hierarchy
+## 💡 What RECALL Does
 
-RECALL uses a layered architecture with explicit authority rules:
+- **Preserves Long-Term Project Memory:** Captures architectural decisions, conventions, patterns, and facts in a canonical, structured SQLite ledger that persists across sessions.
+- **Enforces User-Authored Custom Instructions:** Gives top-tier authority to explicit developer rules across global or project scopes, preventing agents from drifting from established rules.
+- **Retrieves Relevant Context On Demand:** Uses hybrid keyword and semantic retrieval to fetch relevant memories when an agent prepares a prompt.
+- **Resolves Context Conflicts Deterministically:** Detects contradictions between historical memories and arbitrates them using strict authority rules and bounded local arbitration, returning an explicit unresolved state rather than hallucinating certainty.
+- **Maintains Memory Lineage:** Tracks when newer decisions supersede older ones, ensuring auditability and safe context compaction.
 
-```text
-                          CLIENT SURFACES
-        ┌────────────────────────┬─────────────────────────┐
-        │                        │                         │
-        │ OpenCode / Antigravity │ Web Dashboard           │
-        │ Cursor / Claude (MCP)  │ React + Tailwind CSS    │
-        │ /recall commands       │ HTTP / JSON API         │
-        └──────────────┬─────────┴──────────────┬──────────┘
-                       │                        │
-                       └────────────┬───────────┘
-                                    ▼
-                         ┌─────────────────────────┐
-                         │       RECALL CORE       │
-                         │    (Python FastMCP/API) │
-                         │                         │
-                         │ memory lifecycle        │
-                         │ retrieval & compaction  │
-                         │ custom instructions     │
-                         │ conflict arbitration    │
-                         └────────────┬────────────┘
-                                      │
-                    ┌─────────────────┼──────────────────┐
-                    ▼                 ▼                  ▼
-              ┌──────────┐      ┌──────────┐       ┌────────────┐
-              │  SQLite  │─────▶│ ChromaDB │       │ Local LLM  │
-              │canonical │      │ derived  │       │ bounded    │
-              │ truth    │      │ index    │       │ arbitration│
-              └──────────┘      └──────────┘       └────────────┘
-```
+---
+
+## 🔄 How It Works
+
+RECALL coordinates memory capture, storage, and retrieval in a straightforward 5-stage pipeline:
+
+<p align="center">
+  <img src="readme_src/How%20It%20Works_%20Context-Aware%20AI%20Workflow.png" alt="How RECALL Works Workflow" width="100%" />
+</p>
+
+1. **You work with your AI agent:** Write code and ask questions in your daily tools (OpenCode, Antigravity, Cursor, Claude).
+2. **Context is captured:** RECALL captures relevant decisions, instructions, and context through `/recall` commands or MCP tools.
+3. **Relevant context is retrieved:** Fast keyword matching and semantic search extract the most relevant project memories.
+4. **Conflicts are resolved:** Contradictions are evaluated against authority rules, using a small bounded local LLM when ambiguity remains.
+5. **Agent responds with accurate context:** Your agent receives consistent, up-to-date context tailored to your project.
+
+### Architecture Overview
+
+<p align="center">
+  <img src="readme_src/RECALL%20Product%20Architecture%20Overview.png" alt="RECALL Product Architecture Overview" width="100%" />
+</p>
+
+- **SQLite (Canonical Truth):** Authoritative storage for projects, sessions, memories, lineage, and custom instructions (stored at `~/.recall/recall.sqlite3`).
+- **ChromaDB (Derived Index):** Optional semantic vector index that can always be completely rebuilt from SQLite.
+- **Local LLM (Bounded Arbitration):** Bounded 1B–3B local model for residual conflict arbitration; cannot override user instructions or mutate storage directly.
+- **MCP Server & REST API:** Open standards for agent IDE integration and frontend dashboard access.
 
 ### Memory Authority Rules
 
-When conflicts arise, RECALL enforces strict authority ordering:
-1. **Explicit user custom instructions** (`Scope.GLOBAL` / `Scope.PROJECT`)
-2. **Explicit user updates / supersessions**
-3. **Current valid canonical memories**
-4. **Older historical memories**
-5. **Local 1B–3B LLM arbitration** (for ambiguous conflict resolution)
-6. **Unresolved / Abstain** (returns unresolved state instead of fabricating certainty)
+When memories or instructions conflict, RECALL applies strict hierarchical authority:
 
-- **SQLite** is the canonical source of truth for sessions, events, memories, lineage, projects, and custom instructions (persisted in `~/.recall/recall.sqlite3`).
-- **ChromaDB** is a derived semantic index that can always be fully rebuilt from SQLite.
-- The **Web Dashboard** interacts strictly through the HTTP REST API and never mutates SQLite or ChromaDB directly.
+```text
+Explicit user custom instruction (Global / Project)
+        ↓
+Explicit user update / supersession
+        ↓
+Current valid canonical memory
+        ↓
+Older historical memory
+        ↓
+Local 1B–3B arbitration for residual ambiguity
+        ↓
+Unresolved / abstain
+```
 
 ---
 
-## 🚀 Quick Start: Running Backend & Frontend
+## 🖥️ Web Dashboard Preview
+
+RECALL includes a developer cockpit built with React and Tailwind CSS. The dashboard allows developers to explore memories, manage custom instructions, audit conflict resolutions, inspect system health, and toggle between Light and Dark themes.
+
+<p align="center">
+  <img src="readme_src/ui_dark.png" alt="RECALL Web Dashboard Preview" width="100%" />
+</p>
+
+<p align="center">
+  <img src="readme_src/ui_light.png" alt="RECALL Web Dashboard Preview" width="100%" />
+</p>
+
+### Dashboard Capabilities
+- **Overview:** System-wide statistics for total memories, active memories, project breakdown, instruction count, and semantic index status.
+- **Memory Explorer:** Search, inspect, filter, edit, and soft-delete memories across projects and lifecycle states (active, superseded, archived, deleted).
+- **Conflict Center:** Inspect detected conflicts, review winning memories, and trace arbitration rationale.
+- **Custom Instructions:** Create, update, toggle, and delete global and project-scoped developer instructions.
+- **Chat / Ask RECALL:** Query assembled context directly to verify agent retrieval before starting a coding session.
+
+---
+
+## ⚡ Getting Started
 
 ### Prerequisites
 
 - **Python 3.11+**
 - **Node.js 18+ & npm**
 
-### 1. Environment Setup
+### 1. Installation
 
-From the repository root (`d:\proj\Hackathon\RECALL`):
+Clone the repository and set up a virtual environment from the `RECALL/` root directory:
 
 ```bash
+# Clone the repository
+git clone https://github.com/dp9318/RECALL.git
+cd RECALL
+
 # Create and activate virtual environment
 python -m venv .venv
 
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Windows (CMD):
-.venv\Scripts\activate.bat
-# Linux / macOS:
+# On Linux / macOS:
 source .venv/bin/activate
 
-# Install dependencies (core, MCP adapter, and semantic index):
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+
+# Install RECALL core, MCP adapter, and semantic index dependencies:
 pip install -e "core[mcp,semantic]"
 ```
 
----
+### 2. Start the Backend API
 
-### 2. Run the Backend API
+From the repository root (`RECALL/`):
 
-The backend provides the HTTP REST API for the frontend dashboard and external integrations.
-
-* **Directory:** Root repository directory (`RECALL`)
-* **Terminal Commands:**
-
-```powershell
-# In Windows PowerShell (or your activated terminal):
-cd d:\proj\Hackathon\RECALL
+```bash
 python -m core.recall_core.api
 ```
 
-*(Alternative with hot-reload or custom host/port):*
-```powershell
+*(Alternatively, run with hot reload):*
+```bash
 uvicorn core.recall_core.api:app --host 0.0.0.0 --port 8080 --reload
 ```
-or using the installed CLI entry point:
-```powershell
-recall-api
-```
 
-* **Default URL:** `http://localhost:8080`
-* **Health Check:** `http://localhost:8080/health`
+- **API Base URL:** `http://localhost:8080`
+- **Health Endpoint:** `http://localhost:8080/health`
+- **Interactive OpenAPI Docs:** `http://localhost:8080/docs`
 
----
+### 3. Start the Web Dashboard
 
-### 3. Run the Frontend Dashboard
+From a new terminal in the repository root:
 
-The frontend is a modern ChatGPT-style management interface built with **React**, **TypeScript**, and **Tailwind CSS**. It allows developers to inspect memories, manage custom instructions, review conflicts, and simulate context queries.
-
-* **Directory:** `frontend` directory (`d:\proj\Hackathon\RECALL\frontend`)
-* **Terminal Commands:**
-
-```powershell
-cd d:\proj\Hackathon\RECALL\frontend
-
-# Install dependencies (first time only):
+```bash
+cd frontend
 npm install
-
-# Start Vite development server:
 npm run dev
 ```
 
-* **Default URL:** `http://localhost:5173`
-* **API Proxy:** The Vite development server automatically proxies `/api` calls to `http://localhost:8080`.
+- **Dashboard URL:** `http://localhost:5173`
+- The development server automatically proxies API requests to `http://localhost:8080`.
 
 ---
 
-## 🔌 Configuring RECALL MCP in Agent-Integrated IDEs
+## 🔌 Model Context Protocol (MCP) Setup
 
-RECALL includes a standard **Model Context Protocol (MCP)** server (`recall_mcp.server`) operating over `stdio`. It exposes 9 structured tools to your AI agent:
+RECALL includes a built-in MCP server (`recall_mcp.server`) exposing 9 standardized tools to AI coding agents:
 
-| Tool | Purpose |
+| MCP Tool | Purpose |
 | --- | --- |
-| `recall_search` | Search memories across project scope with semantic/keyword matching |
+| `recall_search` | Search memories across projects with keyword or semantic matching |
 | `recall_get_context` | Assemble active project memories and matching custom instructions |
-| `recall_save_memory` | Save a new memory with canonical SQLite persistence |
-| `recall_update_context` | Persist an explicit context update for a project or global scope |
+| `recall_save_memory` | Save a new memory record into canonical SQLite storage |
+| `recall_update_context` | Persist an explicit context update taking high precedence |
 | `recall_compact` | Summarize older memories above the active cap while preserving lineage |
 | `recall_list_custom_instructions` | List custom instructions filtered by scope, project, or status |
-| `recall_create_custom_instruction` | Create user instructions (global or project scoped) |
-| `recall_update_custom_instruction` | Update instruction content or status |
-| `recall_delete_custom_instruction` | Soft-delete / deactivate a custom instruction |
+| `recall_create_custom_instruction` | Create user instructions (global or project-scoped) |
+| `recall_update_custom_instruction` | Update instruction content or toggle active status |
+| `recall_delete_custom_instruction` | Deactivate / soft-delete a custom instruction |
 
----
+Configure your client of choice by pointing to your local Python interpreter and RECALL repository root:
 
-### A. Google Antigravity
+### Google Antigravity
 
-To register RECALL in **Google Antigravity**:
-
-1. Open your workspace customization or global settings:
-   - Workspace level: `.agents/mcp_config.json` (inside your project root)
-   - Or Global level: `<GlobalCustomizationsRoot>/mcp_config.json`
-2. Add the `recall` server configuration:
+Add the server to `.agents/mcp_config.json` in your workspace or global customization root:
 
 ```json
 {
@@ -166,48 +179,33 @@ To register RECALL in **Google Antigravity**:
     "recall": {
       "command": "python",
       "args": ["-m", "recall_mcp.server"],
-      "cwd": "d:/proj/Hackathon/RECALL"
+      "cwd": "/path/to/RECALL"
     }
   }
 }
 ```
 
-> [!TIP]
-> If using a virtual environment, set `"command"` to the absolute path of Python in your `.venv` (e.g., `d:/proj/Hackathon/RECALL/.venv/Scripts/python.exe`).
+> **Note:** If using a virtual environment, replace `"python"` with the absolute path to your virtual environment interpreter (e.g. `"/path/to/RECALL/.venv/bin/python"` or `"C:\\path\\to\\RECALL\\.venv\\Scripts\\python.exe"`).
 
----
+### Cursor
 
-### B. Cursor
+Add to `~/.cursor/mcp.json` or `.cursor/mcp.json`:
 
-To configure in **Cursor**:
-
-**Method 1: Via Cursor Settings UI**
-1. Open **Cursor Settings** -> **Features** -> **MCP**.
-2. Click **+ Add New MCP Server**.
-3. Fill in the details:
-   - **Name:** `recall`
-   - **Type:** `command`
-   - **Command:** `python -m recall_mcp.server` (or `.venv/Scripts/python.exe -m recall_mcp.server`)
-   - **Working Directory:** `d:/proj/Hackathon/RECALL`
-
-**Method 2: Via `~/.cursor/mcp.json` or Workspace `.cursor/mcp.json`**
 ```json
 {
   "mcpServers": {
     "recall": {
       "command": "python",
       "args": ["-m", "recall_mcp.server"],
-      "cwd": "d:/proj/Hackathon/RECALL"
+      "cwd": "/path/to/RECALL"
     }
   }
 }
 ```
 
----
+### OpenCode
 
-### C. OpenCode
-
-In your workspace's `.opencode/opencode.json`:
+Add to your workspace `.opencode/opencode.json`:
 
 ```json
 {
@@ -216,18 +214,16 @@ In your workspace's `.opencode/opencode.json`:
     "recall": {
       "type": "local",
       "command": ["python", "-m", "recall_mcp.server"],
-      "cwd": "d:/proj/Hackathon/RECALL",
+      "cwd": "/path/to/RECALL",
       "enabled": true
     }
   }
 }
 ```
 
----
+### Claude Desktop
 
-### D. Claude Desktop / VS Code (Cline / Roo-Code)
-
-In `claude_desktop_config.json` (or your extension's MCP configuration):
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -235,7 +231,7 @@ In `claude_desktop_config.json` (or your extension's MCP configuration):
     "recall": {
       "command": "python",
       "args": ["-m", "recall_mcp.server"],
-      "cwd": "d:/proj/Hackathon/RECALL"
+      "cwd": "/path/to/RECALL"
     }
   }
 }
@@ -243,25 +239,46 @@ In `claude_desktop_config.json` (or your extension's MCP configuration):
 
 ---
 
-## 🧪 Testing and Verification
+## ✨ Features at a Glance
 
-To verify your environment and run automated test suites:
+- 🧠 **Dual Storage Strategy:** SQLite for canonical durable ledger; ChromaDB for fast derived embeddings.
+- 🎯 **Explicit Instruction Priority:** User-authored instructions always override inferred memories.
+- ⚖️ **Conflict Arbitration:** Deterministic lineage rules backed by local small LLM arbitration when ambiguous.
+- 🌓 **Instant Theme Switching:** Focused Light and Dark themes with full contrast accessibility.
+- 📊 **Accurate System Statistics:** Exact canonical counts for active and total memories, avoiding duplicate project aggregation.
+- 🔒 **Local & Private:** Runs entirely on your machine; no external cloud database dependency required.
+
+---
+
+## 🧪 Testing & Verification
+
+Run the test suite from the repository root:
 
 ```bash
 # Run core unit and integration tests:
 python -m pytest core/tests -q
 
-# Run full repository test suite (contracts, database, intelligence, MCP):
+# Run full backend test suite:
 pytest -q
+
+# Run frontend test suite & production build:
+cd frontend
+npm run build
 ```
 
 ---
 
-## 📚 Project Documentation
+## 📦 Project Status & Documentation
 
-For in-depth specifications and guidelines:
-- [Problem Statement](file:///d:/proj/Hackathon/RECALL/docs/PROBLEM_STATEMENT.md)
-- [Product Requirements Document (PRD)](file:///d:/proj/Hackathon/RECALL/docs/PRD.md)
-- [Architecture Specifications](file:///d:/proj/Hackathon/RECALL/docs/ARCHITECTURE.md)
-- [MCP Adapter Documentation](file:///d:/proj/Hackathon/RECALL/docs/modules/MCP.md)
-- [Team Workflow & Contributing](file:///d:/proj/Hackathon/RECALL/docs/TEAM_WORKFLOW.md)
+- **Current Version:** `v1.0.1`
+- **License:** MIT
+
+Detailed technical documentation is available in the `docs/` directory:
+- [Problem Statement](docs/PROBLEM_STATEMENT.md)
+- [Product Requirements Document (PRD)](docs/PRD.md)
+- [Architecture Specifications](docs/ARCHITECTURE.md)
+- [Design Document](docs/DESIGN.md)
+- [Technology Stack](docs/TECH_STACK.md)
+- [Development Rules](docs/DEVELOPMENT_RULES.md)
+- [Team Workflow & Contributing](docs/TEAM_WORKFLOW.md)
+- [MCP Module Documentation](docs/modules/MCP.md)

@@ -150,11 +150,11 @@ export function CustomInstructionsPage() {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3" />
+          <div className="h-8 bg-surface-hover rounded w-1/3" />
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
-            <Card key={i}><CardContent className="pt-6"><div className="h-24 bg-gray-200 rounded" /></CardContent></Card>
+            <Card key={i}><CardContent className="pt-6"><div className="h-24 bg-surface-hover rounded" /></CardContent></Card>
           ))}
         </div>
       </div>
@@ -233,7 +233,7 @@ export function CustomInstructionsPage() {
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className={`
                         w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
-                        ${instruction.scope === 'global' ? 'bg-primary-light text-primary' : 'bg-info-light text-info'}
+                        ${instruction.scope === 'global' ? 'bg-primary-light text-primary' : 'bg-sky-500/10 text-sky-500'}
                       `}>
                         {instruction.scope === 'global' ? (
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

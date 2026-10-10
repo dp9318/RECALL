@@ -9,19 +9,19 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  success: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  warning: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  error: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  info: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  primary: 'bg-primary-light text-primary dark:bg-primary/20 dark:text-primary-light',
-  outline: 'border-2 border-border text-text-secondary',
+  default: 'bg-surface-hover text-text-secondary border border-border',
+  success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+  error: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+  info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20',
+  primary: 'bg-primary-light text-primary border border-primary/25',
+  outline: 'border border-border text-text-secondary bg-transparent',
 };
 
 const sizes: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-2.5 py-1 text-sm',
-  lg: 'px-3 py-1.5 text-base',
+  sm: 'px-2 py-0.5 text-xs font-medium',
+  md: 'px-2.5 py-1 text-xs font-semibold',
+  lg: 'px-3 py-1.5 text-sm font-semibold',
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(

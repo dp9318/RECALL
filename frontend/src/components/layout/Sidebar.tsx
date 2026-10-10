@@ -5,6 +5,8 @@ import { Button } from '../ui';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const navigation = [
@@ -65,14 +67,6 @@ function SettingsIcon({ className }: { className?: string }) {
   );
 }
 
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -81,54 +75,83 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
       
-      {/* Sidebar */}
+      {/* Sidebar - anchored to viewport */}
       <aside
         className={`
-          fixed lg:relative left-0 top-0 h-full z-50 bg-surface border-r border-border
-          transition-all duration-300 ease-in-out
+          fixed top-0 bottom-0 left-0 z-40 h-screen bg-surface border-r border-border
+          flex flex-col transition-all duration-300 ease-in-out select-none
           ${collapsed ? 'w-20' : 'w-64'}
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
         `}
         aria-label="Main navigation"
       >
         {/* Logo / Brand */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          {!collapsed && (
-            <NavLink to="/overview" className="flex items-center gap-2 text-primary font-semibold text-lg" aria-label="RECALL Dashboard">
-              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-border flex-shrink-0">
+          {!collapsed ? (
+            <NavLink
+              to="/overview"
+              className="flex items-center gap-2.5 text-primary font-bold text-lg tracking-tight hover:opacity-90 transition-opacity"
+              aria-label="RECALL Dashboard"
+            >
+              <svg className="w-7 h-7 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
               </svg>
               <span>RECALL</span>
             </NavLink>
+          ) : (
+            <NavLink
+              to="/overview"
+              className="flex items-center justify-center mx-auto text-primary hover:opacity-90 transition-opacity"
+              aria-label="RECALL Dashboard"
+            >
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+              </svg>
+            </NavLink>
           )}
+
+          {onToggleCollapse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="hidden lg:flex p-1.5 h-8 w-8 text-text-secondary hover:text-text-primary"
+            >
+              <ChevronRightIcon className={`w-4 h-4 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`} />
+            </Button>
+          )}
+
+          {/* Mobile close button */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={collapsed ? 'mx-auto' : ''}
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="lg:hidden p-1.5 h-8 w-8 text-text-secondary hover:text-text-primary"
           >
-            <ChevronRightIcon className={collapsed ? 'rotate-180' : ''} />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </Button>
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1" aria-label="Main navigation">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 scrollbar-thin" aria-label="Main navigation">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || 
@@ -140,28 +163,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive: active }) => `
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                  group relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
                   ${active
-                    ? 'bg-primary-light text-primary'
-                    : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:hover:bg-gray-800'
+                    ? 'bg-primary-light text-primary font-semibold'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                   }
-                  ${collapsed ? 'justify-center' : ''}
+                  ${collapsed ? 'justify-center px-2' : ''}
                 `}
                 aria-current={isActive ? 'page' : undefined}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {!collapsed && <span>{item.label}</span>}
+                {/* Active indicator bar */}
+                {isActive && (
+                  <span
+                    className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full"
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon
+                  className={`w-5 h-5 flex-shrink-0 transition-colors ${
+                    isActive ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'
+                  }`}
+                  aria-hidden="true"
+                />
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </NavLink>
             );
           })}
         </nav>
         
         {/* Footer */}
-        <div className="p-4 border-t border-border">
-          {!collapsed && (
-            <div className="text-xs text-text-muted text-center">
-              RECALL v1.0.0
+        <div className="p-4 border-t border-border flex-shrink-0 mt-auto bg-surface">
+          {!collapsed ? (
+            <div className="text-xs text-text-muted text-center font-medium tracking-wide">
+              RECALL v1.0.1
+            </div>
+          ) : (
+            <div className="text-[10px] text-text-muted text-center font-mono">
+              v1.0.1
             </div>
           )}
         </div>

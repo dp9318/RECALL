@@ -118,9 +118,9 @@ export function EditMemoryPage() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto animate-pulse space-y-6">
-        <Card><CardContent className="pt-6"><div className="h-8 bg-gray-200 rounded w-1/3 mb-2" /><div className="h-4 bg-gray-200 rounded w-1/4" /></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="h-32 bg-gray-200 rounded" /></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="h-4 bg-gray-200 rounded w-1/2 mb-2" /><div className="h-4 bg-gray-200 rounded w-1/3" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-8 bg-surface-hover rounded w-1/3 mb-2" /><div className="h-4 bg-surface-hover rounded w-1/4" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-32 bg-surface-hover rounded" /></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="h-4 bg-surface-hover rounded w-1/2 mb-2" /><div className="h-4 bg-surface-hover rounded w-1/3" /></CardContent></Card>
       </div>
     );
   }
@@ -134,7 +134,7 @@ export function EditMemoryPage() {
           </Link>
           <h1 className="text-2xl font-bold text-text-primary">Memory Not Found</h1>
         </div>
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
           {error || 'Memory could not be loaded.'}
         </div>
       </div>
@@ -145,20 +145,20 @@ export function EditMemoryPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header for edit page */}
       <div className="flex items-center justify-between gap-4 mb-6">
-        <Link to={`/memories/${id}`} className="text-secondary hover:text-primary">
+        <Link to={`/memories/${id}`} className="text-secondary hover:text-primary text-sm font-medium">
           ← Back to Memory
         </Link>
         <h1 className="text-2xl font-bold text-text-primary">Edit Memory</h1>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm mb-4">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm mb-4">
           {error}
         </div>
       )}
 
       {/* Summary of the memory being edited */}
-      <div className="p-4 bg-gray-50 rounded mb-6 flex items-center justify-between">
+      <div className="p-4 bg-surface-hover/30 border border-border rounded-lg mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar name={memory.project_name || (memory.project_id ? 'Project' : 'Global')} size="sm" />
           <div>
