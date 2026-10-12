@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { forwardRef, isValidElement, cloneElement, type ButtonHTMLAttributes, type ReactElement } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -24,17 +24,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-6 py-3 text-lg gap-2',
     };
     
-    const Comp = asChild ? 'span' : 'button';
-    
+    const combinedClasses = `${baseClasses} ${variants[variant ?? 'primary']} ${sizes[size ?? 'md']} ${className}`.trim();
+
+    if (asChild && isValidElement(children)) {
+      const child = children as ReactElement<{ className?: string }>;
+      return cloneElement(child, {
+        ...props,
+        className: `${combinedClasses} ${child.props.className ?? ''}`.trim(),
+      });
+    }
+
     return (
-      <Comp
+      <button
         ref={ref}
-        className={`${baseClasses} ${variants[variant ?? 'primary']} ${sizes[size ?? 'md']} ${className}`}
+        className={combinedClasses}
         disabled={disabled}
         {...props}
       >
         {children}
-      </Comp>
+      </button>
     );
   }
 );
