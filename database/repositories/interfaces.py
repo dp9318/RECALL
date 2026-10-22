@@ -187,6 +187,11 @@ class SemanticIndexRepository(ABC):
         ...
 
     @abstractmethod
+    def remove_by_project(self, project_id: UUID) -> Result[bool]:
+        """Remove all memories for a project from the semantic store."""
+        ...
+
+    @abstractmethod
     def search_similar(self, query: str, project_id: Optional[UUID], limit: int) -> Result[list[tuple[UUID, float]]]:
         """Search for similar memories. Returns (memory_id, score) tuples."""
         ...
@@ -200,6 +205,10 @@ class SemanticIndexRepository(ABC):
     def health_check(self) -> Result[dict[str, Any]]:
         """Check health of semantic index."""
         ...
+
+    def warmup(self) -> Result[bool]:
+        """Pre-initialize semantic index resources. Default implementation returns ok."""
+        return Result.ok(True)
 
 
 class DatabaseTransaction(ABC):

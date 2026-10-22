@@ -17,6 +17,7 @@ export function CustomInstructionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [editActive, setEditActive] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Projects state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -125,13 +126,17 @@ export function CustomInstructionsPage() {
   };
   
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this instruction?')) return;
+    if (!confirm('Are you sure you want to delete this instruction? This action cannot be undone.')) return;
     
     try {
+      setDeletingId(id);
+      setError(null);
       await api.deleteCustomInstruction(id);
-      fetchInstructions();
+      await fetchInstructions();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete instruction');
+    } finally {
+      setDeletingId(null);
     }
   };
   
@@ -276,8 +281,15 @@ export function CustomInstructionsPage() {
                       <Button variant="ghost" size="sm" onClick={() => handleToggleActive(instruction)}>
                         {instruction.active ? 'Deactivate' : 'Activate'}
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-error" onClick={() => handleDelete(instruction.instruction_id)}>
-                        Delete
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-error"
+                        disabled={deletingId === instruction.instruction_id}
+                        onClick={() => handleDelete(instruction.instruction_id)}
+                        aria-label="Delete instruction"
+                      >
+                        {deletingId === instruction.instruction_id ? 'Deleting...' : 'Delete'}
                       </Button>
                     </div>
                   </div>

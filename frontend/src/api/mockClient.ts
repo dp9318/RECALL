@@ -369,7 +369,7 @@ export const mockApiClient = {
     await sleep(100);
     return {
       status: 'healthy',
-      api_version: '1.0.0',
+      api_version: '1.1.0',
       database_connected: true,
       chromadb_connected: true,
       local_llm_available: true,
@@ -528,6 +528,28 @@ export const mockApiClient = {
     };
     mockProjects.push(newProject);
     return newProject;
+  },
+
+  async deleteProject(id: string): Promise<void> {
+    await sleep(200);
+    const index = mockProjects.findIndex(p => p.project_id === id);
+    if (index < 0) throw new Error(`Project ${id} not found`);
+    mockProjects.splice(index, 1);
+    for (let i = mockMemories.length - 1; i >= 0; i--) {
+      if (mockMemories[i]!.project_id === id) {
+        mockMemories[i] = { ...mockMemories[i]!, status: 'deleted', updated_at: new Date().toISOString() };
+      }
+    }
+    for (let i = mockSessions.length - 1; i >= 0; i--) {
+      if (mockSessions[i]!.project_id === id) {
+        mockSessions.splice(i, 1);
+      }
+    }
+    for (let i = mockInstructions.length - 1; i >= 0; i--) {
+      if (mockInstructions[i]!.project_id === id) {
+        mockInstructions.splice(i, 1);
+      }
+    }
   },
 
   // Sessions

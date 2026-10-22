@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api, type Memory } from '../api';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -8,10 +8,31 @@ import { Avatar } from '../components/ui/Avatar';
 
 export function MemoryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [memory, setMemory] = useState<Memory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!memory) return;
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this memory? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await api.deleteMemory(memory.memory_id);
+      navigate('/memories');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete memory');
+      setIsDeleting(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     
@@ -86,9 +107,17 @@ export function MemoryDetailPage() {
           <Button variant="outline" asChild>
             <Link to={`/memories/${memory.memory_id}/edit`}>Edit</Link>
           </Button>
-          <Button variant="danger">Delete</Button>
+          <Button variant="danger" onClick={handleDelete} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
         </div>
       </div>
+
+      {deleteError && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
+          {deleteError}
+        </div>
+      )}
       
       {/* Main Content */}
       <Card>
@@ -219,7 +248,9 @@ export function MemoryDetailPage() {
             <Button variant="outline" asChild>
               <Link to="/memories">All Memories</Link>
             </Button>
-            <Button variant="danger">Delete Memory</Button>
+            <Button variant="danger" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete Memory'}
+            </Button>
           </div>
         </CardContent>
       </Card>
