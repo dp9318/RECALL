@@ -8,14 +8,21 @@
     <script>
       (function() {
         try {
-          var theme = localStorage.getItem('recall-theme');
-          var isDark = theme ? theme === 'dark' : true;
+          var stored = localStorage.getItem('recall-theme');
+          var isDark = stored !== null
+            ? stored === 'dark'
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
           if (isDark) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
+            root.classList.add('dark');
+            root.classList.remove('light');
+            root.setAttribute('data-theme', 'dark');
+            root.style.colorScheme = 'dark';
           } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
+            root.classList.add('light');
+            root.classList.remove('dark');
+            root.setAttribute('data-theme', 'light');
+            root.style.colorScheme = 'light';
           }
         } catch (e) {}
       })();

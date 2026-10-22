@@ -35,11 +35,31 @@ export function MemoryExplorerPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   
   // Pagination
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  const handleDeleteMemory = async (memoryId: string) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this memory? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(memoryId);
+      setActionError(null);
+      await api.deleteMemory(memoryId);
+      await fetchMemories();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete memory');
+    } finally {
+      setDeletingId(null);
+    }
+  };
   
   // Filters from URL
   const search = searchParams.get('search') || '';
@@ -196,6 +216,20 @@ export function MemoryExplorerPage() {
         </Card>
       </div>
       
+      {/* Action Error Banner */}
+      {actionError && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm flex items-center justify-between">
+          <span>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-xs text-text-muted hover:text-text-primary ml-2 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Results */}
       {error && (
         <Card className="border-error/50">
@@ -270,12 +304,23 @@ export function MemoryExplorerPage() {
                     <time className="text-xs text-text-muted" dateTime={memory.updated_at}>
                       Updated {new Date(memory.updated_at).toLocaleDateString()}
                     </time>
-                    <Link
-                      to={`/memories/${memory.memory_id}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      View details →
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMemory(memory.memory_id)}
+                        disabled={deletingId === memory.memory_id}
+                        className="text-xs text-error hover:underline disabled:opacity-50 cursor-pointer"
+                        aria-label={`Delete memory ${memory.memory_id}`}
+                      >
+                        {deletingId === memory.memory_id ? 'Deleting...' : 'Delete'}
+                      </button>
+                      <Link
+                        to={`/memories/${memory.memory_id}`}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        View details →
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -3,7 +3,7 @@
 ## Public tools
 
 The stdio MCP adapter in `recall_mcp/` delegates to an explicitly injected
-`core.recall_core.MemoryManager`. All nine tools return structured JSON data;
+`recall_core.MemoryManager`. All nine tools return structured JSON data;
 invalid inputs, missing records, and failed Core operations are MCP tool
 errors.
 
@@ -76,7 +76,7 @@ factory when composing Core themselves.
 Install the semantic dependencies along with MCP:
 
 ```bash
-python -m pip install -e "core[mcp,semantic]"
+python -m pip install -e ".[mcp,semantic]"
 ```
 
 The default embedding configuration is
@@ -107,7 +107,7 @@ dependencies:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e "core[mcp,semantic,test]"
+python -m pip install -e ".[mcp,semantic,test]"
 ```
 
 `recall-mcp` runs the local MCP server over stdio and uses the built-in Core
@@ -150,8 +150,8 @@ The default Core composition needs no application-supplied factory. If an
 application override is needed, add an `"environment"` map containing
 `"RECALL_CORE_FACTORY": "package.module:factory"`; the factory path must refer
 to an importable application factory returning a `MemoryManager`. Use the
-entry point installed by the environment where `core[mcp]` and
-`core[semantic]` were installed. Restart OpenCode after changing its config;
+entry point installed by the environment where `.[mcp]` and
+`.[semantic]` were installed. Restart OpenCode after changing its config;
 all nine tools in the table above should appear in its MCP tool list. If they
 do not, check that the command is executable in the activated environment and
 inspect OpenCode's MCP startup diagnostics. The MCP server uses stdio, so it
@@ -180,10 +180,9 @@ boundaries.
 ## Validation
 
 ```bash
-python -m pytest core/tests -q
 pytest -q
 ```
 
-The first command runs the Core suite; the second runs the full repository
-suite, including MCP protocol and composition tests. These test commands do
+The test command runs the full repository test suite, including MCP protocol,
+composition, and Core unit tests. These test commands do not substitute for an
 not substitute for an OpenCode-host integration test.

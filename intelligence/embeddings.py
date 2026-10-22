@@ -104,7 +104,7 @@ class SentenceTransformerEmbeddingService(EmbeddingService):
                     f"Could not load Sentence Transformers model "
                     f"{self.config.model!r} on {self.config.device}: {exc}. "
                     "Install RECALL's semantic extra with "
-                    "`python -m pip install -e 'core[semantic]'`, then verify "
+                    "`python -m pip install -e '.[semantic]'`, then verify "
                     "the model name and local model cache/network access."
                 )
                 return Result.err(self._load_error)

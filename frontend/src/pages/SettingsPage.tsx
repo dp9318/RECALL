@@ -18,6 +18,28 @@ export function SettingsPage() {
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [projectActionError, setProjectActionError] = useState<string | null>(null);
+
+  const handleDeleteProject = async (project: Project) => {
+    const memoryCount = project.memory_count || 0;
+    const sessionCount = project.session_count || 0;
+    const confirmed = window.confirm(
+      `Delete project "${project.name}"?\n\nWarning: This will permanently delete ${memoryCount} memories, ${sessionCount} sessions, and all vector records associated with this project. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingProjectId(project.project_id);
+      setProjectActionError(null);
+      await api.deleteProject(project.project_id);
+      await fetchData();
+    } catch (err) {
+      setProjectActionError(err instanceof Error ? err.message : 'Failed to delete project');
+    } finally {
+      setDeletingProjectId(null);
+    }
+  };
   
   const fetchData = async () => {
     try {
@@ -69,10 +91,10 @@ export function SettingsPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/3" />
+        <div className="h-8 bg-surface-hover rounded w-1/3" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card><CardContent className="pt-6"><div className="h-64 bg-gray-200 rounded" /></CardContent></Card>
-          <Card className="lg:col-span-2"><CardContent className="pt-6"><div className="h-64 bg-gray-200 rounded" /></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="h-64 bg-surface-hover rounded" /></CardContent></Card>
+          <Card className="lg:col-span-2"><CardContent className="pt-6"><div className="h-64 bg-surface-hover rounded" /></CardContent></Card>
         </div>
       </div>
     );
@@ -129,6 +151,19 @@ export function SettingsPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              {projectActionError && (
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-md text-sm flex items-center justify-between">
+                  <span>{projectActionError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setProjectActionError(null)}
+                    className="text-xs text-text-muted hover:text-text-primary ml-2 cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleCreateProject} className="mb-6 p-4 bg-surface-hover/30 border border-border rounded-lg">
                 {createError && (
                   <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-md text-sm">
@@ -180,12 +215,21 @@ export function SettingsPage() {
                           <p className="text-sm text-text-secondary truncate">{project.description || 'No description'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
+                      <div className="flex items-center gap-3 flex-shrink-0">
                         <Badge variant="outline" size="sm">{project.memory_count} memories</Badge>
                         <Badge variant="outline" size="sm">{project.session_count} sessions</Badge>
-                        <span className="text-xs text-text-muted">
+                        <span className="text-xs text-text-muted hidden md:inline">
                           Updated {new Date(project.updated_at).toLocaleDateString()}
                         </span>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteProject(project)}
+                          disabled={deletingProjectId === project.project_id}
+                          aria-label={`Delete project ${project.name}`}
+                        >
+                          {deletingProjectId === project.project_id ? 'Deleting...' : 'Delete'}
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -389,6 +433,8 @@ export function SettingsPage() {
                 {[
                   'GET /health',
                   'GET /projects',
+                  'POST /projects',
+                  'DELETE /projects/{id}',
                   'GET /memories',
                   'GET /memories/{id}',
                   'POST /memories',

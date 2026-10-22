@@ -15,25 +15,38 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('recall-theme');
-      if (stored) return stored === 'dark';
-      return true; // Default to dark theme for developer cockpit
+      if (stored !== null) return stored === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return true;
   });
-  
-  const toggleTheme = () => {
-    const nextDark = !isDarkMode;
-    setIsDarkMode(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
+
+  const applyTheme = (dark: boolean) => {
+    const root = document.documentElement;
+    if (dark) {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
       localStorage.setItem('recall-theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.setAttribute('data-theme', 'light');
+      root.classList.add('light');
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
       localStorage.setItem('recall-theme', 'light');
     }
   };
+
+  const toggleTheme = () => {
+    const nextDark = !isDarkMode;
+    setIsDarkMode(nextDark);
+    applyTheme(nextDark);
+  };
+
+  useEffect(() => {
+    applyTheme(isDarkMode);
+  }, []);
 
   const checkHealth = async () => {
     setCheckingHealth(true);
@@ -112,7 +125,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   </span>
                 </>
               )}
-              {!health && <span className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" aria-hidden="true" />}
+              {!health && <span className="w-2 h-2 rounded-full bg-text-muted animate-pulse" aria-hidden="true" />}
             </Button>
           </div>
 

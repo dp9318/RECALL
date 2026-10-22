@@ -25,11 +25,17 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-journal
 chroma_db/
+*.chromadb/
 
 # Local logs and generated test output
 *.log
-test_output.txt
+
+# JavaScript / Node
+node_modules/
 
 # Editors and operating systems
 .vscode/

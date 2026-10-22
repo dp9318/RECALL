@@ -196,11 +196,11 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }
         <div className="p-4 border-t border-border flex-shrink-0 mt-auto bg-surface">
           {!collapsed ? (
             <div className="text-xs text-text-muted text-center font-medium tracking-wide">
-              RECALL v1.0.1
+              RECALL v2.0.0
             </div>
           ) : (
             <div className="text-[10px] text-text-muted text-center font-mono">
-              v1.0.1
+              v2.0.0
             </div>
           )}
         </div>

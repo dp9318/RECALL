@@ -116,7 +116,7 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 
 # Install RECALL core, MCP adapter, and semantic index dependencies:
-pip install -e "core[mcp,semantic]"
+pip install -e ".[mcp,semantic]"
 ```
 
 ### 2. Start the Backend API
@@ -124,12 +124,13 @@ pip install -e "core[mcp,semantic]"
 From the repository root (`RECALL/`):
 
 ```bash
-python -m core.recall_core.api
+recall-api
+# or: python -m api.main
 ```
 
 *(Alternatively, run with hot reload):*
 ```bash
-uvicorn core.recall_core.api:app --host 0.0.0.0 --port 8080 --reload
+uvicorn api.app:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 - **API Base URL:** `http://localhost:8080`
@@ -255,10 +256,7 @@ Add to `claude_desktop_config.json`:
 Run the test suite from the repository root:
 
 ```bash
-# Run core unit and integration tests:
-python -m pytest core/tests -q
-
-# Run full backend test suite:
+# Run full test suite:
 pytest -q
 
 # Run frontend test suite & production build:
@@ -270,7 +268,7 @@ npm run build
 
 ## 📦 Project Status & Documentation
 
-- **Current Version:** `v1.0.1`
+- **Current Version:** `v2.0.0`
 - **License:** MIT
 
 Detailed technical documentation is available in the `docs/` directory:

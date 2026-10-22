@@ -147,6 +147,13 @@ const apiClient = {
     return handleResponse(response);
   },
 
+  async deleteProject(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
   // Sessions
   async getSessions(projectId?: string): Promise<SessionListResponse> {
     const params = projectId ? `?project_id=${projectId}` : '';

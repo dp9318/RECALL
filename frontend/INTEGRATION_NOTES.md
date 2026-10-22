@@ -11,7 +11,7 @@ Current state:
 
 Verified runtime configuration:
 
-- API startup: `python -m core.recall_core.api` or `uvicorn core.recall_core.api:app --host 0.0.0.0 --port 8080`
+- API startup: `recall-api` or `python -m api.main` (or `uvicorn api.app:app --host 0.0.0.0 --port 8080`)
 - Default API base URL: `http://localhost:8080`
 - Override via `VITE_API_BASE_URL` when running the dashboard against a non-default backend.
 

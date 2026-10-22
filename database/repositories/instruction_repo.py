@@ -102,7 +102,7 @@ class SQLiteCustomInstructionRepository(CustomInstructionRepository):
     def update(self, instruction_id: UUID, request: CustomInstructionUpdateRequest) -> Result[Optional[CustomInstruction]]:
         """Update a custom instruction."""
         existing = self.get(instruction_id)
-        if not existing.success or existing.value is None:
+        if not existing.success or existing.value is None or existing.value.status == InstructionStatus.DELETED:
             return Result.ok(None)
 
         instruction = existing.value
@@ -157,9 +157,14 @@ class SQLiteCustomInstructionRepository(CustomInstructionRepository):
                 """
                 UPDATE custom_instructions
                 SET status = ?, updated_at = ?
-                WHERE instruction_id = ?
+                WHERE instruction_id = ? AND status != ?
                 """,
-                (InstructionStatus.DELETED.value, datetime.now().isoformat(), uuid_to_str(instruction_id)),
+                (
+                    InstructionStatus.DELETED.value,
+                    datetime.now().isoformat(),
+                    uuid_to_str(instruction_id),
+                    InstructionStatus.DELETED.value,
+                ),
             )
             self._conn.commit()
             return Result.ok(cursor.rowcount > 0)
@@ -183,6 +188,9 @@ class SQLiteCustomInstructionRepository(CustomInstructionRepository):
             if params.status:
                 conditions.append("status = ?")
                 values.append(params.status.value)
+            else:
+                conditions.append("status != ?")
+                values.append(InstructionStatus.DELETED.value)
 
             where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 

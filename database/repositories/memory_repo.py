@@ -208,9 +208,14 @@ class SQLiteMemoryRepository(MemoryRepository):
                 """
                 UPDATE memories
                 SET status = ?, updated_at = ?
-                WHERE memory_id = ?
+                WHERE memory_id = ? AND status != ?
                 """,
-                (MemoryStatus.DELETED.value, datetime.now().isoformat(), uuid_to_str(memory_id)),
+                (
+                    MemoryStatus.DELETED.value,
+                    datetime.now().isoformat(),
+                    uuid_to_str(memory_id),
+                    MemoryStatus.DELETED.value,
+                ),
             )
             # Note: Transaction commit is managed by the caller (UnitOfWork/transaction context)
             return Result.ok(cursor.rowcount > 0)
@@ -246,8 +251,7 @@ class SQLiteMemoryRepository(MemoryRepository):
             if params.status:
                 conditions.append("status = ?")
                 values.append(params.status.value)
-
-            if not params.include_historical and params.status != MemoryStatus.DELETED:
+            else:
                 conditions.append("status != ?")
                 values.append(MemoryStatus.DELETED.value)
 

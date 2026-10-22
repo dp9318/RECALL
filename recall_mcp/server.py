@@ -30,8 +30,8 @@ from contracts.retrieval import (
     RetrievalRequest,
     UpdateContextRequest,
 )
-from core.recall_core.bootstrap import create_memory_manager
-from core.recall_core.memory_manager import MemoryManager
+from recall_core.bootstrap import create_memory_manager
+from recall_core.memory_manager import MemoryManager
 
 # Configure standard error logger so MCP JSON-RPC protocol on stdout is not corrupted
 logger = logging.getLogger("recall_mcp")
@@ -60,11 +60,11 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         limit: int = 10,
     ) -> dict[str, Any]:
         """Search RECALL memories within one required project scope."""
+        query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
+        project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
+        _validate_limit(limit)
         t_start = time.perf_counter()
         logger.info(f"recall_search START: query='{query[:60]}...', project_id='{project_id}', limit={limit}")
-        project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
-        query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
-        _validate_limit(limit)
 
         t_retrieve_start = time.perf_counter()
         result = memory_manager.retrieve(

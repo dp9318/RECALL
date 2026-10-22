@@ -53,7 +53,7 @@ class SQLiteSemanticIndexRepository(SemanticIndexRepository):
         if not CHROMADB_AVAILABLE:
             self._init_error = (
                 "ChromaDB is unavailable. Install RECALL's semantic extra with "
-                "`python -m pip install -e 'core[semantic]'`."
+                "`python -m pip install -e '.[semantic]'`."
             )
             return
         if (
@@ -184,6 +184,16 @@ class SQLiteSemanticIndexRepository(SemanticIndexRepository):
         except Exception as exc:
             return Result.err(f"Failed to remove memory {memory_id}: {exc}")
 
+    def remove_by_project(self, project_id: UUID) -> Result[bool]:
+        error = self._check_initialized()
+        if error:
+            return error
+        try:
+            self._memory_collection.delete(where={"project_id": str(project_id)})
+            return Result.ok(True)
+        except Exception as exc:
+            return Result.err(f"Failed to remove memories for project {project_id}: {exc}")
+
     def search_similar(
         self,
         query: str,
@@ -266,7 +276,7 @@ class SQLiteSemanticIndexRepository(SemanticIndexRepository):
             return Result.ok({
                 "status": "unavailable",
                 "reason": (
-                    "ChromaDB is unavailable; install `core[semantic]` to enable "
+                    "ChromaDB is unavailable; install `.[semantic]` to enable "
                     "semantic retrieval."
                 ),
             })
