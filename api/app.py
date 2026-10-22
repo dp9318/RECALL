@@ -21,8 +21,18 @@ from recall_core.memory_manager import MemoryManager
 
 
 def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
-    """Build the FastAPI application bound to a RECALL MemoryManager."""
-    app = FastAPI(title="RECALL HTTP API", version="1.0.0")
+    """Build and configure the FastAPI application bound to a RECALL MemoryManager.
+
+    Args:
+        memory_manager: Optional explicitly constructed MemoryManager instance.
+            If None, dependencies fall back to singleton application state or
+            lazy instantiation via `api.dependencies.get_manager`.
+
+    Returns:
+        FastAPI: Fully configured ASGI application with CORS middleware, state,
+        and all modular routers mounted.
+    """
+    app = FastAPI(title="RECALL HTTP API", version="1.1.0")
 
     cors_origins = [
         origin.strip()

@@ -369,7 +369,7 @@ export const mockApiClient = {
     await sleep(100);
     return {
       status: 'healthy',
-      api_version: '1.0.0',
+      api_version: '1.1.0',
       database_connected: true,
       chromadb_connected: true,
       local_llm_available: true,

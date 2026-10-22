@@ -94,10 +94,40 @@ class SentenceTransformerEmbeddingService(EmbeddingService):
             try:
                 from sentence_transformers import SentenceTransformer
 
-                self._model = SentenceTransformer(
-                    self.config.model,
-                    device=self.config.device,
-                )
+                cache_errors: tuple[type[Exception], ...] = (OSError, ValueError)
+                try:
+                    from huggingface_hub.utils import (
+                        CorruptedCacheException,
+                        EntryNotFoundError,
+                        SafetensorsParsingError,
+                    )
+
+                    cache_errors = (
+                        OSError,
+                        ValueError,
+                        CorruptedCacheException,
+                        EntryNotFoundError,
+                        SafetensorsParsingError,
+                    )
+                except ImportError:
+                    pass
+
+                try:
+                    # Attempt to load directly from local cache first to avoid
+                    # synchronous HTTP network requests to Hugging Face Hub.
+                    self._model = SentenceTransformer(
+                        self.config.model,
+                        device=self.config.device,
+                        local_files_only=True,
+                    )
+                except cache_errors:
+                    # Fall back to standard initialization if local cache is not present
+                    # or corrupted (allows downloading model files on first run or repairing
+                    # cache when network is available).
+                    self._model = SentenceTransformer(
+                        self.config.model,
+                        device=self.config.device,
+                    )
                 return Result.ok(self._model)
             except Exception as exc:
                 self._load_error = (
@@ -108,6 +138,17 @@ class SentenceTransformerEmbeddingService(EmbeddingService):
                     "the model name and local model cache/network access."
                 )
                 return Result.err(self._load_error)
+
+    def warmup(self) -> Result[bool]:
+        """Pre-load model weights and perform a 1-token dummy forward pass."""
+        model_result = self._get_model()
+        if not model_result.success:
+            return Result.err(model_result.error or "Embedding model unavailable")
+        try:
+            model_result.value.encode(["warmup"], convert_to_numpy=True, normalize_embeddings=True)
+            return Result.ok(True)
+        except Exception as exc:
+            return Result.err(f"Embedding warmup forward pass failed: {exc}")
 
 
 class ChromaSentenceTransformerEmbeddingFunction:
@@ -129,6 +170,12 @@ class ChromaSentenceTransformerEmbeddingFunction:
 
     def embed_query(self, input: list[str]) -> list[list[float]]:
         return self(input)
+
+    def warmup(self) -> Result[bool]:
+        """Warm up the underlying embedding service."""
+        if hasattr(self._service, "warmup"):
+            return self._service.warmup()
+        return Result.ok(True)
 
     @staticmethod
     def name() -> str:

@@ -508,3 +508,74 @@ def test_create_memory_manager_uses_configured_db_path(monkeypatch, tmp_path):
     finally:
         manager.close()
 
+
+def test_main_warmup_disabled_when_env_false(tmp_path, monkeypatch, capsys):
+    """Verify that RECALL_MCP_WARMUP=false disables warmup and keeps stdout clean."""
+    manager = create_memory_manager(DatabaseConfig.from_path(tmp_path / "nowarmup.sqlite3"))
+    warmup_called = []
+
+    def mock_warmup():
+        warmup_called.append(True)
+        return Result.ok(True)
+
+    manager.warmup = mock_warmup
+    monkeypatch.setenv("RECALL_MCP_WARMUP", "false")
+    monkeypatch.delenv("RECALL_CORE_FACTORY", raising=False)
+    monkeypatch.setattr(mcp_server, "create_memory_manager", lambda: manager)
+    monkeypatch.setattr(FastMCP, "run", lambda self, transport: None)
+
+    mcp_server.main()
+
+    assert not warmup_called, "Warmup should be skipped when RECALL_MCP_WARMUP=false"
+    assert capsys.readouterr().out == ""
+
+
+def test_main_warmup_enabled_by_default_and_protects_stdout(tmp_path, monkeypatch, capsys):
+    """Verify that warmup is enabled by default and redirects all stdout output to stderr."""
+    manager = create_memory_manager(DatabaseConfig.from_path(tmp_path / "warmup.sqlite3"))
+    warmup_called = []
+
+    def mock_warmup():
+        warmup_called.append(True)
+        # Attempt to leak text to standard output during warmup
+        import sys
+        sys.stdout.write("third_party_progress_bar_100%\n")
+        sys.stdout.flush()
+        return Result.ok(True)
+
+    manager.warmup = mock_warmup
+    monkeypatch.delenv("RECALL_MCP_WARMUP", raising=False)
+    monkeypatch.delenv("RECALL_CORE_FACTORY", raising=False)
+    monkeypatch.setattr(mcp_server, "create_memory_manager", lambda: manager)
+    monkeypatch.setattr(FastMCP, "run", lambda self, transport: None)
+
+    mcp_server.main()
+
+    assert warmup_called == [True], "Warmup should execute by default"
+    captured = capsys.readouterr()
+    assert captured.out == "", "MCP stdout MUST remain completely empty for stdio JSON-RPC framing"
+    assert "third_party_progress_bar_100%" in captured.err, "Warmup stdout output should be safely redirected to stderr"
+
+
+def test_main_warmup_failure_is_non_fatal_and_preserves_stdout(tmp_path, monkeypatch, capsys, caplog):
+    """Verify that an exception or error during warmup is logged to stderr/logging and does not stop the server."""
+    manager = create_memory_manager(DatabaseConfig.from_path(tmp_path / "warmup_fail.sqlite3"))
+    transports = []
+
+    def mock_warmup():
+        raise RuntimeError("Non-fatal embedding weights failure")
+
+    manager.warmup = mock_warmup
+    monkeypatch.delenv("RECALL_MCP_WARMUP", raising=False)
+    monkeypatch.delenv("RECALL_CORE_FACTORY", raising=False)
+    monkeypatch.setattr(mcp_server, "create_memory_manager", lambda: manager)
+    monkeypatch.setattr(FastMCP, "run", lambda self, transport: transports.append(transport))
+
+    mcp_server.main()
+
+    assert transports == ["stdio"], "Server should still start stdio transport when warmup fails"
+    captured = capsys.readouterr()
+    assert captured.out == "", "MCP stdout MUST remain completely empty"
+    assert "Non-fatal embedding weights failure" in caplog.text
+
+

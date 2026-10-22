@@ -72,7 +72,13 @@ class ThreadSafeCursor:
 
 
 class ThreadSafeConnection:
-    """Thread-safe proxy for a SQLite connection using re-entrant synchronization."""
+    """Thread-safe proxy for a SQLite connection using re-entrant synchronization.
+
+    Wraps a raw `sqlite3.Connection` with a `threading.RLock()` to serialize
+    access across threads within a single operating system process. Used in
+    conjunction with SQLite WAL mode to allow concurrent readers alongside an
+    active writer without database locking collisions.
+    """
 
     def __init__(self, conn: sqlite3.Connection, lock: Optional[threading.RLock] = None) -> None:
         self._conn = conn

@@ -235,7 +235,22 @@ class MemoryManager:
     # --- Memory Operations ---
 
     def create_memory(self, request: MemoryCreateRequest) -> Result[Memory]:
-        """Create a new memory with semantic indexing."""
+        """Create a new memory in canonical storage and index into semantic index.
+
+        Args:
+            request: MemoryCreateRequest containing content, scope, project_id,
+                session_id, memory_type, provenance, and optional supersedes_id.
+
+        Returns:
+            Result[Memory]: Success with the created canonical Memory DTO (and any
+            semantic index metadata in result.metadata), or Result.err on failure.
+
+        Side Effects:
+            1. Writes record to canonical storage with status='active'.
+            2. If supersedes_id is provided, removes superseded item from semantic index.
+            3. Upserts representation of the new memory into semantic index.
+            4. If semantic indexing fails, canonical creation still succeeds (best effort).
+        """
         try:
             # Create in canonical storage
             result = self._uow.memories.create(request)
@@ -274,11 +289,19 @@ class MemoryManager:
             return Result.err(f"Memory creation failed: {str(e)}")
 
     def get_memory(self, memory_id: UUID) -> Result[Optional[Memory]]:
-        """Get a memory by ID."""
+        """Get a memory by ID from canonical storage."""
         return self._uow.memories.get(memory_id)
 
     def get_memory_lineage(self, memory_id: UUID) -> Result[list[MemoryLineage]]:
-        """Retrieve lineage relationships for a memory."""
+        """Retrieve lineage graph relationships for a memory.
+
+        Args:
+            memory_id: UUID of the memory to query.
+
+        Returns:
+            Result[list[MemoryLineage]]: List of MemoryLineage records where the memory
+            acts as either parent or child, supporting DAG exploration in API and UI.
+        """
         if not isinstance(memory_id, UUID):
             try:
                 memory_id = UUID(str(memory_id))
@@ -313,7 +336,20 @@ class MemoryManager:
             return Result.err(f"Memory update failed: {str(e)}")
 
     def delete_memory(self, memory_id: UUID) -> Result[bool]:
-        """Delete (deactivate) a memory."""
+        """Soft-delete a memory in canonical storage and purge from semantic index.
+
+        Args:
+            memory_id: UUID of the memory to deactivate.
+
+        Returns:
+            Result[bool]: Result.ok(True) if the record was deactivated,
+            Result.ok(False) if not found, or Result.err on failure.
+
+        Side Effects:
+            1. Updates canonical row status to 'deleted'.
+            2. Best-effort removes the item from semantic index.
+            3. Semantic index cleanup failures do not rollback canonical deletion.
+        """
         try:
             # Canonical storage is the source of truth. Never remove a memory
             # from the derived index unless the canonical operation succeeded.
@@ -342,7 +378,14 @@ class MemoryManager:
             return Result.err(f"Memory deletion failed: {str(e)}")
 
     def rebuild_semantic_index(self) -> Result[int]:
-        """Re-embed all active canonical memories into the derived index."""
+        """Re-index all active canonical memories into the derived semantic index.
+
+        Paginates through all memories with status='active' in canonical storage
+        and repopulates the semantic index.
+
+        Returns:
+            Result[int]: Count of re-indexed memories on success.
+        """
         try:
             page_size = 200
             offset = 0
@@ -369,14 +412,14 @@ class MemoryManager:
             return Result.err(f"Failed to rebuild semantic index: {exc}")
 
     def search_memories(self, params: MemorySearchParams) -> Result[list[Memory]]:
-        """Search memories with filters."""
+        """Search memories with filters, returning a plain list of items."""
         result = self._uow.memories.search(params)
         if result.success and result.value:
             return Result.ok(result.value.items)
         return Result.err(result.error or "Search failed")
 
     def search_memories_paginated(self, params: MemorySearchParams) -> Result[PaginatedResult[Memory]]:
-        """Search memories with filters returning full pagination metadata."""
+        """Search memories with filters, returning full pagination metadata (total, limit, offset)."""
         return self._uow.memories.search(params)
 
     def get_active_memories(self, project_id: UUID, limit: int = 50) -> Result[list[Memory]]:
@@ -428,6 +471,12 @@ class MemoryManager:
         """Convenience method for simple search."""
         request = RetrievalRequest(query=query, project_id=project_id, limit=limit)
         return self.retrieve(request)
+
+    def warmup(self) -> Result[bool]:
+        """Pre-initialize retrieval services and index caches for fast first query execution."""
+        if self._semantic_index is not None and hasattr(self._semantic_index, "warmup"):
+            return self._semantic_index.warmup()
+        return Result.ok(True)
 
     # --- Conflict Resolution ---
 

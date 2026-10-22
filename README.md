@@ -268,7 +268,7 @@ npm run build
 
 ## 📦 Project Status & Documentation
 
-- **Current Version:** `v2.0.0`
+- **Current Version:** `v2.1.0`
 - **License:** MIT
 
 Detailed technical documentation is available in the `docs/` directory:

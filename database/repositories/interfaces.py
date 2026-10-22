@@ -206,6 +206,10 @@ class SemanticIndexRepository(ABC):
         """Check health of semantic index."""
         ...
 
+    def warmup(self) -> Result[bool]:
+        """Pre-initialize semantic index resources. Default implementation returns ok."""
+        return Result.ok(True)
+
 
 class DatabaseTransaction(ABC):
     """Interface for database transactions."""

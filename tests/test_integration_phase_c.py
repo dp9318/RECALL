@@ -87,7 +87,7 @@ def test_healthz_endpoint_available():
 
     assert res_health.status_code == 200
     assert res_healthz.status_code == 200
-    assert res_healthz.json()["api_version"] == "1.0.0"
+    assert res_healthz.json()["api_version"] == "1.1.0"
 
 
 def test_pyproject_dependencies_include_python_dotenv():

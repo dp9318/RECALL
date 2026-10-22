@@ -305,6 +305,18 @@ class SQLiteSemanticIndexRepository(SemanticIndexRepository):
         except Exception as exc:
             return Result.ok({"status": "error", "error": str(exc)})
 
+    def warmup(self) -> Result[bool]:
+        """Pre-initialize Chroma client, collection, and embedding function."""
+        err = self._check_initialized()
+        if err:
+            return err
+        if hasattr(self._embedding_function, "warmup"):
+            try:
+                return self._embedding_function.warmup()
+            except Exception as exc:
+                return Result.err(f"Embedding warmup failed: {exc}")
+        return Result.ok(True)
+
     def close(self) -> None:
         """Release the Chroma client when its implementation exposes close()."""
         close = getattr(self._client, "close", None)

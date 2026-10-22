@@ -31,7 +31,7 @@ def health(manager: MemoryManager = Depends(get_manager)) -> dict[str, Any]:
     local_llm_available = True
     return {
         "status": "healthy" if database_connected and chromadb_connected else "degraded",
-        "api_version": "1.0.0",
+        "api_version": "1.1.0",
         "database_connected": database_connected,
         "chromadb_connected": chromadb_connected,
         "local_llm_available": local_llm_available,

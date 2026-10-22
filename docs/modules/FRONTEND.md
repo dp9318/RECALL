@@ -1,53 +1,69 @@
-# RECALL — Frontend Module Contract
+# RECALL — Frontend Web Dashboard Module Contract
 
-## Goal
+## 1. Goal
 
-Build the human-facing RECALL dashboard as a React application styled with Tailwind CSS and standard HTML semantics.
+Provide a modern, responsive, human-facing control surface for exploring agent memories, inspecting lineage graphs, managing user-authored custom instructions, and arbitrating detected memory conflicts.
 
-## Technology
+---
 
-- React
-- Tailwind CSS
-- JavaScript/JSX
-- Vite preferred for local development/build
+## 2. Technology Stack & Build Pipeline
 
-## MVP Screens
+- **Core Framework**: React 19 (`react: ^19.3.0`, `react-dom: ^19.3.0`)
+- **Language**: TypeScript (`~6.0.2`, strict mode)
+- **Styling**: Tailwind CSS v4 (`@tailwindcss/vite: ^4.3.3`, `tailwindcss: ^4.3.3`)
+- **Routing**: React Router v7 (`react-router-dom: ^7.18.4`)
+- **Icons**: React Icons / Lucide (`react-icons: ^5.7.0`)
+- **Bundler & Dev Server**: Vite (`^8.3.4`)
 
-1. Chat / Ask RECALL
-2. Memory Explorer
-3. Conflict Center
-4. Custom Instructions
-5. Sessions/Stats
-6. Project/context selector
+```bash
+# Development server (runs on http://localhost:5173):
+npm run dev
 
-## Required Custom Instruction UI
+# Production build & strict typecheck:
+npm run build
+```
 
-The UI must support:
+---
 
-- viewing/listing instructions;
-- creating an instruction;
-- updating an instruction;
-- deleting/deactivating an instruction;
-- selecting global or project scope.
+## 3. Application Structure & Page Routes
 
-## API Rule
+Entry point: `frontend/src/main.tsx` mounting `frontend/src/App.tsx`.
 
-The frontend communicates only through the RECALL HTTP/JSON API.
+```text
+frontend/src/
+├── api/                  # Unified HTTP API client & mock client
+│   ├── client.ts         # Authoritative REST client connecting to http://localhost:8080
+│   ├── mockClient.ts     # In-memory mock client for standalone UI testing
+│   └── index.ts          # Environment-driven client export (VITE_USE_MOCK_API)
+├── components/           # Reusable UI component library
+│   ├── layout/           # AppShell, Header, Sidebar, ProjectSelector
+│   └── ui/               # Button, Modal, Card, Input, Badge, Avatar, Skeleton
+├── pages/                # Primary route views
+│   ├── OverviewPage.tsx              # System metrics, recent memories & quick actions
+│   ├── MemoryExplorerPage.tsx        # Searchable, filtered memory catalogue
+│   ├── MemoryDetailPage.tsx          # Full memory view & interactive lineage graph
+│   ├── CreateMemoryPage.tsx          # Manual memory capture form
+│   ├── EditMemoryPage.tsx            # Memory update & tags editor
+│   ├── ConflictCenterPage.tsx        # Conflict detection & arbitration interface
+│   ├── CustomInstructionsPage.tsx    # Scope-aware user instruction management
+│   ├── ChatPage.tsx                  # "Ask RECALL" interactive query interface
+│   └── SettingsPage.tsx              # Diagnostics, version info, and project management
+└── types/                # TypeScript DTOs matching backend JSON contracts
+```
 
-Never import database code into React.
+---
 
-## UX Requirements
+## 4. API Client & Mock Mode Architecture
 
-Implement clear:
+The frontend communicates with the backend exclusively through the typed client interface in `frontend/src/api/`:
 
-- loading states;
-- empty states;
-- validation states;
-- API error states;
-- success feedback;
-- disabled/inactive instruction states;
-- provenance/source displays when available.
+```typescript
+// Controlled via environment variable:
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
+export const api: ApiClient = USE_MOCK ? mockApi : realApi;
+```
 
-## Integration Strategy
-
-Use mocked API responses or a local mock layer if the backend is incomplete. Do not block UI development on backend completion.
+### Invariant Rules:
+1. **Zero Direct Persistence Access**: The frontend never directly imports SQLite, ChromaDB, or core backend code.
+2. **Encapsulated Communication**: All mutations route through the standardized FastAPI REST endpoints documented in `docs/modules/API.md`.
+3. **Graceful Degradation**: Clear loading spinners, empty states, error toasts, and fallback placeholders are rendered for all network calls.

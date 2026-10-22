@@ -692,7 +692,7 @@ def test_sentence_transformer_missing_dependency_is_actionable(monkeypatch):
 
 
 def test_sentence_transformer_model_load_failure_is_actionable(monkeypatch):
-    def fail_to_load(model, device):
+    def fail_to_load(model, device=None, **kwargs):
         raise OSError("model not found")
 
     monkeypatch.setitem(
@@ -735,3 +735,142 @@ def test_embedding_function_reuses_provider_for_document_and_query_text():
     assert vectors[0] == vectors[1]
     assert embedding_function.name() == "recall_sentence_transformers"
     assert embedding_function.get_config()["model"] == config.model
+
+
+def test_sentence_transformer_cache_hit_loads_locally_without_fallback(monkeypatch):
+    calls = []
+    dummy_model = SimpleNamespace(
+        encode=lambda texts, **kw: SimpleNamespace(tolist=lambda: [[0.1] * 384] * len(texts))
+    )
+
+    def mock_sentence_transformer(model, device=None, **kwargs):
+        calls.append({"model": model, "device": device, "kwargs": kwargs})
+        return dummy_model
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=mock_sentence_transformer),
+    )
+    service = SentenceTransformerEmbeddingService(EmbeddingConfig(model="test/cached-model"))
+    result = service.generate_embedding("test text")
+    assert result.success, result.error
+    assert len(calls) == 1
+    assert calls[0]["kwargs"].get("local_files_only") is True
+
+
+def test_sentence_transformer_cache_miss_falls_back_to_online_download(monkeypatch):
+    calls = []
+    dummy_model = SimpleNamespace(
+        encode=lambda texts, **kw: SimpleNamespace(tolist=lambda: [[0.1] * 384] * len(texts))
+    )
+
+    def mock_sentence_transformer(model, device=None, **kwargs):
+        calls.append({"model": model, "device": device, "kwargs": kwargs})
+        if kwargs.get("local_files_only"):
+            raise OSError("Model files not found in local cache")
+        return dummy_model
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=mock_sentence_transformer),
+    )
+    service = SentenceTransformerEmbeddingService(EmbeddingConfig(model="test/online-model"))
+    result = service.generate_embedding("test text")
+    assert result.success, result.error
+    assert len(calls) == 2
+    assert calls[0]["kwargs"].get("local_files_only") is True
+    assert "local_files_only" not in calls[1]["kwargs"] or not calls[1]["kwargs"]["local_files_only"]
+
+
+def test_sentence_transformer_corrupted_cache_falls_back_and_recovers(monkeypatch):
+    calls = []
+    dummy_model = SimpleNamespace(
+        encode=lambda texts, **kw: SimpleNamespace(tolist=lambda: [[0.1] * 384] * len(texts))
+    )
+
+    def mock_sentence_transformer(model, device=None, **kwargs):
+        calls.append({"model": model, "device": device, "kwargs": kwargs})
+        if kwargs.get("local_files_only"):
+            raise ValueError("Corrupted JSON config in cache snapshot")
+        return dummy_model
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=mock_sentence_transformer),
+    )
+    service = SentenceTransformerEmbeddingService(EmbeddingConfig(model="test/repaired-model"))
+    result = service.generate_embedding("test text")
+    assert result.success, result.error
+    assert len(calls) == 2
+    assert calls[0]["kwargs"].get("local_files_only") is True
+
+
+def test_sentence_transformer_unexpected_error_bypasses_cache_fallback(monkeypatch):
+    calls = []
+
+    def mock_sentence_transformer(model, device=None, **kwargs):
+        calls.append({"model": model, "device": device, "kwargs": kwargs})
+        raise RuntimeError("CUDA device failure: out of memory")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=mock_sentence_transformer),
+    )
+    service = SentenceTransformerEmbeddingService(EmbeddingConfig(model="test/cuda-model"))
+    result = service.generate_embedding("test text")
+    assert not result.success
+    assert "CUDA device failure" in result.error
+    assert len(calls) == 1, "Unexpected RuntimeError should not trigger fallback"
+
+
+def test_sentence_transformer_warmup_performs_dummy_forward_pass(monkeypatch):
+    encoded = []
+    dummy_model = SimpleNamespace(
+        encode=lambda texts, **kw: encoded.extend(texts) or [[0.1] * 384] * len(texts)
+    )
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=lambda model, **kw: dummy_model),
+    )
+    service = SentenceTransformerEmbeddingService(EmbeddingConfig(model="test/warmup-model"))
+    warmup_result = service.warmup()
+    assert warmup_result.success, warmup_result.error
+    assert encoded == ["warmup"]
+
+
+def test_sentence_transformer_cache_miss_offline_fallback_preserves_error(monkeypatch):
+    calls = []
+
+    def mock_sentence_transformer(model, device=None, **kwargs):
+        calls.append({"model": model, "device": device, "kwargs": kwargs})
+        if kwargs.get("local_files_only"):
+            raise OSError("Model files not found in local cache")
+        raise OSError(
+            "We couldn't connect to 'https://huggingface.co' to load the files, "
+            "and couldn't find them in the cached files."
+        )
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=mock_sentence_transformer),
+    )
+    service = SentenceTransformerEmbeddingService(
+        EmbeddingConfig(model="test/offline-model")
+    )
+    result = service.generate_embedding("test text")
+    assert not result.success
+    assert len(calls) == 2
+    assert calls[0]["kwargs"].get("local_files_only") is True
+    assert "local_files_only" not in calls[1]["kwargs"] or not calls[1]["kwargs"]["local_files_only"]
+    assert "test/offline-model" in result.error
+    assert "couldn't connect to 'https://huggingface.co'" in result.error
+    assert "local model cache/network access" in result.error
+
+

@@ -49,7 +49,19 @@ MAX_RESULTS = 50
 
 
 def create_server(memory_manager: MemoryManager) -> FastMCP:
-    """Create an MCP server bound to an explicitly constructed Core manager."""
+    """Create and configure a FastMCP server bound to the RECALL Core MemoryManager.
+
+    Registers the 8 canonical `/recall` tools (`recall_search`, `recall_get_context`,
+    `recall_save_memory`, `recall_update_context`, `recall_compact`,
+    `recall_list_custom_instructions`, `recall_create_custom_instruction`,
+    `recall_update_custom_instruction`, `recall_delete_custom_instruction`).
+
+    Args:
+        memory_manager: Active MemoryManager facade instance.
+
+    Returns:
+        FastMCP: Configured FastMCP server instance ready for stdio or SSE transport.
+    """
     server = FastMCP("RECALL")
 
     @server.tool()
@@ -542,7 +554,26 @@ def main() -> None:
         server = create_server(memory_manager)
         t_server_end = time.perf_counter()
         logger.info(f"FastMCP tools registered in {t_server_end - t_server_start:.3f}s")
-        logger.info(f"Starting FastMCP stdio transport (Total startup time: {t_server_end - t_start:.3f}s)...")
+
+        # Explicit startup warmup to eliminate first-query cold-start latency.
+        # stdout is redirected to stderr during warmup so stdio transport is never corrupted.
+        enable_warmup = os.environ.get("RECALL_MCP_WARMUP", "true").lower() in ("true", "1", "yes")
+        if enable_warmup and hasattr(memory_manager, "warmup"):
+            t_warmup_start = time.perf_counter()
+            logger.info("Warming up RECALL semantic retrieval pipeline...")
+            try:
+                import contextlib
+                with contextlib.redirect_stdout(sys.stderr):
+                    warmup_result = memory_manager.warmup()
+                t_warmup_end = time.perf_counter()
+                if warmup_result.success:
+                    logger.info(f"Semantic retrieval pipeline warmed up in {t_warmup_end - t_warmup_start:.3f}s")
+                else:
+                    logger.warning(f"Semantic warmup skipped or non-fatal failure: {warmup_result.error}")
+            except Exception as warmup_exc:
+                logger.warning(f"Semantic warmup exception (non-fatal): {warmup_exc}")
+
+        logger.info(f"Starting FastMCP stdio transport (Total startup time: {time.perf_counter() - t_start:.3f}s)...")
 
         # mcp server
         server.run(transport="stdio")
