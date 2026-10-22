@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
+import sys
+import time
 from dataclasses import fields, is_dataclass
 from datetime import date, datetime
 from enum import Enum
@@ -30,6 +33,16 @@ from contracts.retrieval import (
 from core.recall_core.bootstrap import create_memory_manager
 from core.recall_core.memory_manager import MemoryManager
 
+# Configure standard error logger so MCP JSON-RPC protocol on stdout is not corrupted
+logger = logging.getLogger("recall_mcp")
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(
+        logging.Formatter("[%(asctime)s.%(msecs)03d] [%(levelname)s] [RECALL-MCP] %(message)s", datefmt="%H:%M:%S")
+    )
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
 MAX_QUERY_LENGTH = 1_000
 MAX_CONTENT_LENGTH = 10_000
 MAX_RESULTS = 50
@@ -47,10 +60,13 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         limit: int = 10,
     ) -> dict[str, Any]:
         """Search RECALL memories within one required project scope."""
+        t_start = time.perf_counter()
+        logger.info(f"recall_search START: query='{query[:60]}...', project_id='{project_id}', limit={limit}")
         project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
         query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
         _validate_limit(limit)
 
+        t_retrieve_start = time.perf_counter()
         result = memory_manager.retrieve(
             RetrievalRequest(
                 query=query,
@@ -59,8 +75,16 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 limit=limit,
             )
         )
+        t_retrieve_end = time.perf_counter()
         if not result.success or result.value is None:
+            logger.error(f"recall_search FAILED after {t_retrieve_end - t_start:.3f}s: {result.error}")
             raise ToolError(result.error or "RECALL retrieval failed")
+
+        total_elapsed = time.perf_counter() - t_start
+        logger.info(
+            f"recall_search DONE: found={result.value.total_found} memories | "
+            f"core_retrieve={t_retrieve_end - t_retrieve_start:.3f}s, total={total_elapsed:.3f}s"
+        )
 
         return {
             "query": result.value.query,
@@ -79,11 +103,14 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         include_historical: bool = False,
     ) -> dict[str, Any]:
         """Assemble project context through the RECALL Core."""
+        t_start = time.perf_counter()
+        logger.info(f"recall_get_context START: project_id='{project_id}', query={query!r}, limit={limit}")
         project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
         _validate_limit(limit)
         if query is not None:
             query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
 
+        t_assemble_start = time.perf_counter()
         result = memory_manager.assemble_context(
             ContextAssemblyRequest(
                 project_id=project_uuid,
@@ -93,8 +120,15 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 include_historical=include_historical,
             )
         )
+        t_assemble_end = time.perf_counter()
         if not result.success or result.value is None:
+            logger.error(f"recall_get_context FAILED after {t_assemble_end - t_start:.3f}s: {result.error}")
             raise ToolError(result.error or "RECALL context assembly failed")
+        
+        total_elapsed = time.perf_counter() - t_start
+        logger.info(
+            f"recall_get_context DONE: core_assemble={t_assemble_end - t_assemble_start:.3f}s, total={total_elapsed:.3f}s"
+        )
         return _to_json(result.value)
 
     @server.tool()
@@ -105,10 +139,13 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         memory_type: str = "general",
     ) -> dict[str, Any]:
         """Save a user-authored memory through canonical Core persistence."""
+        t_start = time.perf_counter()
+        logger.info(f"recall_save_memory START: project_id='{project_id}', type='{memory_type}'")
         project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
         content = _validate_text(content, "content", max_length=MAX_CONTENT_LENGTH)
         memory_type = _validate_text(memory_type, "memory_type", max_length=64, default="general")
 
+        t_save_start = time.perf_counter()
         result = memory_manager.create_memory(
             MemoryCreateRequest(
                 project_id=project_uuid,
@@ -119,8 +156,12 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 provenance="user_explicit",
             )
         )
+        t_save_end = time.perf_counter()
         if not result.success or result.value is None:
+            logger.error(f"recall_save_memory FAILED after {t_save_end - t_start:.3f}s: {result.error}")
             raise ToolError(result.error or "RECALL could not save the memory")
+        
+        logger.info(f"recall_save_memory DONE: id={result.value.id} in {time.perf_counter() - t_start:.3f}s")
         return {
             "memory": _to_json(result.value),
             "metadata": _to_json(result.metadata),
@@ -477,21 +518,38 @@ def _load_core_factory(factory_path: str) -> MemoryManager:
 
 def main() -> None:
     """Start MCP with the default Core composition or an application override."""
+    t_start = time.perf_counter()
+    logger.info("Initializing RECALL MCP Server...")
+    
     factory_path = os.environ.get("RECALL_CORE_FACTORY")
     try:
-        memory_manager = (
-            _load_core_factory(factory_path)
-            if factory_path
-            else create_memory_manager()
-        )
+        t_factory_start = time.perf_counter()
+        if factory_path:
+            logger.info(f"Loading custom factory from RECALL_CORE_FACTORY='{factory_path}'...")
+            memory_manager = _load_core_factory(factory_path)
+        else:
+            logger.info("Creating default Core memory manager (SQLite + ChromaDB + Models)...")
+            memory_manager = create_memory_manager()
+        t_factory_end = time.perf_counter()
+        logger.info(f"MemoryManager initialized in {t_factory_end - t_factory_start:.3f}s")
     except Exception as exc:
         source = f"RECALL_CORE_FACTORY '{factory_path}'" if factory_path else "default Core composition"
+        logger.error(f"RECALL startup failed using {source}: {exc}")
         raise SystemExit(f"RECALL startup failed using {source}: {exc}") from exc
 
     try:
-        create_server(memory_manager).run(transport="stdio")
+        t_server_start = time.perf_counter()
+        server = create_server(memory_manager)
+        t_server_end = time.perf_counter()
+        logger.info(f"FastMCP tools registered in {t_server_end - t_server_start:.3f}s")
+        logger.info(f"Starting FastMCP stdio transport (Total startup time: {t_server_end - t_start:.3f}s)...")
+
+        # mcp server
+        server.run(transport="stdio")
     finally:
+        logger.info("Shutting down RECALL MCP server and closing resources...")
         memory_manager.close()
+        logger.info("Shutdown complete.")
 
 
 if __name__ == "__main__":
