@@ -1,0 +1,15 @@
+# RECALL v2.1.0 Runtime Dependencies
+# Install via: pip install -r requirements.txt
+# Or via PEP 621: pip install -e ".[mcp,semantic]"
+
+# Core HTTP REST API
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-dotenv>=1.0.0
+
+# Model Context Protocol (FastMCP)
+mcp>=1.28,<2
+
+# Semantic Retrieval & Vector Indexing
+chromadb>=1.0,<2
+sentence-transformers>=3.0,<6

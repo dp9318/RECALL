@@ -20,6 +20,8 @@ venv/
 .env
 .env.*
 !.env.example
+mcp_config.local.json
+
 
 # Local databases and derived indexes
 *.db

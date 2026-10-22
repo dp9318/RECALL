@@ -1468,6 +1468,45 @@ def test_project_cascade_deletion_integration(tmp_path):
         manager.close()
 
 
+def test_frontend_serving_and_spa_fallback():
+    """Verify production frontend assets and SPA fallback routing from FastAPI."""
+    from pathlib import Path
+    app = create_app()
+    client = TestClient(app)
+
+    frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+    if not (frontend_dist.is_dir() and (frontend_dist / "index.html").is_file()):
+        return
+
+    # 1. Root / returns index.html
+    r_root = client.get("/")
+    assert r_root.status_code == 200
+    assert "text/html" in r_root.headers.get("content-type", "")
+    assert "<title>RECALL</title>" in r_root.text
+
+    # 2. SPA client-side routes fallback to index.html
+    for spa_path in ["/overview", "/chat", "/settings"]:
+        r_spa = client.get(spa_path)
+        assert r_spa.status_code == 200
+        assert "<title>RECALL</title>" in r_spa.text
+
+    # 3. Static assets under /assets/ return 200
+    assets = list((frontend_dist / "assets").glob("*.js"))
+    if assets:
+        r_asset = client.get(f"/assets/{assets[0].name}")
+        assert r_asset.status_code == 200
+        assert "javascript" in r_asset.headers.get("content-type", "")
+
+    # 4. API routes and OpenAPI docs remain unaffected
+    r_health = client.get("/health")
+    assert r_health.status_code == 200
+    assert r_health.json()["api_version"] == "1.1.0"
+
+    r_docs = client.get("/docs")
+    assert r_docs.status_code == 200
+
+
+
 
 
 

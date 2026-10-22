@@ -34,7 +34,22 @@ def main() -> None:
         default="retrieve what is stored in memory",
         help="Query string for search test",
     )
+    parser.add_argument(
+        "--isolated",
+        action="store_true",
+        default=os.getenv("RECALL_SMOKE_ISOLATED", "false").lower() in ("true", "1", "yes"),
+        help="Run smoke test in an isolated temporary database to protect live storage",
+    )
     args = parser.parse_args()
+
+    temp_dir_obj = None
+    old_db_path = os.environ.get("RECALL_DB_PATH")
+    if args.isolated:
+        import tempfile
+        temp_dir_obj = tempfile.TemporaryDirectory()
+        temp_db = Path(temp_dir_obj.name) / "recall_smoke.sqlite3"
+        os.environ["RECALL_DB_PATH"] = str(temp_db)
+        print(f"[SMOKE] Running isolated test with temporary database: {temp_db}")
 
     print("Initializing MemoryManager and FastMCP Server...")
     memory_manager = create_memory_manager()
@@ -84,7 +99,18 @@ def main() -> None:
         print(f"Active memories in context: {len(res_context.get('active_memories', []))}")
         print("\nSmoke test completed successfully.")
     finally:
-        memory_manager.close()
+        if memory_manager is not None:
+            memory_manager.close()
+        if temp_dir_obj is not None:
+            if old_db_path is not None:
+                os.environ["RECALL_DB_PATH"] = old_db_path
+            else:
+                os.environ.pop("RECALL_DB_PATH", None)
+            try:
+                temp_dir_obj.cleanup()
+                print("[SMOKE] Isolated temporary test database cleaned up successfully.")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

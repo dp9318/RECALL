@@ -1,0 +1,46 @@
+{
+  "_comment": "RECALL v2.1.0 - Portable MCP Configuration Examples. Setup will also automatically generate 'mcp_config.local.json' with resolved paths on your machine.",
+  
+  "standard_mcpServers (Antigravity, Cursor, Claude Desktop)": {
+    "mcpServers": {
+      "recall": {
+        "command": "<PATH_TO_RECALL>\\.venv\\Scripts\\python.exe",
+        "args": [
+          "-m",
+          "recall_mcp.server"
+        ],
+        "env": {
+          "RECALL_MCP_WARMUP": "true"
+        }
+      }
+    }
+  },
+
+  "opencode_format (.opencode/opencode.json)": {
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+      "recall": {
+        "type": "local",
+        "command": [
+          "<PATH_TO_RECALL>\\.venv\\Scripts\\python.exe",
+          "-m",
+          "recall_mcp.server"
+        ],
+        "environment": {
+          "RECALL_MCP_WARMUP": "true"
+        },
+        "enabled": true
+      }
+    }
+  },
+
+  "_notes": {
+    "path_escaping": "In JSON files on Windows, backslashes must be escaped (e.g., 'C:\\\\Users\\\\name\\\\RECALL\\\\.venv\\\\Scripts\\\\python.exe') or written with forward slashes ('C:/Users/name/RECALL/.venv/Scripts/python.exe').",
+    "client_locations": {
+      "Google Antigravity": ".agents/mcp_config.json (workspace or %USERPROFILE%/.gemini/config/mcp_config.json)",
+      "Cursor": ".cursor/mcp.json or %USERPROFILE%/.cursor/mcp.json",
+      "Claude Desktop": "%APPDATA%/Claude/claude_desktop_config.json",
+      "OpenCode": ".opencode/opencode.json in workspace root"
+    }
+  }
+}
