@@ -185,4 +185,4 @@ pytest -q
 
 The test command runs the full repository test suite, including MCP protocol,
 composition, and Core unit tests. These test commands do not substitute for an
-not substitute for an OpenCode-host integration test.
+OpenCode-host integration test.

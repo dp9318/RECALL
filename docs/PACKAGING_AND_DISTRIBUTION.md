@@ -25,8 +25,8 @@ RECALL uses a standard **PEP 621** monorepo packaging configuration governed by 
 - **Manifest:** `frontend/package.json` (`version: 2.1.0`)
 - **Build Output:** Compiled static assets output to `frontend/dist/` (`index.html`, minified JS/CSS chunks).
 - **Serving Strategy:**
-  - In development: Served via Vite dev server at `http://localhost:5173`.
-  - In production: Designed to be served directly as static files or mounted onto FastAPI under `/` via `fastapi.staticfiles.StaticFiles`.
+  - In development: Served via Vite dev server at `http://localhost:5173` with proxy rewrites (`/api/*` -> `http://localhost:8080/*`).
+  - In production: Served directly by FastAPI mounted at root `/` and `/assets` with SPA client routing fallback and strict API 404 guards via `api/app.py`.
 
 ---
 
@@ -107,14 +107,16 @@ To restore a prior database snapshot:
 
 ---
 
-## 5. Windows Distribution Roadmap (Upcoming Releases)
+## 5. Windows Distribution Architecture & Roadmap
 
-To make RECALL Local seamless for non-technical users and agent pairs on Windows:
+### 5.1 Implemented in v2.1.0: Portable Windows Distribution Archive
+RECALL provides a self-contained portable Windows distribution (`recall-2.1.0-windows.zip` generated via `scripts/build_dist_bundle.py`):
+1. **Zero-Node User Runtime**: Pre-compiled production frontend (`frontend/dist`) is served directly by FastAPI on port 8080 (`start_api.bat`). End users need only Python 3.11/3.12 (standard user privileges; Administrator not required).
+2. **Automated User-Space Setup (`setup.bat` / `setup.ps1`)**: Creates an isolated `.venv`, upgrades pip, installs runtime dependencies with verified fallback linking, and executes an isolated smoke test in `%TEMP%` protecting live storage.
+3. **Automatic Client MCP Configuration (`scripts/generate_mcp_config.py`)**: Resolves absolute python paths and emits ready-to-copy snippets in `mcp_config.local.json` for OpenCode, Cursor, Google Antigravity, and Claude Desktop.
+4. **Resilient Launchers**: `start_api.bat` and `start_mcp.bat` provide double-clickable or CMD launchers with clean error reporting.
 
-1. **Self-Contained Executables**:
-   - Package `recall-api` and `recall-mcp` using PyInstaller or Nuitka into standalone Windows binaries (`recall-api.exe`, `recall-mcp.exe`).
-   - Bundle the pre-built `frontend/dist` directly into the `recall-api` distribution.
-2. **Windows Service / Background Runner**:
-   - Provide a lightweight system-tray runner or NSSM service wrapper to manage API daemon lifecycle automatically on user logon.
-3. **Automated Backup Schedule**:
-   - Add a scheduled daily background backup trigger with rolling 7-day retention in `~/.recall/backups/`.
+### 5.2 Upcoming Enhancements
+1. **Self-Contained Executables**: Package `recall-api` and `recall-mcp` using PyInstaller into standalone Windows binaries (`recall-api.exe`, `recall-mcp.exe`).
+2. **Windows Background Service**: Lightweight system-tray runner or NSSM service wrapper to manage daemon lifecycle on user logon.
+3. **Automated Backup Schedule**: Scheduled daily background backup trigger with rolling 7-day retention in `~/.recall/backups/`.

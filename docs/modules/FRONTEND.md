@@ -63,6 +63,11 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 export const api: ApiClient = USE_MOCK ? mockApi : realApi;
 ```
 
+### API Base URL Resolution:
+- **Packaged Production Mode**: When served directly by FastAPI (port 8080 or custom port), `API_BASE_URL` resolves to `""` (same-origin relative URLs), enabling portable hosting without hardcoded origins.
+- **Vite Development Mode**: When running under `npm run dev` on port 5173, `API_BASE_URL` defaults to `http://localhost:8080`. Vite also proxies `/api/*` requests directly to `http://localhost:8080/*`.
+- **Explicit Override**: `VITE_API_BASE_URL` in `.env` or build environment takes precedence when provided.
+
 ### Invariant Rules:
 1. **Zero Direct Persistence Access**: The frontend never directly imports SQLite, ChromaDB, or core backend code.
 2. **Encapsulated Communication**: All mutations route through the standardized FastAPI REST endpoints documented in `docs/modules/API.md`.

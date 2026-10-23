@@ -168,7 +168,7 @@ For frontend source development with Hot Module Replacement (HMR):
   This updates `frontend/dist/` which is automatically served by `start_api.bat`.
 
 ### 2. Connect Your AI Coding Agent via MCP
-RECALL includes a high-performance FastMCP stdio server exposing 8 canonical tools:
+RECALL includes a high-performance FastMCP stdio server exposing 9 canonical tools covering the 8 `/recall` operations:
 
 | MCP Tool | Purpose |
 | :--- | :--- |
@@ -355,12 +355,23 @@ All persistent application data is completely isolated from the application inst
 - If an agent reports a communication timeout, ensure your MCP configuration points to the exact `.venv\Scripts\python.exe` path listed in `mcp_config.local.json`.
 - To bypass warmup on slower machines, set `RECALL_MCP_WARMUP=false` in the MCP `env` block.
 
+### CMD Batch Syntax Error ("'Web' is not recognized")
+- If executing `start_api.bat` displays an error such as:
+  ```text
+  'Web' is not recognized as an internal or external command, operable program or batch file.
+  ```
+  This indicates an unescaped ampersand in an echo statement causing Windows CMD to parse text following `&` as a separate command. In RECALL v2.1.0, this is resolved by escaping CMD operators (`^&`). If modifying `.bat` files, always escape CMD reserved characters (`&`, `<`, `>`, `|`) with `^`.
+
+### MCP `RuntimeWarning: 'recall_mcp.server' found in sys.modules`
+- When running `python -m recall_mcp.server`, Python's `runpy` module can emit a warning if the package `__init__.py` eagerly imports the same submodule. In RECALL v2.1.0, `recall_mcp/__init__.py` uses PEP 562 lazy attribute loading to eliminate this warning. AI agents can invoke either `python -m recall_mcp` or `python -m recall_mcp.server`.
+
 ### Port 8080 Conflict
 - If port 8080 is used by another application, create a `.env` file with:
   ```ini
   RECALL_API_PORT=8081
   ```
 - Or run: `set RECALL_API_PORT=8081 && start_api.bat`.
+- The packaged frontend automatically adapts its requests to the server's active origin and port.
 
 ### Long Path Issues on Windows
 - If pip or git reports path length errors, enable long paths in Windows:

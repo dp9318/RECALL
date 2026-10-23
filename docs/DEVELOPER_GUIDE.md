@@ -87,9 +87,10 @@ python -m api.main
 uvicorn api.app:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-- API Base URL: `http://localhost:8080`
+- API Base URL: `http://localhost:8080` (and `http://localhost:8080/api`)
+- Web Dashboard (Production): `http://localhost:8080/` (served directly by FastAPI from `frontend/dist/`)
 - Interactive OpenAPI Docs: `http://localhost:8080/docs`
-- Health Probe: `http://localhost:8080/health`
+- Health Probe: `http://localhost:8080/health` (or `http://localhost:8080/api/health`)
 
 ### 3.2 Running the FastMCP Server (Agent Surface)
 
@@ -99,19 +100,27 @@ recall-mcp
 
 # Or via Python module:
 python -m recall_mcp.server
+# or:
+python -m recall_mcp
 ```
 
 When connected to an AI agent (such as OpenCode or Antigravity), communication occurs via standard JSON-RPC over `stdin` and `stdout`. Diagnostic logs are routed to `stderr` to prevent protocol corruption.
 
 ### 3.3 Running the React Web Dashboard
 
-```bash
-cd frontend
-npm run dev
-```
+RECALL supports two distinct dashboard workflows:
 
-- Local Dev URL: `http://localhost:5173`
-- The frontend connects to the backend API at `http://localhost:8080` by default.
+1. **Production Mode (Default / No Node.js required):**
+   When the API server is started (`start_api.bat` or `python -m api.main`), FastAPI automatically serves the pre-compiled production dashboard at `http://localhost:8080/`.
+
+2. **Development Mode (Vite with Hot Module Replacement):**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   - Local Dev URL: `http://localhost:5173`
+   - Dev server proxy: Vite automatically proxies `/api/*` requests to `http://localhost:8080/*`. Backend CORS middleware also permits direct browser requests from `http://localhost:5173`.
+   - Build for Production: Run `npm run build` to update the static assets in `frontend/dist/`.
 
 ---
 

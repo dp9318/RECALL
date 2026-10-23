@@ -99,7 +99,7 @@ def build_bundle() -> Path:
     # 5. Docs (core architecture and release documentation)
     docs_dest = bundle_dir / "docs"
     docs_dest.mkdir(parents=True, exist_ok=True)
-    for doc in ["RELEASE_PLAN.md", "PACKAGING_AND_DISTRIBUTION.md", "ARCHITECTURE.md", "CONTRACTS.md"]:
+    for doc in ["RELEASE_PLAN.md", "PACKAGING_AND_DISTRIBUTION.md", "ARCHITECTURE.md", "CONTRACTS.md", "DEVELOPER_GUIDE.md"]:
         doc_src = repo_root / "docs" / doc
         if doc_src.exists():
             shutil.copy2(doc_src, docs_dest / doc)
@@ -164,7 +164,7 @@ npm run dev
 - **Rebuild Assets:** Run `npm run build` in `frontend/` to update `frontend/dist/`.
 
 ### 2. Connect AI Coding Agents via MCP
-RECALL includes a built-in FastMCP stdio server exposing 8 canonical `/recall` tools.
+RECALL includes a built-in FastMCP stdio server exposing 9 canonical tools covering the 8 `/recall` operations.
 During setup, `mcp_config.local.json` was automatically generated with your exact machine paths.
 
 **Option A (Auto-Generated - Recommended):**
@@ -248,6 +248,8 @@ No code or user memories are transmitted to external cloud services unless expli
 - **Administrator privileges:** RECALL does not require administrator privileges. All operations occur in user-writable paths.
 - **MCP transport timeout / warmup:** By default, `RECALL_MCP_WARMUP=true` warms up the model in ~200 ms.
   To disable warmup for instant process start, set `RECALL_MCP_WARMUP=false`.
+- **CMD batch syntax error ("'Web' is not recognized"):** Resolved in v2.1.0 batch launcher (`start_api.bat` CMD escape `^&`). If modifying batch files, always escape reserved characters with `^`.
+- **MCP runpy RuntimeWarning:** Resolved in v2.1.0 via PEP 562 lazy attribute loading in `recall_mcp/__init__.py` and dedicated CLI alias `python -m recall_mcp`.
 - **Port 8080 already in use:** Set `RECALL_API_PORT=8081` in `.env` or system environment.
 - **Windows long paths error:** Enable long paths via `git config --system core.longpaths true`.
 

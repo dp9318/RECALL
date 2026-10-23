@@ -39,3 +39,17 @@ python scripts/benchmark_chroma.py
 # Or configure specific database paths:
 python scripts/benchmark_chroma.py --sqlite-path /path/to/db.sqlite3 --chroma-path /path/to/chroma --project-id <UUID>
 ```
+
+### 4. `generate_mcp_config.py`
+Generates client-specific MCP configuration snippets (`mcp_config.local.json`) with absolute, resolved Python executable paths for Cursor, Claude Desktop, Antigravity, and OpenCode.
+
+```bash
+python scripts/generate_mcp_config.py
+```
+
+### 5. `build_dist_bundle.py`
+Builds the self-contained Windows distribution package and compressed ZIP archive (`dist/recall-2.1.0-windows.zip`), excluding local caches, virtual environments, and uncommitted data.
+
+```bash
+python scripts/build_dist_bundle.py
+```

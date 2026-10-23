@@ -81,6 +81,12 @@ A minor version bump to `2.1.0` captures the cold-start search latency optimizat
    - Zero bytes leak to `sys.stdout`, guaranteeing that FastMCP JSON-RPC transport framing is never corrupted by third-party library progress bars or logging.
 7. **Regression Test Suite**:
    - 8 new deterministic unit tests in `tests/test_semantic_retrieval.py` and `tests/test_mcp_bootstrap.py` covering cache hits, cache misses, corruption recovery, unexpected error bypass, warmup execution, `RECALL_MCP_WARMUP=false`, and stdio isolation.
+8. **Runtime Regression Audit & Windows Distribution Fixes (v2.1.0 Distribution Audit)**:
+   - **Windows CMD Batch Launcher Escape (`start_api.bat`)**: Escaped `&` as `^&` in line 13 (`Starting RECALL HTTP REST API ^& Web Dashboard`), eliminating the CMD command-splitting parse error: `'Web' is not recognized as an internal or external command`.
+   - **MCP `runpy` `RuntimeWarning` Elimination**: Converted eager import of `create_server` in `recall_mcp/__init__.py` to PEP 562 lazy attribute loading via `__getattr__("create_server")`, eliminating `<frozen runpy>:128: RuntimeWarning: 'recall_mcp.server' found in sys.modules`. Added `recall_mcp/__main__.py` CLI alias for `python -m recall_mcp`.
+   - **ChromaDB Disconnection Verification**: Verified that ChromaDB persistent vector index (`~/.recall/recall.sqlite3.chromadb`) remained 100% connected, healthy, and populated (32 active memories, cosine space). Clarified that the alleged disconnection was an operator suspicion triggered by stderr warmup logs and the `runpy` warning.
+   - **HTTP API Dual-Mounting & SPA 404 Guard**: In `api/app.py`, mounted modular routers both at root (`/health`, `/projects`) and with `prefix="/api"` (`/api/health`, `/api/projects`) for reverse-proxy compatibility. Guarded SPA fallback routing so requests beginning with `api/` return strict `404 Not Found` JSON rather than fallback HTML.
+   - **Frontend Dev Proxy & Environment Auto-Detection**: In `frontend/vite.config.ts`, added `rewrite: (path) => path.replace(/^\/api/, '')`. In `frontend/src/api/client.ts`, updated `API_BASE_URL` to auto-detect dev mode (`http://localhost:8080`) vs. production mode (`""` same-origin relative), honoring explicit `VITE_API_BASE_URL` overrides.
 
 ---
 

@@ -51,7 +51,9 @@ Provide a modular, robust FastAPI HTTP/JSON REST interface for the human-facing 
 
 ## Application Composition & Entry Points
 
-- `api/app.py`: `create_app(memory_manager=None)` application factory configuring CORS middleware and aggregating modular routers.
+- `api/app.py`: `create_app(memory_manager=None)` application factory configuring CORS middleware and aggregating modular routers:
+  - **Dual Route Mounting**: All modular routers are mounted both at root (`/health`, `/memories`, etc.) and with prefix `/api` (`/api/health`, `/api/memories`, etc.) to support reverse proxies, dev proxies, and direct client queries interchangeably.
+  - **Packaged Frontend Serving**: When `frontend/dist` exists, FastAPI mounts `/assets` and serves the compiled Single Page Application (SPA). A fallback handler returns `index.html` for client-side React routes while strictly excluding any `/api/*` or `/docs` paths to prevent API 404s from returning HTML.
 - `api/main.py`: Executable CLI entry point running `uvicorn` on configured host and port (`RECALL_API_HOST`, `RECALL_API_PORT`).
 - Console Script: Exposes `recall-api` CLI entry point via root `pyproject.toml`.
 - Canonical Package: The top-level `api` package is the authoritative HTTP REST implementation (legacy `core/recall_core/api.py` shims retired per ADR 0003).
