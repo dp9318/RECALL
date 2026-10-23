@@ -1,4 +1,4 @@
-"""Build script to create the clean RECALL 2.1.0 Windows distribution bundle and ZIP archive.
+"""Build script to create the clean RECALL 2.1.1 Windows distribution bundle and ZIP archive.
 
 Usage:
     python scripts/build_dist_bundle.py
@@ -15,7 +15,7 @@ from pathlib import Path
 def build_bundle() -> Path:
     repo_root = Path(__file__).resolve().parent.parent
     dist_dir = repo_root / "dist"
-    bundle_name = "recall-2.1.0-windows"
+    bundle_name = "recall-2.1.1-windows"
     bundle_dir = dist_dir / bundle_name
     zip_path = dist_dir / f"{bundle_name}.zip"
 
@@ -87,6 +87,10 @@ def build_bundle() -> Path:
     if (frontend_src / "dist").exists():
         shutil.copytree(frontend_src / "dist", frontend_dest / "dist", ignore=ignore_patterns)
 
+    # Copy frontend public assets (favicons, etc.)
+    if (frontend_src / "public").exists():
+        shutil.copytree(frontend_src / "public", frontend_dest / "public", ignore=ignore_patterns)
+
     # Copy frontend src and build manifests
     if (frontend_src / "src").exists():
         shutil.copytree(frontend_src / "src", frontend_dest / "src", ignore=ignore_patterns)
@@ -105,7 +109,7 @@ def build_bundle() -> Path:
             shutil.copy2(doc_src, docs_dest / doc)
 
     # 6. Dedicated Distribution README
-    bundle_readme = """# RECALL v2.1.0 — Windows Distribution Package
+    bundle_readme = """# RECALL v2.1.1 — Windows Distribution Package
 
 Persistent memory engine for AI coding agents.
 
@@ -256,7 +260,7 @@ No code or user memories are transmitted to external cloud services unless expli
 ---
 
 ## 📄 License & Version
-- Application Version: `2.1.0`
+- Application Version: `2.1.1`
 - HTTP API Version: `1.1.0`
 - License: MIT
 """

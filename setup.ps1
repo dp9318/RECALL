@@ -1,9 +1,9 @@
-# RECALL v2.1.0 - Windows PowerShell Setup & Verification Script
+# RECALL v2.1.1 - Windows PowerShell Setup & Verification Script
 $ErrorActionPreference = "Stop"
 if ($PSScriptRoot) { Set-Location $PSScriptRoot }
 
 Write-Host "=====================================================================" -ForegroundColor Cyan
-Write-Host " RECALL v2.1.0 - Windows Installation & Environment Setup" -ForegroundColor Cyan
+Write-Host " RECALL v2.1.1 - Windows Installation & Environment Setup" -ForegroundColor Cyan
 Write-Host "=====================================================================" -ForegroundColor Cyan
 Write-Host ""
 

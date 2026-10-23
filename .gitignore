@@ -47,3 +47,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 .aider*
+
+# Brag video maker
+.agents/skills/Brag
+brag-output-*/

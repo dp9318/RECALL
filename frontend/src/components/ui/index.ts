@@ -5,3 +5,4 @@ export { Select } from './Select';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
 export { Badge } from './Badge';
 export { Avatar } from './Avatar';
+export { RecallLogo, recallLogoSrc, type RecallLogoProps, type RecallLogoSize } from './RecallLogo';

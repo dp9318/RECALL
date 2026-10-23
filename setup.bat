@@ -17,7 +17,7 @@ goto parse_args
 :done_args
 
 echo =====================================================================
-echo  RECALL v2.1.0 - Windows Installation ^& Environment Setup
+echo  RECALL v2.1.1 - Windows Installation ^& Environment Setup
 echo =====================================================================
 echo.
 

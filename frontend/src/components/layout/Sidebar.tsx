@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Button } from '../ui';
+import { Button, RecallLogo } from '../ui';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -104,23 +104,18 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }
           {!collapsed ? (
             <NavLink
               to="/overview"
-              className="flex items-center gap-2.5 text-primary font-bold text-lg tracking-tight hover:opacity-90 transition-opacity"
+              className="flex items-center hover:opacity-90 transition-opacity"
               aria-label="RECALL Dashboard"
             >
-              <svg className="w-7 h-7 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-              </svg>
-              <span>RECALL</span>
+              <RecallLogo size="md" withWordmark />
             </NavLink>
           ) : (
             <NavLink
               to="/overview"
-              className="flex items-center justify-center mx-auto text-primary hover:opacity-90 transition-opacity"
+              className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity"
               aria-label="RECALL Dashboard"
             >
-              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-              </svg>
+              <RecallLogo size="md" />
             </NavLink>
           )}
 
@@ -196,11 +191,11 @@ export function Sidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }
         <div className="p-4 border-t border-border flex-shrink-0 mt-auto bg-surface">
           {!collapsed ? (
             <div className="text-xs text-text-muted text-center font-medium tracking-wide">
-              RECALL v2.1.0
+              RECALL v2.1.1
             </div>
           ) : (
             <div className="text-[10px] text-text-muted text-center font-mono">
-              v2.1.0
+              v2.1.1
             </div>
           )}
         </div>

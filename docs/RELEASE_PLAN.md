@@ -13,10 +13,10 @@ This document pins the target release versions and outlines the verification che
 
 | Subsystem / Layer | Historical Baseline | Previous Milestone | Target Release Version | SemVer Increment Type | Status / Representation |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Application Release** | `1.0.1` | `2.0.0` | **`2.1.0`** | **Minor** | Monorepo system-level release, user documentation, and product baseline |
+| **Application Release** | `1.0.1` | `2.1.0` | **`2.1.1`** | **Patch** | Monorepo system-level release: Minor UI fixes |
 | **HTTP API (FastAPI REST)** | `1.0.0` | `1.0.0` | **`1.1.0`** | **Minor** | Modular HTTP API endpoints, OpenAPI specification, and `/health` probe |
-| **Frontend Web Dashboard** | `1.0.1` | `2.0.0` | **`2.1.0`** | **Minor (Aligned)** | React 19 + Tailwind CSS v4 dashboard client (`frontend/package.json`) |
-| **Python Core Engine** | `0.1.0` | `0.1.0` | **`2.1.0`** | **Aligned** | Canonical Python distribution (`pyproject.toml` `recall-core`) |
+| **Frontend Web Dashboard** | `1.0.1` | `2.1.0` | **`2.1.1`** | **Patch (Aligned)** | React 19 + Tailwind CSS v4 dashboard client (`frontend/package.json`) |
+| **Python Core Engine** | `0.1.0` | `2.1.0` | **`2.1.1`** | **Aligned** | Canonical Python distribution (`pyproject.toml` `recall-core`) |
 | **MCP Server Adapter** | Unversioned | `1.0.0` | **`1.0.0`** | **Initial** | FastMCP stdio interface (`recall_mcp.server`) |
 | **Database Schema** | `2` | `2` | **`2`** | **Unchanged** | Canonical SQLite schema version (`schema_version` migration level) |
 
@@ -88,6 +88,21 @@ A minor version bump to `2.1.0` captures the cold-start search latency optimizat
    - **HTTP API Dual-Mounting & SPA 404 Guard**: In `api/app.py`, mounted modular routers both at root (`/health`, `/projects`) and with `prefix="/api"` (`/api/health`, `/api/projects`) for reverse-proxy compatibility. Guarded SPA fallback routing so requests beginning with `api/` return strict `404 Not Found` JSON rather than fallback HTML.
    - **Frontend Dev Proxy & Environment Auto-Detection**: In `frontend/vite.config.ts`, added `rewrite: (path) => path.replace(/^\/api/, '')`. In `frontend/src/api/client.ts`, updated `API_BASE_URL` to auto-detect dev mode (`http://localhost:8080`) vs. production mode (`""` same-origin relative), honoring explicit `VITE_API_BASE_URL` overrides.
 
+### 3.4 Application Milestone: `2.1.0` → `2.1.1` (Patch Bump — Minor UI fixes)
+
+A patch bump to `2.1.1` captures UI fixes, canonical logo branding unification, and clean distribution packaging:
+
+1. **Canonical Logo Integration**:
+   - Adopted `frontend/src/assets/RECALL-logo-3.svg` as the single authoritative logo across the application.
+   - Removed the legacy generic circular placeholder icon from the sidebar.
+   - Created the shared `<RecallLogo>` component with responsive size presets (`xs`, `sm`, `md`, `lg`, `xl`) and optional wordmark.
+2. **Favicon & Browser Metadata**:
+   - Replaced default Vite icon with the official RECALL emblem (`favicon.svg`, `favicon.ico`, `favicon-32x32.png`, `apple-touch-icon.png`).
+   - Updated `frontend/index.html` metadata and verified HTTP serving.
+3. **Distribution Packaging Optimization**:
+   - Updated `scripts/build_dist_bundle.py` to package `recall-2.1.1-windows.zip`.
+   - Included `frontend/public/` in the distribution bundle to ensure standalone and development asset parity.
+
 ---
 
 ## 4. Backward Compatibility Assessment
@@ -107,13 +122,13 @@ A minor version bump to `2.1.0` captures the cold-start search latency optimizat
 
 ## 5. Metadata Alignment Summary
 
-1. **Application & Frontend Alignment (`2.1.0`)**:
-   - `README.md` reports `v2.1.0`.
-   - `frontend/src/components/layout/Sidebar.tsx` reports `v2.1.0`.
-   - `frontend/package.json` specifies `"version": "2.1.0"`.
-   - `frontend/package-lock.json` synchronized at `"version": "2.1.0"`.
-   - Root `pyproject.toml` declares `version = "2.1.0"`.
-   - `docs/PACKAGING_AND_DISTRIBUTION.md` records `2.1.0`.
+1. **Application & Frontend Alignment (`2.1.1`)**:
+   - `README.md` reports `v2.1.1`.
+   - `frontend/src/components/layout/Sidebar.tsx` reports `v2.1.1`.
+   - `frontend/package.json` specifies `"version": "2.1.1"`.
+   - `frontend/package-lock.json` synchronized at `"version": "2.1.1"`.
+   - Root `pyproject.toml` declares `version = "2.1.1"`.
+   - `docs/PACKAGING_AND_DISTRIBUTION.md` records `2.1.1`.
 2. **HTTP API Version Alignment (`1.1.0`)**:
    - `api/__init__.py` declares `__version__ = "1.1.0"` and `API_VERSION = "1.1.0"`.
    - `api/app.py` specifies `version="1.1.0"` in `FastAPI(...)`.
@@ -129,7 +144,7 @@ A minor version bump to `2.1.0` captures the cold-start search latency optimizat
 
 ## 6. Pre-Release Verification Checklist
 
-Before tagging or cutting the `2.1.0` / `1.1.0` release, the following automated and manual gates must pass:
+Before tagging or cutting the `2.1.1` / `1.1.0` release, the following automated and manual gates must pass:
 
 - [x] **Consolidated Pytest Suite**:
   ```bash

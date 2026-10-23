@@ -4,7 +4,7 @@
 
 # RECALL — Persistent Memory Engine for AI Coding Agents
 
-[![Application Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](docs/RELEASE_PLAN.md)
+[![Application Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](docs/RELEASE_PLAN.md)
 [![HTTP API Version](https://img.shields.io/badge/api-1.1.0-green.svg)](docs/modules/API.md)
 [![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -108,7 +108,7 @@ RECALL includes a developer cockpit built with React 19 and Tailwind CSS v4. The
 The easiest way to run RECALL on Windows without cloning Git or managing development dependencies is via the pre-packaged distribution bundle.
 
 ### Step 1: Download & Extract the Bundle
-1. Obtain the distribution archive: `recall-2.1.0-windows.zip`.
+1. Obtain the distribution archive: `recall-2.1.1-windows.zip`.
 2. Extract the ZIP to your chosen folder (e.g. `C:\Users\<username>\RECALL` or `D:\tools\RECALL`).
    *Standard user permissions are sufficient; do not run as Administrator. Avoid folder paths with non-ASCII symbols.*
 
@@ -415,7 +415,7 @@ python scripts/build_dist_bundle.py
 
 ## 📄 Version & License
 
-- **Application Release:** `v2.1.0`
+- **Application Release:** `v2.1.1`
 - **HTTP REST API:** `v1.1.0`
 - **Database Schema Version:** `2`
 - **License:** MIT License (see [LICENSE](LICENSE))

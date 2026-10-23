@@ -18,7 +18,7 @@ docs/
 ├── DEVELOPMENT_RULES.md          # Absolute system invariants & architectural rules
 ├── DEVELOPER_GUIDE.md            # Setup, execution, testing, debugging, and commands
 ├── PACKAGING_AND_DISTRIBUTION.md # Packaging state, data paths, backup/restore, roadmap
-├── RELEASE_PLAN.md               # 2.1.0 release targets, SemVer rationale, verification
+├── RELEASE_PLAN.md               # 2.1.1 release targets, SemVer rationale, verification
 ├── REPOSITORY_LAYOUT.md          # Monorepo directory structure & package boundaries
 ├── MODULE_OWNERSHIP.md           # Module ownership boundaries for parallel work
 ├── TECH_STACK.md                 # Language, framework, database, and library matrix

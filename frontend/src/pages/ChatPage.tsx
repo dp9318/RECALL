@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { api, type ChatMessage, type ChatRequest, type ChatResponse, type MemoryReference, type Project } from '../api';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { Avatar } from '../components/ui/Avatar';
+import { Button, Input, Select, Card, CardContent, CardHeader, CardTitle, Badge, Avatar, RecallLogo, recallLogoSrc } from '../components/ui';
 
 export function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -120,10 +115,10 @@ export function ChatPage() {
       <div className="flex-1 overflow-y-auto space-y-6 mb-6" role="log" aria-live="polite" aria-label="Chat messages">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <svg className="w-16 h-16 text-text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <h2 className="text-xl font-semibold text-text-primary mb-2">Start a conversation</h2>
+            <div className="mb-4">
+              <RecallLogo size="xl" />
+            </div>
+            <h2 className="text-xl font-semibold text-text-primary mb-2">Start a conversation with RECALL</h2>
             <p className="text-text-secondary max-w-md">
               Ask RECALL about your project memories, decisions, patterns, or any stored context.
               Select a project to narrow the search scope.
@@ -157,6 +152,7 @@ export function ChatPage() {
             >
               <Avatar
                 name={message.role === 'user' ? 'You' : 'RECALL'}
+                src={message.role === 'user' ? undefined : recallLogoSrc}
                 size="sm"
                 className="flex-shrink-0 mt-1"
               />

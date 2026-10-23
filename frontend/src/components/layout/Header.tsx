@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Button, Avatar, Badge } from '../ui';
+import { Button, Avatar, Badge, RecallLogo } from '../ui';
 import { api, type HealthStatus } from '../../api';
 import { LuBrain, LuSun, LuMoon } from 'react-icons/lu';
 
@@ -82,7 +82,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-sm border-b border-border w-full">
       <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-        {/* Left side - Mobile menu button + Page title */}
+        {/* Left side - Mobile menu button + Logo + Page title */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <Button
             variant="ghost"
@@ -95,6 +95,14 @@ export function Header({ onMenuClick }: HeaderProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </Button>
+          
+          <Link
+            to="/overview"
+            className="lg:hidden flex items-center hover:opacity-90 transition-opacity flex-shrink-0"
+            aria-label="RECALL Dashboard"
+          >
+            <RecallLogo size="sm" />
+          </Link>
           
           <div className="min-w-0">
             <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight truncate">{getPageTitle()}</h1>

@@ -1,5 +1,5 @@
 {
-  "_comment": "RECALL v2.1.0 - Portable MCP Configuration Examples. Setup will also automatically generate 'mcp_config.local.json' with resolved paths on your machine.",
+  "_comment": "RECALL v2.1.1 - Portable MCP Configuration Examples. Setup will also automatically generate 'mcp_config.local.json' with resolved paths on your machine.",
   
   "standard_mcpServers (Antigravity, Cursor, Claude Desktop)": {
     "mcpServers": {

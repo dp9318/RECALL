@@ -56,7 +56,7 @@ export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
           <img
             src={src}
             alt={alt || name || 'Avatar'}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain p-0.5"
           />
         </div>
       );

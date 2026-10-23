@@ -48,7 +48,7 @@ python scripts/generate_mcp_config.py
 ```
 
 ### 5. `build_dist_bundle.py`
-Builds the self-contained Windows distribution package and compressed ZIP archive (`dist/recall-2.1.0-windows.zip`), excluding local caches, virtual environments, and uncommitted data.
+Builds the self-contained Windows distribution package and compressed ZIP archive (`dist/recall-2.1.1-windows.zip`), excluding local caches, virtual environments, and uncommitted data.
 
 ```bash
 python scripts/build_dist_bundle.py
