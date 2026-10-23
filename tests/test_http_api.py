@@ -1502,6 +1502,15 @@ def test_frontend_serving_and_spa_fallback():
     assert r_health.status_code == 200
     assert r_health.json()["api_version"] == "1.1.0"
 
+    # 5. Dual prefix compatibility: /api/health also returns 200
+    r_api_health = client.get("/api/health")
+    assert r_api_health.status_code == 200
+    assert r_api_health.json()["api_version"] == "1.1.0"
+
+    # 6. Unknown /api/ routes return 404 and do not fall back to index.html
+    r_unknown_api = client.get("/api/nonexistent_endpoint")
+    assert r_unknown_api.status_code == 404
+
     r_docs = client.get("/docs")
     assert r_docs.status_code == 200
 

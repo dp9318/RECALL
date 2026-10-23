@@ -139,11 +139,29 @@ The setup script runs entirely in user space and will automatically:
 
 ## 🚀 Running RECALL Services
 
-### 1. Start the Web Dashboard & HTTP API Server
+### 1. Web Dashboard & HTTP API Server
+
+RECALL supports two modes for running the dashboard and API:
+
+#### Mode A: Packaged Production Mode (Default / End Users)
 Double-click `start_api.bat` (or execute `.venv\\Scripts\\python.exe -m api.main`).
-- **Web Dashboard:** `http://localhost:8080/` (Pre-compiled production assets served directly from FastAPI — no Node.js required!)
+- **Web Dashboard:** `http://localhost:8080/` (Pre-compiled production assets served directly from FastAPI — zero Node.js/npm required!)
 - **Interactive Swagger Documentation:** `http://localhost:8080/docs`
-- **Health Liveness Probe:** `http://localhost:8080/health` (reports `api_version: "1.1.0"`)
+- **Health Liveness Probe:** `http://localhost:8080/health` (or `http://localhost:8080/api/health`, reports `api_version: "1.1.0"`)
+- **Origin Portability:** Frontend uses same-origin relative API routing in production, supporting custom ports and reverse proxies seamlessly.
+
+#### Mode B: Frontend Development Mode (Optional / UI Development)
+If you wish to modify or develop the frontend from source with Hot Module Replacement (HMR):
+1. Start the backend: `start_api.bat` (port 8080)
+2. In a separate terminal, start Vite:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+- **Development Dashboard:** `http://localhost:5173/`
+- **Vite Dev Server Proxy:** Vite proxies `/api/*` to `http://localhost:8080/*`.
+- **Rebuild Assets:** Run `npm run build` in `frontend/` to update `frontend/dist/`.
 
 ### 2. Connect AI Coding Agents via MCP
 RECALL includes a built-in FastMCP stdio server exposing 8 canonical `/recall` tools.

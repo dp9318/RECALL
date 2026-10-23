@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -62,15 +62,20 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
 
     app.state.memory_manager = memory_manager
 
-    # Register modular API routers
-    app.include_router(health_router)
-    app.include_router(projects_router)
-    app.include_router(memories_router)
-    app.include_router(sessions_router)
-    app.include_router(instructions_router)
-    app.include_router(conflicts_router)
-    app.include_router(stats_router)
-    app.include_router(context_router)
+    # Register modular API routers (mounted at root and with /api prefix for proxy compatibility)
+    routers = [
+        health_router,
+        projects_router,
+        memories_router,
+        sessions_router,
+        instructions_router,
+        conflicts_router,
+        stats_router,
+        context_router,
+    ]
+    for router in routers:
+        app.include_router(router)
+        app.include_router(router, prefix="/api")
 
     # Mount pre-built production frontend if available
     frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -85,6 +90,8 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def serve_spa(full_path: str):
+            if full_path.startswith("api/") or full_path == "api":
+                raise HTTPException(status_code=404, detail="API route not found")
             if full_path:
                 candidate = (frontend_dist / full_path).resolve()
                 if candidate.is_file() and str(candidate).startswith(str(frontend_dist.resolve())):

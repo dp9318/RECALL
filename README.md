@@ -129,17 +129,43 @@ The setup script runs completely in user space and will:
 
 ## 🚀 Running RECALL Services
 
-### 1. Start the Web Dashboard & HTTP REST API Server
+### 1. Web Dashboard & HTTP REST API Server
+
+RECALL supports two distinct modes for running the dashboard and API:
+
+#### Mode A: Packaged Production Mode (Default / End Users)
 Double-click `start_api.bat` (or run `.venv\Scripts\python.exe -m api.main`):
 
 ```cmd
 start_api.bat
 ```
 
-- **Web Dashboard:** `http://localhost:8080/` (Pre-compiled production assets served directly from FastAPI — no Node.js required!)
-- **Health Liveness Probe:** `http://localhost:8080/health` (reports `api_version: "1.1.0"`)
+- **Web Dashboard:** `http://localhost:8080/` (Pre-compiled production assets served directly from FastAPI — zero Node.js/npm required!)
+- **Health Liveness Probe:** `http://localhost:8080/health` (or `http://localhost:8080/api/health`, reports `api_version: "1.1.0"`)
 - **Interactive Swagger Docs:** `http://localhost:8080/docs`
 - **OpenAPI Schema:** `http://localhost:8080/openapi.json`
+- **Origin Portability:** Frontend automatically uses same-origin relative API routing in production, supporting custom ports and reverse proxies seamlessly.
+
+#### Mode B: Frontend Development Mode (Contributors / UI Development)
+For frontend source development with Hot Module Replacement (HMR):
+
+1. Start the backend API server on port 8080:
+   ```cmd
+   start_api.bat
+   ```
+2. In a separate terminal, start the Vite development server:
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+- **Development Dashboard:** `http://localhost:5173/`
+- **Dev Server Proxy:** Vite proxies `/api/*` requests to `http://localhost:8080/*`. Backend CORS middleware also permits direct requests from `http://localhost:5173`.
+- **Rebuilding Production Assets:** When frontend changes are complete, build the production bundle with:
+  ```powershell
+  npm run build
+  ```
+  This updates `frontend/dist/` which is automatically served by `start_api.bat`.
 
 ### 2. Connect Your AI Coding Agent via MCP
 RECALL includes a high-performance FastMCP stdio server exposing 8 canonical tools:
@@ -163,15 +189,6 @@ During setup, `setup.bat` automatically created `mcp_config.local.json` in the e
 - **Cursor:** Paste the `mcpServers` block into `.cursor/mcp.json` or `%USERPROFILE%\.cursor\mcp.json`.
 - **Claude Desktop:** Paste the `mcpServers` block into `%APPDATA%\Claude\claude_desktop_config.json`.
 - **OpenCode:** Paste the `mcp` block into `.opencode/opencode.json` in your workspace root.
-
-### 3. Frontend Development Server (Optional)
-The pre-compiled Web Dashboard is served automatically at `http://localhost:8080/`. If you wish to modify or develop the frontend from source:
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-Development Dashboard URL: `http://localhost:5173`
 
 ---
 

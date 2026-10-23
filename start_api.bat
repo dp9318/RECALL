@@ -10,7 +10,7 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-echo [RECALL] Starting RECALL HTTP REST API & Web Dashboard on http://localhost:8080...
+echo [RECALL] Starting RECALL HTTP REST API ^& Web Dashboard on http://localhost:8080...
 echo [RECALL] Web Dashboard: http://localhost:8080/
 echo [RECALL] Interactive API Docs: http://localhost:8080/docs
 echo [RECALL] Press Ctrl+C to stop the server.

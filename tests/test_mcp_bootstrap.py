@@ -579,3 +579,34 @@ def test_main_warmup_failure_is_non_fatal_and_preserves_stdout(tmp_path, monkeyp
     assert "Non-fatal embedding weights failure" in caplog.text
 
 
+def test_recall_mcp_package_lazy_import_and_no_runpy_warning():
+    """Verify that importing recall_mcp lazily exports create_server and runpy does not warn."""
+    import recall_mcp
+
+    assert hasattr(recall_mcp, "create_server")
+    assert callable(recall_mcp.create_server)
+    assert "create_server" in dir(recall_mcp)
+
+    import subprocess
+    import sys
+
+    code = (
+        "import sys, warnings\n"
+        "with warnings.catch_warnings(record=True) as w:\n"
+        "    warnings.simplefilter('always', RuntimeWarning)\n"
+        "    import recall_mcp\n"
+        "    assert 'recall_mcp.server' not in sys.modules\n"
+        "    from recall_mcp import create_server\n"
+        "    assert 'recall_mcp.server' in sys.modules\n"
+        "    assert len(w) == 0\n"
+        "print('LAZY_IMPORT_OK')\n"
+    )
+    res = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "LAZY_IMPORT_OK" in res.stdout
+
+
