@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
@@ -96,7 +96,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                     SET status = ?, updated_at = ?
                     WHERE memory_id = ?
                     """,
-                    (MemoryStatus.SUPERSEDED.value, datetime.now().isoformat(), uuid_to_str(memory.supersedes_id)),
+                    (MemoryStatus.SUPERSEDED.value, datetime.now(timezone.utc).isoformat(), uuid_to_str(memory.supersedes_id)),
                 )
 
                 # Create lineage record
@@ -119,7 +119,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                         uuid_to_str(lineage.child_id),
                         lineage.relationship,
                         lineage.reason,
-                        datetime.now().isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
                     ),
                 )
 
@@ -191,7 +191,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                     updated_status.value if hasattr(updated_status, 'value') else updated_status,
                     dict_to_json(updated_metadata),
                     uuid_to_str(updated_supersedes_id),
-                    datetime.now().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     uuid_to_str(memory_id),
                 ),
             )
@@ -212,7 +212,7 @@ class SQLiteMemoryRepository(MemoryRepository):
                 """,
                 (
                     MemoryStatus.DELETED.value,
-                    datetime.now().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     uuid_to_str(memory_id),
                     MemoryStatus.DELETED.value,
                 ),
@@ -342,10 +342,10 @@ class SQLiteMemoryRepository(MemoryRepository):
                     uuid_to_str(lineage.child_id),
                     lineage.relationship,
                     lineage.reason,
-                    datetime.now().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
-            self._conn.commit()
+            # Note: Transaction commit is managed by the caller (UnitOfWork/transaction context)
             return Result.ok(lineage)
         except sqlite3.IntegrityError as e:
             return Result.err(f"Lineage creation failed: {e}")

@@ -31,6 +31,11 @@ class ProjectRepository(ABC):
         ...
 
     @abstractmethod
+    def get_by_name(self, name: str) -> Result[Optional[Project]]:
+        """Get a project by name."""
+        ...
+
+    @abstractmethod
     def update(self, project_id: UUID, request: ProjectUpdateRequest) -> Result[Optional[Project]]:
         """Update a project."""
         ...

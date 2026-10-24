@@ -27,6 +27,8 @@ from contracts.retrieval import (
     UpdateContextRequest,
     UpdateContextResult,
 )
+from contracts.capture import CaptureEventRequest, CaptureEventResponse
+from .capture_service import CaptureService
 from .context_assembly import ContextAssemblyService
 from .exceptions import (
     ConflictResolutionError,
@@ -80,6 +82,12 @@ class MemoryManager:
             session_repo=unit_of_work.sessions,
             retrieval_service=retrieval_service,
         )
+        self._capture_service = CaptureService(unit_of_work, self)
+
+    def capture_memory(self, request: CaptureEventRequest) -> Result[CaptureEventResponse]:
+        """Capture an eligible event through the conservative automatic capture pipeline."""
+        return self._capture_service.capture(request)
+
 
     # --- Project Operations ---
 
@@ -90,6 +98,65 @@ class MemoryManager:
     def get_project(self, project_id: UUID) -> Result[Optional[Project]]:
         """Get a project by ID."""
         return self._uow.projects.get(project_id)
+
+    def get_project_by_name(self, name: str) -> Result[Optional[Project]]:
+        """Get a project by name."""
+        return self._uow.projects.get_by_name(name)
+
+    def resolve_or_create_project(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        project_id: Optional[UUID] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> Result[Project]:
+        """Atomically resolve an existing project or create a new one under a write transaction.
+
+        Serializes across concurrent processes sharing canonical storage
+        using UnitOfWork.begin() before looking up by name.
+        Preserves canonical project identity, normalized-name lookup, and conflict handling.
+        """
+        try:
+            with self._uow.begin():
+                if project_id is not None:
+                    existing = self._uow.projects.get(project_id)
+                    if existing.success and existing.value is not None:
+                        proj = existing.value
+                        if proj.name.strip().lower() != name.strip().lower():
+                            return Result.err(
+                                f"Project '{project_id}' already exists with name '{proj.name}', "
+                                f"which conflicts with requested name '{name}'"
+                            )
+                        return Result.ok(proj)
+
+                    by_name = self._uow.projects.get_by_name(name)
+                    if by_name.success and by_name.value is not None:
+                        if by_name.value.id != project_id:
+                            return Result.err(
+                                f"A project named '{name}' already exists with ID '{by_name.value.id}', "
+                                f"which conflicts with requested ID '{project_id}'"
+                            )
+
+                    req = ProjectCreateRequest(
+                        id=project_id,
+                        name=name,
+                        description=description,
+                        metadata=metadata or {},
+                    )
+                    return self._uow.projects.create(req)
+
+                by_name = self._uow.projects.get_by_name(name)
+                if by_name.success and by_name.value is not None:
+                    return Result.ok(by_name.value)
+
+                req = ProjectCreateRequest(
+                    name=name,
+                    description=description,
+                    metadata=metadata or {},
+                )
+                return self._uow.projects.create(req)
+        except Exception as exc:
+            return Result.err(f"Failed to resolve or create project: {exc}")
 
     def update_project(self, project_id: UUID, request: ProjectUpdateRequest) -> Result[Optional[Project]]:
         """Update a project."""

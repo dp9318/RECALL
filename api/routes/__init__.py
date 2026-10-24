@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .capture import router as capture_router
 from .conflicts import router as conflicts_router
 from .context import router as context_router
 from .health import router as health_router
@@ -20,4 +21,5 @@ __all__ = [
     "conflicts_router",
     "stats_router",
     "context_router",
+    "capture_router",
 ]

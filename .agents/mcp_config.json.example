@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "recall": {
+      "command": "python",
+      "args": [
+        "-m",
+        "recall_mcp.server"
+      ],
+      "env": {
+        "RECALL_MCP_WARMUP": "true"
+      }
+    }
+  }
+}

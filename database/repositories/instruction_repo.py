@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -138,11 +138,10 @@ class SQLiteCustomInstructionRepository(CustomInstructionRepository):
                         updated_content,
                         updated_status.value if hasattr(updated_status, 'value') else updated_status,
                         dict_to_json(updated_metadata),
-                        datetime.now().isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
                         uuid_to_str(instruction_id),
                     ),
                 )
-                self._conn.commit()
 
             return self.get(instruction_id)
         except sqlite3.IntegrityError as e:
@@ -161,12 +160,11 @@ class SQLiteCustomInstructionRepository(CustomInstructionRepository):
                 """,
                 (
                     InstructionStatus.DELETED.value,
-                    datetime.now().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     uuid_to_str(instruction_id),
                     InstructionStatus.DELETED.value,
                 ),
             )
-            self._conn.commit()
             return Result.ok(cursor.rowcount > 0)
         except sqlite3.Error as e:
             return Result.err(f"Database error: {e}")

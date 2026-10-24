@@ -14,6 +14,7 @@ import pytest
 from contracts.base import InstructionStatus, Result, Scope
 from contracts.instruction import CustomInstruction
 from contracts.memory import Memory
+from contracts.project import Project
 from contracts.retrieval import (
     AssembledContext,
     CompactResult,
@@ -76,29 +77,19 @@ def test_server_registers_only_core_backed_tools(manager):
     assert set(tools) == {
         "recall_search",
         "recall_get_context",
-        "recall_save_memory",
-        "recall_update_context",
-        "recall_compact",
-        "recall_list_custom_instructions",
+        "recall_compact_memory",
         "recall_create_custom_instruction",
-        "recall_update_custom_instruction",
-        "recall_delete_custom_instruction",
+        "recall_save_memory",
+        "recall_save_project",
     }
     assert {
-        "content",
+        "name",
+        "description",
         "project_id",
-        "session_id",
-        "memory_type",
-        "provenance",
-    } <= set(tools["recall_update_context"].parameters["properties"])
-    assert {
-        "instruction_id",
-        "content",
-        "status",
         "metadata",
-    } <= set(tools["recall_update_custom_instruction"].parameters["properties"])
+    } <= set(tools["recall_save_project"].parameters["properties"])
     assert (
-        tools["recall_compact"].parameters["properties"]["preserve_lineage"]["const"]
+        tools["recall_compact_memory"].parameters["properties"]["preserve_lineage"]["const"]
         is True
     )
 
@@ -274,151 +265,112 @@ def test_save_does_not_report_success_when_core_fails(manager, project_id):
         )
 
 
-def test_new_tools_delegate_with_existing_typed_requests(manager, project_id):
+def test_retained_tools_delegate_with_existing_typed_requests(manager, project_id):
     instruction = CustomInstruction(
         scope=Scope.GLOBAL,
         content="Prefer explicit decisions.",
     )
     manager.get_project.return_value = Result.ok(Mock(id=project_id))
-    manager.update_context.return_value = Result.ok(
-        UpdateContextResult(memory_id=uuid4())
-    )
     manager.compact.return_value = Result.ok(CompactResult(preserved_count=2))
-    manager.list_instructions.return_value = Result.ok([instruction])
     manager.create_instruction.return_value = Result.ok(instruction)
-    manager.update_instruction.return_value = Result.ok(instruction)
-    manager.delete_instruction.return_value = Result.ok(True)
+    manager.get_project_by_name.return_value = Result.ok(None)
+    manager.create_project.return_value = Result.ok(
+        Project(id=project_id, name="demo", description="Demo project")
+    )
     server = create_server(manager)
 
-    updated_context = _protocol_call(
-        server,
-        "recall_update_context",
-        {"project_id": str(project_id), "content": "Use SQLite."},
-    )
     compacted = _protocol_call(
         server,
-        "recall_compact",
+        "recall_compact_memory",
         {"project_id": str(project_id), "max_active_memories": 7},
     )
-    listed = _protocol_call(
-        server,
-        "recall_list_custom_instructions",
-        {"scope": "global", "status": "active", "limit": 20, "offset": 5},
-    )
-    created = _protocol_call(
+    created_inst = _protocol_call(
         server,
         "recall_create_custom_instruction",
         {"scope": "project", "project_id": str(project_id), "content": "Use tests."},
     )
-    instruction_id = uuid4()
-    updated = _protocol_call(
+    saved_project = _protocol_call(
         server,
-        "recall_update_custom_instruction",
-        {"instruction_id": str(instruction_id), "status": "inactive"},
+        "recall_save_project",
+        {"name": "demo", "description": "Demo project"},
     )
-    deleted = _protocol_call(
+    saved_memory = _protocol_call(
         server,
-        "recall_delete_custom_instruction",
-        {"instruction_id": str(instruction_id)},
+        "recall_save_memory",
+        {"content": "Persisted decision", "project_id": str(project_id)},
     )
 
-    assert not updated_context.isError
-    update_request = manager.update_context.call_args.args[0]
-    assert update_request.project_id == project_id
-    assert update_request.content == "Use SQLite."
     assert not compacted.isError
     compact_request = manager.compact.call_args.args[0]
     assert compact_request.project_id == project_id
     assert compact_request.max_active_memories == 7
-    assert not listed.isError
-    list_request = manager.list_instructions.call_args.args[0]
-    assert list_request.scope is Scope.GLOBAL
-    assert list_request.status is InstructionStatus.ACTIVE
-    assert (list_request.limit, list_request.offset) == (20, 5)
-    assert listed.structuredContent["count"] == 1
-    assert not created.isError
+
+    assert not created_inst.isError
     create_request = manager.create_instruction.call_args.args[0]
     assert create_request.scope is Scope.PROJECT
     assert create_request.project_id == project_id
-    assert not updated.isError
-    update_instruction_request = manager.update_instruction.call_args.args[1]
-    assert update_instruction_request.status is InstructionStatus.INACTIVE
-    assert manager.update_instruction.call_args.args[0] == instruction_id
-    assert not deleted.isError
-    assert deleted.structuredContent == {
-        "instruction_id": str(instruction_id),
-        "deleted": True,
-    }
+
+    assert not saved_project.isError
+    assert saved_project.structuredContent["project"]["name"] == "demo"
+
+    assert not saved_memory.isError
+    assert saved_memory.structuredContent["memory"]["content"] == "Persisted decision"
 
 
 def test_new_tools_reject_invalid_inputs_and_failed_mutations(manager, project_id):
     manager.get_project.return_value = Result.ok(Mock(id=project_id))
     manager.create_instruction.return_value = Result.err("SQLite unavailable")
-    manager.update_instruction.return_value = Result.ok(None)
-    manager.delete_instruction.return_value = Result.ok(False)
     server = create_server(manager)
 
     async def call_tools():
         async with create_connected_server_and_client_session(server) as client:
-            invalid_update = await client.call_tool(
-                "recall_update_context",
-                {"session_id": str(uuid4()), "content": "No project"},
-            )
             invalid_compact = await client.call_tool(
-                "recall_compact",
+                "recall_compact_memory",
                 {"project_id": str(project_id), "max_active_memories": 0},
             )
             invalid_instruction = await client.call_tool(
                 "recall_create_custom_instruction",
                 {"scope": "project", "content": "Missing project"},
             )
-            invalid_status = await client.call_tool(
-                "recall_list_custom_instructions",
-                {"status": "unknown"},
-            )
             failed_create = await client.call_tool(
                 "recall_create_custom_instruction",
                 {"content": "Valid text"},
             )
-            missing_update = await client.call_tool(
-                "recall_update_custom_instruction",
-                {"instruction_id": str(uuid4()), "content": "Changed"},
+            invalid_project_uuid = await client.call_tool(
+                "recall_save_project",
+                {"name": "Valid Name", "project_id": "not-a-uuid"},
             )
-            missing_delete = await client.call_tool(
-                "recall_delete_custom_instruction",
-                {"instruction_id": str(uuid4())},
+            invalid_project_name = await client.call_tool(
+                "recall_save_project",
+                {"name": "   "},
             )
             still_usable = await client.call_tool(
                 "recall_search",
                 {"query": "valid", "project_id": str(project_id)},
             )
             return (
-                invalid_update,
                 invalid_compact,
                 invalid_instruction,
-                invalid_status,
                 failed_create,
-                missing_update,
-                missing_delete,
+                invalid_project_uuid,
+                invalid_project_name,
                 still_usable,
             )
 
     results = asyncio.run(call_tools())
-    assert all(response.isError for response in results[:7])
-    assert "project_id" in results[0].content[0].text
-    assert "max_active_memories" in results[1].content[0].text
-    assert "project_id" in results[2].content[0].text
-    assert "status" in results[3].content[0].text
-    assert "SQLite unavailable" in results[4].content[0].text
-    assert "not found" in results[5].content[0].text
-    assert "not found" in results[6].content[0].text
-    assert not results[7].isError
+    assert all(response.isError for response in results[:5])
+    assert "max_active_memories" in results[0].content[0].text
+    assert "project_id" in results[1].content[0].text
+    assert "SQLite unavailable" in results[2].content[0].text
+    assert "project_id" in results[3].content[0].text.lower()
+    assert "name" in results[4].content[0].text.lower()
+    assert not results[5].isError
 
 
 def test_compaction_rejects_disabling_mandatory_lineage(manager, project_id):
     response = _protocol_call(
         create_server(manager),
-        "recall_compact",
+        "recall_compact_memory",
         {"project_id": str(project_id), "preserve_lineage": False},
     )
 
@@ -434,7 +386,7 @@ def test_compaction_protocol_rejects_invalid_project_and_session(
     manager.get_project.return_value = Result.ok(None)
     missing_project = _protocol_call(
         create_server(manager),
-        "recall_compact",
+        "recall_compact_memory",
         {"project_id": str(project_id)},
     )
 
@@ -442,7 +394,7 @@ def test_compaction_protocol_rejects_invalid_project_and_session(
     manager.get_session.return_value = Result.ok(Mock(project_id=uuid4()))
     foreign_session = _protocol_call(
         create_server(manager),
-        "recall_compact",
+        "recall_compact_memory",
         {
             "project_id": str(project_id),
             "session_id": str(uuid4()),
@@ -454,3 +406,208 @@ def test_compaction_protocol_rejects_invalid_project_and_session(
     assert foreign_session.isError is True
     assert "does not belong" in foreign_session.content[0].text
     manager.compact.assert_not_called()
+
+
+def test_prohibited_agent_operations_rejected_by_mcp_protocol(manager):
+    server = create_server(manager)
+    prohibited_tools = [
+        "recall_update_context",
+        "recall_list_custom_instructions",
+        "recall_update_custom_instruction",
+        "recall_delete_custom_instruction",
+        "recall_compact",
+        "recall_delete_memory",
+        "recall_update_memory",
+        "recall_delete_project",
+        "recall_update_project",
+    ]
+
+    async def call_prohibited():
+        async with create_connected_server_and_client_session(server) as client:
+            responses = []
+            for tool_name in prohibited_tools:
+                resp = await client.call_tool(tool_name, {})
+                responses.append((tool_name, resp))
+            return responses
+
+    results = asyncio.run(call_prohibited())
+    for tool_name, resp in results:
+        assert resp.isError is True, f"Expected {tool_name} to be rejected"
+        assert "not listed" in resp.content[0].text.lower() or "unknown" in resp.content[0].text.lower()
+
+
+def test_recall_save_project_identity_preservation_and_validation(manager, project_id):
+    server = create_server(manager)
+    existing_project = Project(id=project_id, name="Canonical Name", description="Desc")
+
+    # 1. Existing ID with same name returns existing project
+    manager.get_project.return_value = Result.ok(existing_project)
+    res_same = _protocol_call(
+        server,
+        "recall_save_project",
+        {"name": "Canonical Name", "project_id": str(project_id)},
+    )
+    assert not res_same.isError
+    assert res_same.structuredContent["project"]["id"] == str(project_id)
+    assert res_same.structuredContent["project"]["name"] == "Canonical Name"
+
+    # 2. Existing ID with conflicting name raises error and preserves identity
+    res_conflict = _protocol_call(
+        server,
+        "recall_save_project",
+        {"name": "Conflicting Name", "project_id": str(project_id)},
+    )
+    assert res_conflict.isError is True
+    assert "conflict" in res_conflict.content[0].text.lower() or "canonical" in res_conflict.content[0].text.lower()
+
+    # 3. Explicit ID provided, but name belongs to another project ID
+    other_id = uuid4()
+    manager.get_project.return_value = Result.ok(None)
+    manager.get_project_by_name.return_value = Result.ok(
+        Project(id=other_id, name="Existing Name")
+    )
+    res_name_taken = _protocol_call(
+        server,
+        "recall_save_project",
+        {"name": "Existing Name", "project_id": str(project_id)},
+    )
+    assert res_name_taken.isError is True
+    assert "already exists" in res_name_taken.content[0].text.lower()
+
+
+def test_save_project_followed_by_save_memory_and_concurrency(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from database.config import DatabaseConfig
+    from recall_core.bootstrap import create_memory_manager
+    from tests.test_mcp_bootstrap import _TestSemanticIndex
+
+    db_path = tmp_path / "mcp_project_test.sqlite3"
+    core = create_memory_manager(
+        DatabaseConfig.from_path(db_path),
+        semantic_index=_TestSemanticIndex(),
+    )
+    server = create_server(core)
+
+    # 1. Concurrent project creation with same name
+    project_name = "Concurrent MCP Project"
+
+    def run_save():
+        return _call_tool(
+            server,
+            "recall_save_project",
+            {"name": project_name, "description": "Concurrent test"},
+        )
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(run_save) for _ in range(5)]
+        results = [f.result() for f in futures]
+
+    project_ids = {r[1]["project"]["id"] for r in results}
+    assert len(project_ids) == 1, "Concurrent creation must be idempotent and return identical project_id"
+    created_project_id = project_ids.pop()
+
+    # 2. Sequential duplicate call is also idempotent
+    dup_res = _call_tool(
+        server,
+        "recall_save_project",
+        {"name": project_name},
+    )
+    assert dup_res[1]["project"]["id"] == created_project_id
+
+    # 3. Pipeline: recall_save_project followed by recall_save_memory
+    mem_res = _call_tool(
+        server,
+        "recall_save_memory",
+        {
+            "project_id": created_project_id,
+            "content": "First decision memory after project creation",
+            "memory_type": "decision",
+        },
+    )
+    assert mem_res[1]["memory"]["project_id"] == created_project_id
+    assert mem_res[1]["memory"]["content"] == "First decision memory after project creation"
+
+    # Verify memory is searchable via protocol
+    search_res = _protocol_call(
+        server,
+        "recall_search",
+        {"query": "decision", "project_id": created_project_id},
+    )
+    assert not search_res.isError
+    assert len(search_res.structuredContent["memories"]) == 1
+    assert search_res.structuredContent["memories"][0]["id"] == mem_res[1]["memory"]["id"]
+
+
+def test_save_project_cross_process_concurrency(tmp_path):
+    import sqlite3
+    import subprocess
+    import sys
+
+    from database.config import DatabaseConfig
+    from database.connection import initialize_database
+
+    db_path = str(tmp_path / "cross_process_test.sqlite3")
+    initialize_database(DatabaseConfig.from_path(db_path))
+    project_name = "Cross-Process Normalized Project"
+
+    worker_code = """
+import sys
+import asyncio
+from database.config import DatabaseConfig
+from recall_core.bootstrap import create_memory_manager
+from recall_mcp.server import create_server
+
+db_path = sys.argv[1]
+name = sys.argv[2]
+
+core = create_memory_manager(DatabaseConfig.from_path(db_path))
+server = create_server(core)
+try:
+    res = asyncio.run(server.call_tool("recall_save_project", {"name": name}))
+    project_id = res[1]["project"]["id"]
+    print(f"PROJECT_ID:{project_id}")
+finally:
+    core.close()
+"""
+
+    names_variations = [
+        project_name,
+        f"  {project_name}  ",
+        project_name.lower(),
+        project_name.upper(),
+    ]
+
+    processes = []
+    for var_name in names_variations:
+        p = subprocess.Popen(
+            [sys.executable, "-c", worker_code, db_path, var_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        processes.append(p)
+
+    outputs = []
+    for p in processes:
+        stdout, stderr = p.communicate(timeout=30)
+        assert p.returncode == 0, f"Child process failed: {stderr}\nOutput: {stdout}"
+        outputs.append(stdout)
+
+    project_ids = set()
+    for out in outputs:
+        for line in out.strip().splitlines():
+            if line.startswith("PROJECT_ID:"):
+                project_ids.add(line.split(":", 1)[1].strip())
+
+    assert len(project_ids) == 1, f"Expected 1 canonical project ID across all processes, got: {project_ids}"
+    canonical_id = project_ids.pop()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT project_id, name FROM projects WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))", (project_name,))
+        rows = cursor.fetchall()
+        assert len(rows) == 1, f"Expected exactly 1 row in SQLite database, found: {rows}"
+        assert rows[0][0] == canonical_id
+    finally:
+        conn.close()

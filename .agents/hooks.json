@@ -1,0 +1,12 @@
+{
+  "recall-capture": {
+    "enabled": true,
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python ../scripts/recall_capture_hook.py --event post-invocation",
+        "timeout": 5
+      }
+    ]
+  }
+}

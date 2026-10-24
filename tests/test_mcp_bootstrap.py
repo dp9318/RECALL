@@ -67,6 +67,7 @@ class _TestSemanticIndex:
 def test_default_factory_initializes_and_closes_user_database(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.delenv("RECALL_DB_PATH", raising=False)
 
     manager = create_memory_manager()
     database_path = tmp_path / ".recall" / "recall.sqlite3"
@@ -163,13 +164,10 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
         assert {tool.name for tool in discovered.tools} == {
             "recall_search",
             "recall_get_context",
-            "recall_save_memory",
-            "recall_update_context",
-            "recall_compact",
-            "recall_list_custom_instructions",
+            "recall_compact_memory",
             "recall_create_custom_instruction",
-            "recall_update_custom_instruction",
-            "recall_delete_custom_instruction",
+            "recall_save_memory",
+            "recall_save_project",
         }
         assert not saved.isError
         memory_id = UUID(saved.structuredContent["memory"]["id"])
@@ -210,7 +208,8 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
         assert global_memory.id in context_memory_ids
         assert unrelated_memory.id not in context_memory_ids
 
-        update = asyncio.run(
+        # recall_update_context is removed from the 6-tool contract; verify calling it is rejected
+        rejected_update = asyncio.run(
             _call_tool(
                 server,
                 "recall_update_context",
@@ -220,27 +219,25 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
                 },
             )
         )
-        assert not update.isError
-        updated_memory_id = UUID(update.structuredContent["memory_id"])
-        assert manager.get_memory(updated_memory_id).value.metadata["explicit_update"]
+        assert rejected_update.isError
 
-        global_update = asyncio.run(
+        # Save a second memory so there are multiple memories to compact
+        second_saved = asyncio.run(
             _call_tool(
                 server,
-                "recall_update_context",
-                {"content": "Global context is user-authored."},
+                "recall_save_memory",
+                {
+                    "project_id": str(project.id),
+                    "content": "Second project memory for compaction.",
+                },
             )
         )
-        assert not global_update.isError
-        global_updated_memory = manager.get_memory(
-            UUID(global_update.structuredContent["memory_id"])
-        )
-        assert global_updated_memory.value.scope is Scope.GLOBAL
+        assert not second_saved.isError
 
         compact = asyncio.run(
             _call_tool(
                 server,
-                "recall_compact",
+                "recall_compact_memory",
                 {
                     "project_id": str(project.id),
                     "max_active_memories": 1,
@@ -250,19 +247,15 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
         assert not compact.isError
         assert compact.structuredContent["compacted_count"] >= 1
 
-        instruction_list = asyncio.run(
+        saved_proj = asyncio.run(
             _call_tool(
                 server,
-                "recall_list_custom_instructions",
-                {"scope": "project", "project_id": str(project.id)},
+                "recall_save_project",
+                {"name": "Bootstrap Project Scope"},
             )
         )
-        assert not instruction_list.isError
-        assert instruction_list.structuredContent["count"] == 1
-        assert (
-            instruction_list.structuredContent["instructions"][0]["id"]
-            == str(instruction.value.id)
-        )
+        assert not saved_proj.isError
+        assert saved_proj.structuredContent["project"]["name"] == "Bootstrap Project Scope"
 
         created_instruction = asyncio.run(
             _call_tool(
@@ -272,34 +265,18 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
             )
         )
         assert not created_instruction.isError
-        global_instruction_id = created_instruction.structuredContent[
-            "instruction"
-        ]["id"]
-        updated_instruction = asyncio.run(
-            _call_tool(
-                server,
-                "recall_update_custom_instruction",
-                {
-                    "instruction_id": global_instruction_id,
-                    "content": "Prefer isolated integration tests.",
-                    "status": "inactive",
-                },
-            )
-        )
-        assert not updated_instruction.isError
-        assert (
-            updated_instruction.structuredContent["instruction"]["status"]
-            == InstructionStatus.INACTIVE.value
-        )
-        deleted_instruction = asyncio.run(
-            _call_tool(
-                server,
-                "recall_delete_custom_instruction",
-                {"instruction_id": global_instruction_id},
-            )
-        )
-        assert not deleted_instruction.isError
-        assert deleted_instruction.structuredContent["deleted"] is True
+        assert "instruction" in created_instruction.structuredContent
+
+        # Assert removed tools cannot be invoked
+        for prohibited in [
+            "recall_update_custom_instruction",
+            "recall_delete_custom_instruction",
+            "recall_list_custom_instructions",
+            "recall_update_context",
+            "recall_compact",
+        ]:
+            attempt = asyncio.run(_call_tool(server, prohibited, {}))
+            assert attempt.isError
         assert capsys.readouterr().out == ""
     finally:
         manager.close()
@@ -333,7 +310,7 @@ def test_compaction_persists_aggregate_summary_and_lineage_through_mcp(
         response = asyncio.run(
             _call_tool(
                 server,
-                "recall_compact",
+                "recall_compact_memory",
                 {"project_id": str(project.id), "max_active_memories": 2},
             )
         )

@@ -21,9 +21,13 @@ venv/
 .env.*
 !.env.example
 mcp_config.local.json
+.capture_token
+.pending_capture.json
+
 
 
 # Local databases and derived indexes
+.dev_data/
 *.db
 *.sqlite
 *.sqlite3

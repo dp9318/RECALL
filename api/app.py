@@ -11,6 +11,7 @@ from starlette.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import (
+    capture_router,
     conflicts_router,
     context_router,
     health_router,
@@ -72,6 +73,7 @@ def create_app(memory_manager: MemoryManager | None = None) -> FastAPI:
         conflicts_router,
         stats_router,
         context_router,
+        capture_router,
     ]
     for router in routers:
         app.include_router(router)

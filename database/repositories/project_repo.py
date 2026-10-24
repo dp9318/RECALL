@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -79,6 +79,20 @@ class SQLiteProjectRepository(ProjectRepository):
             return Result.ok(None)
         return Result.ok(project_row_to_dto(dict(row)))
 
+    def get_by_name(self, name: str) -> Result[Optional[Project]]:
+        """Get a project by name (case-insensitive, trimmed)."""
+        try:
+            cursor = self._conn.execute(
+                "SELECT * FROM projects WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) ORDER BY created_at ASC LIMIT 1",
+                (name,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return Result.ok(None)
+            return Result.ok(project_row_to_dto(dict(row)))
+        except sqlite3.Error as e:
+            return Result.err(f"Database error: {e}")
+
     def update(self, project_id: UUID, request: ProjectUpdateRequest) -> Result[Optional[Project]]:
         """Update a project."""
         # First check if project exists
@@ -90,7 +104,7 @@ class SQLiteProjectRepository(ProjectRepository):
         updated_name = request.name if request.name is not None else project.name
         updated_description = request.description if request.description is not None else project.description
         updated_metadata = request.metadata if request.metadata is not None else project.metadata
-        updated_at = datetime.now().isoformat()
+        updated_at = datetime.now(timezone.utc).isoformat()
 
         try:
             self._conn.execute(

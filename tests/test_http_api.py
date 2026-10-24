@@ -1515,8 +1515,33 @@ def test_frontend_serving_and_spa_fallback():
     assert r_docs.status_code == 200
 
 
+def test_api_main_defaults_to_localhost(monkeypatch):
+    from unittest.mock import Mock
+    import api.main
+
+    mock_run = Mock()
+    monkeypatch.setattr(api.main.uvicorn, "run", mock_run)
+    monkeypatch.delenv("RECALL_API_HOST", raising=False)
+    monkeypatch.delenv("RECALL_API_PORT", raising=False)
+    monkeypatch.delenv("RECALL_API_RELOAD", raising=False)
+
+    api.main.main()
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs["host"] == "127.0.0.1"
+    assert mock_run.call_args.kwargs["port"] == 8080
 
 
+def test_api_main_respects_host_port_and_reload_overrides(monkeypatch):
+    from unittest.mock import Mock
+    import api.main
 
+    mock_run = Mock()
+    monkeypatch.setattr(api.main.uvicorn, "run", mock_run)
+    monkeypatch.setenv("RECALL_API_HOST", "0.0.0.0")
+    monkeypatch.setenv("RECALL_API_PORT", "9090")
+    monkeypatch.setenv("RECALL_API_RELOAD", "true")
 
+    api.main.main()
 
+    mock_run.assert_called_once_with("api.app:app", host="0.0.0.0", port=9090, reload=True)

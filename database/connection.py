@@ -236,7 +236,7 @@ class Transaction:
             self._lock.acquire()
         try:
             # With isolation_level=None, we must explicitly start a transaction
-            self._conn.execute("BEGIN")
+            self._conn.execute("BEGIN IMMEDIATE")
             self._active = True
             return self
         except Exception:

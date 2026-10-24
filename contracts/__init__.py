@@ -50,6 +50,12 @@ from contracts.retrieval import (
     UpdateContextRequest,
     UpdateContextResult,
 )
+from contracts.capture import (
+    CaptureEventRequest,
+    CaptureEventResponse,
+    ELIGIBLE_CAPTURE_CATEGORIES,
+)
+
 
 __all__ = [
     # base
@@ -96,4 +102,8 @@ __all__ = [
     "CompactResult",
     "UpdateContextRequest",
     "UpdateContextResult",
+    # capture
+    "CaptureEventRequest",
+    "CaptureEventResponse",
+    "ELIGIBLE_CAPTURE_CATEGORIES",
 ]

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -99,7 +99,7 @@ class SQLiteSessionRepository(SessionRepository):
         session = existing.value
         updated_ended_at = request.ended_at if request.ended_at is not None else session.ended_at
         updated_metadata = request.metadata if request.metadata is not None else session.metadata
-        updated_at = datetime.now().isoformat()
+        updated_at = datetime.now(timezone.utc).isoformat()
         updated_status = "completed" if updated_ended_at is not None else "active"
 
         try:

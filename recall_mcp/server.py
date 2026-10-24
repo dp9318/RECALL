@@ -6,6 +6,7 @@ import importlib
 import logging
 import os
 import sys
+import threading
 import time
 from dataclasses import fields, is_dataclass
 from datetime import date, datetime
@@ -16,19 +17,14 @@ from uuid import UUID
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
-from contracts.base import InstructionStatus, Scope
-from contracts.instruction import (
-    CustomInstructionCreateRequest,
-    CustomInstructionListParams,
-    CustomInstructionUpdateRequest,
-)
+from contracts.base import Result, Scope
+from contracts.instruction import CustomInstructionCreateRequest
 from contracts.memory import MemoryCreateRequest
-from contracts.project import SessionCreateRequest
+from contracts.project import ProjectCreateRequest, SessionCreateRequest
 from contracts.retrieval import (
     CompactRequest,
     ContextAssemblyRequest,
     RetrievalRequest,
-    UpdateContextRequest,
 )
 from recall_core.bootstrap import create_memory_manager
 from recall_core.memory_manager import MemoryManager
@@ -51,10 +47,9 @@ MAX_RESULTS = 50
 def create_server(memory_manager: MemoryManager) -> FastMCP:
     """Create and configure a FastMCP server bound to the RECALL Core MemoryManager.
 
-    Registers the 8 canonical `/recall` tools (`recall_search`, `recall_get_context`,
-    `recall_save_memory`, `recall_update_context`, `recall_compact`,
-    `recall_list_custom_instructions`, `recall_create_custom_instruction`,
-    `recall_update_custom_instruction`, `recall_delete_custom_instruction`).
+    Registers exactly the 6 canonical agent tools:
+    `recall_search`, `recall_get_context`, `recall_compact_memory`,
+    `recall_create_custom_instruction`, `recall_save_memory`, `recall_save_project`.
 
     Args:
         memory_manager: Active MemoryManager facade instance.
@@ -180,39 +175,7 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         }
 
     @server.tool()
-    def recall_update_context(
-        content: str,
-        project_id: str | None = None,
-        session_id: str | None = None,
-        memory_type: str = "context_update",
-        provenance: str = "user_explicit",
-    ) -> dict[str, Any]:
-        """Persist explicit project or global context through Core."""
-        project_uuid, session_uuid = _validate_optional_scope(
-            memory_manager, project_id, session_id
-        )
-        content = _validate_text(content, "content", max_length=MAX_CONTENT_LENGTH)
-        memory_type = _validate_text(memory_type, "memory_type", max_length=64)
-        provenance = _validate_text(provenance, "provenance", max_length=128)
-
-        result = memory_manager.update_context(
-            UpdateContextRequest(
-                project_id=project_uuid,
-                session_id=session_uuid,
-                content=content,
-                memory_type=memory_type,
-                provenance=provenance,
-            )
-        )
-        if not result.success or result.value is None or not result.value.success:
-            error = result.error or (
-                result.value.error if result.value is not None else None
-            )
-            raise ToolError(error or "RECALL could not update context")
-        return _to_json(result.value)
-
-    @server.tool()
-    def recall_compact(
+    def recall_compact_memory(
         project_id: str,
         session_id: str | None = None,
         preserve_lineage: Literal[True] = True,
@@ -246,42 +209,6 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         return _to_json(result.value)
 
     @server.tool()
-    def recall_list_custom_instructions(
-        scope: str | None = None,
-        project_id: str | None = None,
-        status: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
-    ) -> dict[str, Any]:
-        """List custom instructions using supported Core filters."""
-        if scope is not None:
-            scope_value = _parse_enum(scope, Scope, "scope")
-        else:
-            scope_value = None
-        if status is not None:
-            status_value = _parse_enum(status, InstructionStatus, "status")
-        else:
-            status_value = None
-        project_uuid = _parse_optional_uuid(project_id, "project_id")
-        if project_uuid is not None:
-            _validate_project_exists(memory_manager, project_uuid)
-        _validate_pagination(limit, offset)
-
-        result = memory_manager.list_instructions(
-            CustomInstructionListParams(
-                scope=scope_value,
-                project_id=project_uuid,
-                status=status_value,
-                limit=limit,
-                offset=offset,
-            )
-        )
-        if not result.success or result.value is None:
-            raise ToolError(result.error or "RECALL could not list instructions")
-        instructions = [_to_json(item) for item in result.value]
-        return {"instructions": instructions, "count": len(instructions)}
-
-    @server.tool()
     def recall_create_custom_instruction(
         content: str,
         scope: str = "global",
@@ -312,45 +239,31 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         return {"instruction": _to_json(result.value)}
 
     @server.tool()
-    def recall_update_custom_instruction(
-        instruction_id: str,
-        content: str | None = None,
-        status: str | None = None,
+    def recall_save_project(
+        name: str,
+        description: str | None = None,
+        project_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Update supported fields on an existing custom instruction."""
-        instruction_uuid = _parse_uuid(instruction_id, "instruction_id")
-        if content is not None:
-            content = _validate_text(content, "content", max_length=MAX_CONTENT_LENGTH)
-        if status is not None:
-            status_value = _parse_enum(status, InstructionStatus, "status")
-        else:
-            status_value = None
-        if content is None and status_value is None and metadata is None:
-            raise ToolError("At least one of content, status, or metadata is required")
+        """Safely create or retrieve a project scope for memory association."""
+        t_start = time.perf_counter()
+        name = _validate_text(name, "name", max_length=255)
+        if description is not None:
+            description = _validate_text(description, "description", max_length=2000)
+        project_uuid = _parse_optional_uuid(project_id, "project_id")
 
-        result = memory_manager.update_instruction(
-            instruction_uuid,
-            CustomInstructionUpdateRequest(
-                content=content,
-                status=status_value,
-                metadata=metadata,
-            ),
+        logger.info(f"recall_save_project START: name='{name}', project_id={project_id}")
+
+        project = _resolve_or_create_project(
+            memory_manager,
+            name=name,
+            description=description,
+            project_uuid=project_uuid,
+            metadata=metadata,
         )
-        if not result.success or result.value is None:
-            raise ToolError(result.error or "The requested instruction was not found")
-        return {"instruction": _to_json(result.value)}
-
-    @server.tool()
-    def recall_delete_custom_instruction(instruction_id: str) -> dict[str, Any]:
-        """Deactivate a custom instruction through Core persistence."""
-        instruction_uuid = _parse_uuid(instruction_id, "instruction_id")
-        result = memory_manager.delete_instruction(instruction_uuid)
-        if not result.success:
-            raise ToolError(result.error or "RECALL could not delete instruction")
-        if not result.value:
-            raise ToolError("The requested instruction was not found")
-        return {"instruction_id": str(instruction_uuid), "deleted": True}
+        total_elapsed = time.perf_counter() - t_start
+        logger.info(f"recall_save_project DONE: id={project.id} in {total_elapsed:.3f}s")
+        return {"project": _to_json(project)}
 
     return server
 
@@ -418,6 +331,79 @@ def _resolve_or_create_session(
             return session_uuid
         raise ToolError(create_result.error or "Failed to register session")
     return session_uuid
+
+
+_project_lock = threading.Lock()
+
+
+def _resolve_or_create_project(
+    memory_manager: MemoryManager,
+    name: str,
+    description: str | None,
+    project_uuid: UUID | None,
+    metadata: dict[str, Any] | None,
+) -> Any:
+    with _project_lock:
+        if hasattr(memory_manager, "resolve_or_create_project"):
+            result = memory_manager.resolve_or_create_project(
+                name=name,
+                description=description,
+                project_id=project_uuid,
+                metadata=metadata,
+            )
+            if isinstance(result, Result):
+                if not result.success or result.value is None:
+                    raise ToolError(result.error or "Failed to resolve or create project")
+                return result.value
+
+        # Fallback for mock managers where individual repository methods are configured
+        if project_uuid is not None:
+            existing = memory_manager.get_project(project_uuid)
+            if existing.success and existing.value is not None:
+                proj = existing.value
+                if proj.name.strip().lower() != name.strip().lower():
+                    raise ToolError(
+                        f"Project '{project_uuid}' already exists with name '{proj.name}', "
+                        f"which conflicts with requested name '{name}'"
+                    )
+                return proj
+
+            by_name = memory_manager.get_project_by_name(name)
+            if by_name.success and by_name.value is not None:
+                if by_name.value.id != project_uuid:
+                    raise ToolError(
+                        f"A project named '{name}' already exists with ID '{by_name.value.id}', "
+                        f"which conflicts with requested ID '{project_uuid}'"
+                    )
+
+            create_req = ProjectCreateRequest(
+                id=project_uuid,
+                name=name,
+                description=description,
+                metadata=metadata or {},
+            )
+            create_result = memory_manager.create_project(create_req)
+            if not create_result.success or create_result.value is None:
+                raise ToolError(create_result.error or "Failed to create project")
+            return create_result.value
+
+        by_name = memory_manager.get_project_by_name(name)
+        if by_name.success and by_name.value is not None:
+            return by_name.value
+
+        create_req = ProjectCreateRequest(
+            name=name,
+            description=description,
+            metadata=metadata or {},
+        )
+        create_result = memory_manager.create_project(create_req)
+        if not create_result.success or create_result.value is None:
+            re_by_name = memory_manager.get_project_by_name(name)
+            if re_by_name.success and re_by_name.value is not None:
+                return re_by_name.value
+            raise ToolError(create_result.error or "Failed to create project")
+        return create_result.value
+
 
 
 def _validate_project_exists(memory_manager: MemoryManager, project_id: UUID) -> None:
