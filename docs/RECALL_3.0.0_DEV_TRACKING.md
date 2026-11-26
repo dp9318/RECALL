@@ -154,3 +154,33 @@
   - [x] Independent adversarial release review (`research` subagent fallback due to Windows OpenCode v2.4.1 non-TTY hang): resolved both Critical runtime blockers (Dashboard operator login UI in `frontend/src/App.tsx` + SPA `Accept: text/html` deep-link pass-through in `api/app.py`), `load_dotenv()` in `api/main.py` & `recall_mcp/server.py`, `.env.example` Phase 06 env docs, safe `RECALL_SESSION_TTL_SECONDS`, `RECALL_CORE_FACTORY` in `run_doctor()`, and `shared` topic check in `_violates_instructions`.
   - [x] Remaining release-gating items identified for user approval (version numbers still `2.1.1` in `pyproject.toml`, `frontend/package.json`, `setup.bat`, `setup.ps1`, `scripts/build_dist_bundle.py`; `build_dist_bundle.py` omits `recall_stage.py`/`recall_capture_hook.py`).
 - **Test Requirements**: `450 passed, 1 skipped by design, 0 failed` (`pytest -q --tb=short`) and `npm run build` (`319ms`).
+
+### Phase 08 — Database Identity, Runtime Integrity & Automated Repair
+- **Status**: COMPLETED (Verified Across Installed 2.1.1 & Dev 3.0.0)
+- **Root Cause**:
+  - `D:\proj\Hackathon\RECALL\.env` set `RECALL_DB_PATH=D:\proj\Hackathon\RECALL\.dev_data\recall_dev.sqlite3` (56 memories, 41 active, 0 ChromaDB embeddings), whereas installed RECALL 2.1.1 (`C:\Games\recall-2.1.1-windows`) had no `.env` and defaulted to `C:\Users\dipan\.recall\recall.sqlite3` (102 memories, 87 active, 85 ChromaDB embeddings).
+  - Additionally, `RECALL_CHROMA_PATH` was ignored by `SQLiteUnitOfWork` (`database/repositories/unit_of_work.py`), `RECALL_DB_PATH` silently created unintended directories/empty DBs on missing parent paths, and `docs/RECALL_3.0.0_DEV_TRACKING.md` referenced legacy `C:\Users\dipan\.recall\chroma` instead of `C:\Users\dipan\.recall\recall.sqlite3.chromadb`.
+- **Canonical Resolution & Repair**:
+  - Added `resolve_runtime_paths()` in `recall_core/bootstrap.py` enforcing precedence: `explicit_config > env:RECALL_DB_PATH > default_canonical (~/.recall/recall.sqlite3)`, and `env:RECALL_CHROMA_PATH > derived_from_sqlite (<sqlite_path>.chromadb)`, failing closed (`ConfigurationError`) on directory-as-DB or missing env parent directories.
+  - Wired `chroma_persist_directory` through `SQLiteUnitOfWork` (`database/repositories/unit_of_work.py`).
+  - Commented out `RECALL_DB_PATH` in `D:\proj\Hackathon\RECALL\.env` (preserving `.dev_data/recall_dev.sqlite3` untouched on disk) so both installed 2.1.1 and dev 3.0.0 resolve identically to `C:\Users\dipan\.recall\recall.sqlite3` and `C:\Users\dipan\.recall\recall.sqlite3.chromadb` by default.
+  - Updated `recall_mcp/server.py` (`main()` & `run_doctor()`) to emit resolved SQLite/ChromaDB paths, sources, `cwd`, and `python_executable`.
+  - Added `scripts/verify_and_repair_chroma.py` for read-only parity inspection and backup-before-rebuild recovery.
+- **Test Results**:
+  - Phase 08 suite (`tests/test_phase08_database_identity.py`): **5 passed in 35.09s** (including `-W error::RuntimeWarning -m recall_mcp.server --doctor`, write/search/context/restart round-trip, and backup-before-rebuild ChromaDB recovery).
+  - Full regression suite (`pytest -q --tb=short`): **456 passed, 2 skipped, 0 failed in 112.72s**.
+
+### Phase 09 — Complete Authentication Removal (RECALL Community Edition, `3.1.0` Target)
+- **Status**: COMPLETED ✅ — Version bumped to 3.1.0, Git commit pending final acceptance.
+- **Architectural Boundary**: **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.**
+- **Removed Authentication Components**:
+  - Deleted `api/auth.py` (`OperatorSessionStore`, `resolve_or_create_operator_token`, `verify_operator_token`, `is_valid_host`, `is_valid_origin`, `SESSION_COOKIE_NAME`, `CSRF_COOKIE_NAME`) and `api/routes/auth.py` (`/auth/session`, `/auth/logout`, `/auth/status`).
+  - Removed `auth_router` from `api/routes/__init__.py` and removed `require_auth`, `operator_auth_middleware`, session/CSRF CORS headers, and `allow_credentials=True` from `api/app.py`.
+  - Removed `verify_capture_auth` dependency from `api/routes/capture.py`, capture token generation/ACL helpers (`resolve_or_create_capture_token`, `verify_capture_token`, `get_default_capture_token_path`, `secure_write_token_file`, `get_current_user_sid`) from `recall_core/capture_service.py`, and `_resolve_token()` / `Authorization` header from `scripts/recall_capture_hook.py` (preserving secret redaction and `BEGIN IMMEDIATE` idempotency).
+  - Removed login UI, session check loading screen, client-side auth gating, `X-CSRF-Token`, `credentials: 'include'`, and auth methods from `frontend/src/App.tsx` and `frontend/src/api/client.ts`.
+  - Removed `RECALL_OPERATOR_TOKEN*`, `RECALL_SESSION_TTL_SECONDS`, and `RECALL_API_HTTPS` from `.env.example` and updated project docs (`README.md`, `docs/ARCHITECTURE.md`, `docs/PHASE_06_TRUST_AND_UX_DESIGN.md`, `docs/PACKAGING_AND_DISTRIBUTION.md`, `docs/RELEASE_PLAN.md`, `docs/modules/API.md`, `docs/modules/FRONTEND.md`).
+- **Verification**:
+  - Frontend production build (`cd frontend && npm run build`): `tsc && vite build` passed in **272ms**.
+  - Full Python regression suite (`pytest -q --tb=short`): **450 passed, 2 skipped, 0 failed in 95.58s**.
+  - Antigravity hook spike (`scripts/test_antigravity_hook_spike.py`): **6/6 passed**.
+  - MCP diagnostics (`-W error::RuntimeWarning -m recall_mcp.server --doctor`): `ok: true` with canonical `~/.recall/recall.sqlite3` intact.

@@ -1,6 +1,9 @@
 # RECALL — Packaging, Distribution, and Recovery Specification
 
-This document details the current distribution architecture, canonical data storage locations, backup/recovery protocols, and the Windows deployment roadmap for RECALL Local.
+This document details the current distribution architecture, canonical data storage locations, backup/recovery protocols, and the Windows deployment roadmap for RECALL Community.
+
+> [!NOTE]
+> **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.** Packaged Community installations run locally without login screens, user accounts, or API tokens.
 
 ---
 
@@ -11,7 +14,7 @@ RECALL uses a standard **PEP 621** monorepo packaging configuration governed by 
 ### 1.1 Python Package (`recall-core`)
 - **Build System:** `setuptools>=61.0` and `wheel`
 - **Package Name:** `recall-core`
-- **Current Version:** `2.1.1` (Core package)
+- **Current Version:** `3.1.0` (Core package)
 - **Included Packages:** `recall_core*`, `api*`, `contracts*`, `database*`, `intelligence*`, `recall_mcp*`
 - **Console Script Entry Points:**
   ```toml

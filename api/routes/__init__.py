@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from .auth import router as auth_router
 from .capture import router as capture_router
 from .conflicts import router as conflicts_router
 from .context import router as context_router
@@ -14,7 +13,6 @@ from .sessions import router as sessions_router
 from .stats import router as stats_router
 
 __all__ = [
-    "auth_router",
     "health_router",
     "projects_router",
     "memories_router",

@@ -209,7 +209,7 @@ class FakeMemoryManager:
 
 
 def test_health_and_projects_routes():
-    client = TestClient(create_app(FakeMemoryManager(), require_auth=False))
+    client = TestClient(create_app(FakeMemoryManager()))
 
     health = client.get("/health")
     assert health.status_code == 200
@@ -221,7 +221,7 @@ def test_health_and_projects_routes():
 
 
 def test_memories_and_custom_instruction_routes():
-    client = TestClient(create_app(FakeMemoryManager(), require_auth=False))
+    client = TestClient(create_app(FakeMemoryManager()))
 
     memories = client.get("/memories")
     assert memories.status_code == 200
@@ -242,7 +242,7 @@ def test_memories_and_custom_instruction_routes():
 
 
 def test_context_query_route():
-    client = TestClient(create_app(FakeMemoryManager(), require_auth=False))
+    client = TestClient(create_app(FakeMemoryManager()))
 
     response = client.post("/context/query", json={"query": "sqlite", "project_id": str(uuid4())})
     assert response.status_code == 200
@@ -252,7 +252,7 @@ def test_context_query_route():
 
 
 def test_cors_headers_allow_dashboard_origin():
-    client = TestClient(create_app(FakeMemoryManager(), require_auth=False))
+    client = TestClient(create_app(FakeMemoryManager()))
     response = client.get("/health", headers={"Origin": "http://localhost:5173"})
     assert response.status_code == 200
     assert response.headers.get("access-control-allow-origin") in {"http://localhost:5173", "*"}
@@ -265,7 +265,7 @@ def test_real_sqlite_memory_lifecycle_and_restart_persistence(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -302,7 +302,7 @@ def test_real_sqlite_memory_lifecycle_and_restart_persistence(tmp_path):
         manager.close()
 
         restarted_manager = create_memory_manager(config)
-        restarted_app = create_app(restarted_manager, require_auth=False)
+        restarted_app = create_app(restarted_manager)
         restarted_client = TestClient(restarted_app)
 
         try:
@@ -345,7 +345,7 @@ def test_real_sqlite_endpoints_and_error_handling(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -392,7 +392,7 @@ def test_real_sqlite_concurrent_requests_thread_safety(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -432,7 +432,7 @@ def test_real_sqlite_memories_filtering_and_pagination(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -503,7 +503,7 @@ def test_real_sqlite_project_creation_and_listing(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -546,7 +546,7 @@ def test_real_sqlite_project_creation_and_listing(tmp_path):
         # 4. Persistence across reopen / restart
         manager.close()
         restarted_manager = create_memory_manager(config)
-        restarted_app = create_app(restarted_manager, require_auth=False)
+        restarted_app = create_app(restarted_manager)
         restarted_client = TestClient(restarted_app)
 
         try:
@@ -590,7 +590,7 @@ def test_real_sqlite_memory_editing_and_metadata_preservation(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -661,7 +661,7 @@ def test_real_sqlite_memory_editing_and_metadata_preservation(tmp_path):
         # 4. Case C: Verify persistence after reopening database
         manager.close()
         restarted_manager = create_memory_manager(config)
-        restarted_app = create_app(restarted_manager, require_auth=False)
+        restarted_app = create_app(restarted_manager)
         restarted_client = TestClient(restarted_app)
 
         try:
@@ -711,7 +711,7 @@ def test_real_sqlite_overview_statistics_and_consistency(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -768,7 +768,7 @@ def test_memory_statistics_lifecycle_and_multi_project_accuracy(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall_stats.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -877,7 +877,7 @@ def test_real_sqlite_sessions_lifecycle_and_mcp_unification(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -1000,7 +1000,7 @@ def test_real_sqlite_custom_instructions_project_scoped_lifecycle(tmp_path):
 
     config = DatabaseConfig.from_path(tmp_path / "recall.sqlite3")
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -1096,7 +1096,7 @@ def test_get_memory_detail_includes_lineage_relationships():
     ])
     mock_manager.get_project.return_value = Result.err("No project")
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     resp = client.get(f"/memories/{parent_id}")
@@ -1152,7 +1152,7 @@ def test_get_memory_detail_handles_multiple_successors():
     ])
     mock_manager.get_project.return_value = Result.err("No project")
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     resp = client.get(f"/memories/{parent_id}")
@@ -1207,7 +1207,7 @@ def test_get_memory_detail_handles_multiple_predecessors():
     ])
     mock_manager.get_project.return_value = Result.err("No project")
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     resp = client.get(f"/memories/{summary_id}")
@@ -1253,7 +1253,7 @@ def test_get_memory_detail_handles_other_relationship_types():
     ])
     mock_manager.get_project.return_value = Result.err("No project")
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     resp = client.get(f"/memories/{mem_id}")
@@ -1266,7 +1266,7 @@ def test_get_memory_detail_handles_other_relationship_types():
 
 def test_delete_project_success():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     project_id = uuid4()
@@ -1277,7 +1277,7 @@ def test_delete_project_success():
 def test_delete_project_not_found():
     manager = FakeMemoryManager()
     manager._project_not_found = True
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     project_id = uuid4()
@@ -1288,7 +1288,7 @@ def test_delete_project_not_found():
 
 def test_delete_project_invalid_uuid():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     resp = client.delete("/projects/not-a-valid-uuid")
@@ -1298,7 +1298,7 @@ def test_delete_project_invalid_uuid():
 
 def test_delete_memory_success():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     mem_id = uuid4()
@@ -1308,7 +1308,7 @@ def test_delete_memory_success():
 
 def test_delete_memory_invalid_uuid():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     resp = client.delete("/memories/invalid-uuid")
@@ -1319,7 +1319,7 @@ def test_delete_memory_invalid_uuid():
 def test_delete_memory_not_found():
     manager = FakeMemoryManager()
     manager._memory_not_found = True
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     mem_id = uuid4()
@@ -1330,7 +1330,7 @@ def test_delete_memory_not_found():
 
 def test_delete_custom_instruction_success():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     instr_id = uuid4()
@@ -1341,7 +1341,7 @@ def test_delete_custom_instruction_success():
 def test_delete_custom_instruction_not_found():
     manager = FakeMemoryManager()
     manager._instruction_not_found = True
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     instr_id = uuid4()
@@ -1352,7 +1352,7 @@ def test_delete_custom_instruction_not_found():
 
 def test_delete_custom_instruction_invalid_uuid():
     manager = FakeMemoryManager()
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     resp = client.delete("/custom-instructions/invalid-uuid-string")
@@ -1368,7 +1368,7 @@ def test_custom_instructions_deletion_and_filtering_integration(tmp_path):
     db_path = tmp_path / "custom_instructions.sqlite3"
     config = DatabaseConfig.from_path(db_path)
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -1418,7 +1418,7 @@ def test_project_cascade_deletion_integration(tmp_path):
     db_path = tmp_path / "project_cascade.sqlite3"
     config = DatabaseConfig.from_path(db_path)
     manager = create_memory_manager(config)
-    app = create_app(manager, require_auth=False)
+    app = create_app(manager)
     client = TestClient(app)
 
     try:
@@ -1471,7 +1471,7 @@ def test_project_cascade_deletion_integration(tmp_path):
 def test_frontend_serving_and_spa_fallback():
     """Verify production frontend assets and SPA fallback routing from FastAPI."""
     from pathlib import Path
-    app = create_app(require_auth=False)
+    app = create_app()
     client = TestClient(app)
 
     frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -1500,12 +1500,12 @@ def test_frontend_serving_and_spa_fallback():
     # 4. API routes and OpenAPI docs remain unaffected
     r_health = client.get("/health")
     assert r_health.status_code == 200
-    assert r_health.json()["api_version"] == "1.1.0"
+    assert r_health.json()["api_version"] == "1.2.0"
 
     # 5. Dual prefix compatibility: /api/health also returns 200
     r_api_health = client.get("/api/health")
     assert r_api_health.status_code == 200
-    assert r_api_health.json()["api_version"] == "1.1.0"
+    assert r_api_health.json()["api_version"] == "1.2.0"
 
     # 6. Unknown /api/ routes return 404 and do not fall back to index.html
     r_unknown_api = client.get("/api/nonexistent_endpoint")

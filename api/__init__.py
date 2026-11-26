@@ -1,6 +1,6 @@
 """RECALL HTTP API package."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 API_VERSION = __version__
 
 from .app import app, create_app

@@ -4,6 +4,9 @@
 
 Provide a modular, robust FastAPI HTTP/JSON REST interface for the human-facing Web Dashboard and external HTTP clients, strictly orchestrating operations through the `MemoryManager` core domain facade without directly accessing database repositories or units of work.
 
+> [!NOTE]
+> **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.** All Community HTTP/JSON endpoints operate locally without authentication headers, login routes, session cookies, or access tokens.
+
 ## Architectural Boundaries
 
 - **Strict Facade Encapsulation**: Handlers depend solely on `MemoryManager` injected via FastAPI dependency injection (`get_manager`). Direct access to `_uow`, repository classes, or database connections is prohibited and enforced continuously by AST regression tests.

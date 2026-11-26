@@ -4,8 +4,8 @@
 
 # RECALL — Persistent Memory Engine for AI Coding Agents
 
-[![Application Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](docs/RELEASE_PLAN.md)
-[![HTTP API Version](https://img.shields.io/badge/api-1.1.0-green.svg)](docs/modules/API.md)
+[![Application Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](docs/RELEASE_PLAN.md)
+[![HTTP API Version](https://img.shields.io/badge/api-1.2.0-green.svg)](docs/modules/API.md)
 [![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-lightgrey.svg)](docs/PACKAGING_AND_DISTRIBUTION.md)
@@ -17,6 +17,8 @@ AI coding assistants lose critical context the moment a session ends. Every new 
 **RECALL** solves this by providing a local, persistent cognitive memory layer for AI coding agents. It records key project facts, tracks lineage across sessions, respects explicit user instructions above all else, arbitrates conflicting historical context, and exposes unified context via the **Model Context Protocol (MCP)** and a human-facing **Web Dashboard**.
 
 RECALL is the memory engine itself — not a standalone chatbot or a coding agent. It pairs seamlessly with agent surfaces such as **OpenCode**, **Google Antigravity**, **Cursor**, and **Claude Desktop**.
+
+> **Edition Boundary:** **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.** RECALL Community runs locally without user accounts, login prompts, or API authentication tokens.
 
 ---
 
@@ -108,7 +110,7 @@ RECALL includes a developer cockpit built with React 19 and Tailwind CSS v4. The
 The easiest way to run RECALL on Windows without cloning Git or managing development dependencies is via the pre-packaged distribution bundle.
 
 ### Step 1: Download & Extract the Bundle
-1. Obtain the distribution archive: `recall-2.1.1-windows.zip`.
+1. Obtain the distribution archive: `recall-3.1.0-windows.zip`.
 2. Extract the ZIP to your chosen folder (e.g. `C:\Users\<username>\RECALL` or `D:\tools\RECALL`).
    *Standard user permissions are sufficient; do not run as Administrator. Avoid folder paths with non-ASCII symbols.*
 
@@ -141,7 +143,7 @@ start_api.bat
 ```
 
 - **Web Dashboard:** `http://localhost:8080/` (Pre-compiled production assets served directly from FastAPI — zero Node.js/npm required!)
-- **Health Liveness Probe:** `http://localhost:8080/health` (or `http://localhost:8080/api/health`, reports `api_version: "1.1.0"`)
+- **Health Liveness Probe:** `http://localhost:8080/health` (or `http://localhost:8080/api/health`, reports `api_version: "1.2.0"`)
 - **Interactive Swagger Docs:** `http://localhost:8080/docs`
 - **OpenAPI Schema:** `http://localhost:8080/openapi.json`
 - **Origin Portability:** Frontend automatically uses same-origin relative API routing in production, supporting custom ports and reverse proxies seamlessly.
@@ -415,8 +417,8 @@ python scripts/build_dist_bundle.py
 
 ## 📄 Version & License
 
-- **Application Release:** `v2.1.1`
-- **HTTP REST API:** `v1.1.0`
+- **Application Release:** `v3.1.0`
+- **HTTP REST API:** `v1.2.0`
 - **Database Schema Version:** `2`
 - **License:** MIT License (see [LICENSE](LICENSE))
 

@@ -27,104 +27,44 @@ def _call_tool(server, _tool_name: str, **kwargs):
     return tool.fn(**kwargs)
 
 
-# --- 1. REST Operator Authentication & CSRF / Origin / Host ---
+# --- 1. Accountless REST API (Phase 09 Community Edition Boundary) ---
 
 
-def test_rest_operator_auth_blocks_unauthenticated_reads_and_writes(tmp_path, monkeypatch):
-    monkeypatch.setenv("RECALL_OPERATOR_TOKEN", "op-secret-token")
-    monkeypatch.setenv("RECALL_CAPTURE_TOKEN", "cap-secret-token")
-    manager = create_memory_manager(DatabaseConfig.from_path(str(tmp_path / "auth_api.sqlite3")))
+def test_rest_api_operates_accountless_without_auth_routes_or_headers(tmp_path):
+    manager = create_memory_manager(DatabaseConfig.from_path(str(tmp_path / "accountless_api.sqlite3")))
     try:
-        app = create_app(manager, require_auth=True)
+        app = create_app(manager)
         client = TestClient(app, base_url="http://127.0.0.1:8080")
 
-        # Public health stays accessible
+        # Authentication endpoints are absent
+        assert not any("/auth" in getattr(route, "path", "") for route in app.routes)
+        assert client.get("/api/auth/status").status_code == 404
+        assert client.post("/api/auth/session", json={"token": "any"}).status_code in (404, 405)
+        assert client.post("/api/auth/logout").status_code in (404, 405)
+        assert client.post("/auth/session", json={"token": "any"}).status_code in (404, 405)
+        assert client.post("/auth/logout").status_code in (404, 405)
+
+        # Health, reads, and mutations succeed without tokens, cookies, or CSRF headers
         assert client.get("/health").status_code == 200
-        assert client.get("/auth/status").json()["authenticated"] is False
-
-        # Unauthenticated data-bearing GET & mutating POST/DELETE blocked
-        assert client.get("/memories").status_code == 401
-        assert client.get("/projects").status_code == 401
-        assert client.post("/projects", json={"name": "Blocked"}).status_code == 401
-        assert client.post("/context/query", json={"query": "secret"}).status_code == 401
-
-        # Capture token cannot authenticate operator endpoints
-        assert client.get(
-            "/memories", headers={"Authorization": "Bearer cap-secret-token"}
-        ).status_code == 401
-
-        # Invalid Host header rejected (DNS-rebinding defense)
-        assert client.get(
-            "/memories",
-            headers={"Host": "evil.example.com", "Authorization": "Bearer op-secret-token"},
-        ).status_code == 403
-
-        # Valid operator Bearer token succeeds
-        ok = client.post(
-            "/projects",
-            json={"name": "AuthedProj"},
-            headers={"Authorization": "Bearer op-secret-token"},
-        )
-        assert ok.status_code in (200, 201)
-    finally:
-        manager.close()
-
-
-def test_dashboard_session_cookie_csrf_origin_and_logout(tmp_path, monkeypatch):
-    monkeypatch.setenv("RECALL_OPERATOR_TOKEN", "op-session-secret")
-    manager = create_memory_manager(DatabaseConfig.from_path(str(tmp_path / "sess_api.sqlite3")))
-    try:
-        app = create_app(manager, require_auth=True)
-        client = TestClient(app, base_url="http://127.0.0.1:8080")
-
-        # Invalid operator token rejected
-        assert client.post("/auth/session", json={"token": "wrong"}).status_code == 401
-
-        # Valid login sets HttpOnly session + CSRF cookies
-        login = client.post("/auth/session", json={"token": "op-session-secret"})
-        assert login.status_code == 200
-        assert "recall_operator_session" in client.cookies
-        csrf = client.cookies.get("recall_csrf_token")
-        assert csrf
-
-        # Cookie-authenticated GET works
+        assert client.get("/memories").status_code == 200
         assert client.get("/projects").status_code == 200
+        assert client.get("/stats").status_code == 200
 
-        # Cookie-authenticated mutation without Origin/Referer fails closed (403)
-        no_origin = client.post("/projects", json={"name": "NoOrigin"}, headers={"X-CSRF-Token": csrf})
-        assert no_origin.status_code == 403
+        created = client.post("/projects", json={"name": "AccountlessProj"})
+        assert created.status_code in (200, 201)
+        project_id = created.json()["project_id"]
 
-        # Cookie-authenticated mutation with bad Origin fails (403)
-        bad_origin = client.post(
-            "/projects",
-            json={"name": "BadOrigin"},
-            headers={"Origin": "http://evil.com", "X-CSRF-Token": csrf},
+        mem_resp = client.post(
+            "/memories",
+            json={
+                "project_id": project_id,
+                "content": "Accountless API saves memories cleanly without tokens.",
+                "memory_type": "fact",
+            },
         )
-        assert bad_origin.status_code == 403
-
-        # Cookie-authenticated mutation without CSRF fails (403)
-        no_csrf = client.post(
-            "/projects",
-            json={"name": "NoCsrf"},
-            headers={"Origin": "http://127.0.0.1:8080"},
-        )
-        assert no_csrf.status_code == 403
-
-        # Valid Origin + CSRF succeeds
-        good = client.post(
-            "/projects",
-            json={"name": "GoodCookieProj"},
-            headers={"Origin": "http://127.0.0.1:8080", "X-CSRF-Token": csrf},
-        )
-        assert good.status_code in (200, 201)
-
-        # Logout revokes session
-        out = client.post(
-            "/auth/logout",
-            headers={"Origin": "http://127.0.0.1:8080", "X-CSRF-Token": csrf},
-        )
-        assert out.status_code == 200
-        assert client.get("/projects").status_code == 401
+        assert mem_resp.status_code in (200, 201)
+        assert client.post("/context/query", json={"query": "Accountless API", "project_id": project_id}).status_code == 200
+        assert not client.cookies
     finally:
         manager.close()
 

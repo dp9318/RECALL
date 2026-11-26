@@ -56,7 +56,7 @@ def test_canonical_api_app_initialization_and_routes():
     mock_manager.list_projects_paginated.return_value = Result.ok(Mock(items=[], total=0))
     mock_manager._semantic_index = None
 
-    custom_app = modular_create_app(mock_manager, require_auth=False)
+    custom_app = modular_create_app(mock_manager)
     client = TestClient(custom_app)
     res = client.get("/projects")
     assert res.status_code == 200
@@ -79,7 +79,7 @@ def test_healthz_endpoint_available():
     mock_manager = Mock(spec=["_semantic_index"])
     mock_manager._semantic_index = None
 
-    app = modular_create_app(mock_manager, require_auth=False)
+    app = modular_create_app(mock_manager)
     client = TestClient(app)
 
     res_health = client.get("/health")
@@ -87,7 +87,7 @@ def test_healthz_endpoint_available():
 
     assert res_health.status_code == 200
     assert res_healthz.status_code == 200
-    assert res_healthz.json()["api_version"] == "1.1.0"
+    assert res_healthz.json()["api_version"] == "1.2.0"
 
 
 def test_pyproject_dependencies_include_python_dotenv():

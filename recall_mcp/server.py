@@ -28,7 +28,7 @@ from contracts.retrieval import (
     ContextAssemblyRequest,
     RetrievalRequest,
 )
-from recall_core.bootstrap import create_memory_manager
+from recall_core.bootstrap import create_memory_manager, resolve_runtime_paths
 from recall_core.memory_manager import MemoryManager
 
 # Configure standard error logger so MCP JSON-RPC protocol on stdout is not corrupted
@@ -631,8 +631,14 @@ def run_doctor() -> int:
     """Run pre-flight diagnostics for RECALL MCP installation and configuration."""
     report: dict[str, Any] = {
         "python": sys.version.split()[0],
+        "python_executable": sys.executable,
+        "cwd": os.getcwd(),
         "mcp_mode": None,
         "allowed_projects": None,
+        "sqlite_path": None,
+        "sqlite_source": None,
+        "chroma_path": None,
+        "chroma_source": None,
         "core_init": "error",
         "stats": None,
         "ok": False,
@@ -642,8 +648,20 @@ def run_doctor() -> int:
         allowed = _load_allowed_project_ids()
         report["allowed_projects"] = [str(p) for p in sorted(allowed)] if allowed is not None else "unrestricted"
         factory_path = os.environ.get("RECALL_CORE_FACTORY")
+        if not factory_path:
+            resolved = resolve_runtime_paths()
+            report["sqlite_path"] = str(resolved.sqlite_path)
+            report["sqlite_source"] = resolved.sqlite_source
+            report["chroma_path"] = str(resolved.chroma_path)
+            report["chroma_source"] = resolved.chroma_source
         manager = _load_core_factory(factory_path) if factory_path else create_memory_manager()
         try:
+            runtime_paths = getattr(manager, "runtime_paths", None)
+            if runtime_paths is not None:
+                report["sqlite_path"] = str(runtime_paths.sqlite_path)
+                report["sqlite_source"] = runtime_paths.sqlite_source
+                report["chroma_path"] = str(runtime_paths.chroma_path)
+                report["chroma_source"] = runtime_paths.chroma_source
             report["core_init"] = "ok"
             stats_res = manager.get_stats()
             if stats_res.success:
@@ -679,6 +697,12 @@ def main() -> None:
             logger.info("Creating default Core memory manager (SQLite + ChromaDB + Models)...")
             memory_manager = create_memory_manager()
         t_factory_end = time.perf_counter()
+        runtime_paths = getattr(memory_manager, "runtime_paths", None)
+        if runtime_paths is not None:
+            logger.info(
+                f"Resolved DB: sqlite='{runtime_paths.sqlite_path}' ({runtime_paths.sqlite_source}) | "
+                f"chroma='{runtime_paths.chroma_path}' ({runtime_paths.chroma_source}) | cwd='{os.getcwd()}'"
+            )
         logger.info(f"MemoryManager initialized in {t_factory_end - t_factory_start:.3f}s")
     except Exception as exc:
         source = f"RECALL_CORE_FACTORY '{factory_path}'" if factory_path else "default Core composition"

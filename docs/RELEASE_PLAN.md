@@ -6,6 +6,8 @@ This document pins the target release versions and outlines the verification che
 
 > [!NOTE]
 > Per release planning governance, this document records target versions and verification requirements in advance. No production tags or releases are published in this step.
+>
+> **Architecture Boundary (RECALL 3.1.0 Target):** **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.**
 
 ---
 
@@ -13,10 +15,10 @@ This document pins the target release versions and outlines the verification che
 
 | Subsystem / Layer | Historical Baseline | Previous Milestone | Target Release Version | SemVer Increment Type | Status / Representation |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Application Release** | `1.0.1` | `2.1.0` | **`2.1.1`** | **Patch** | Monorepo system-level release: Minor UI fixes |
-| **HTTP API (FastAPI REST)** | `1.0.0` | `1.0.0` | **`1.1.0`** | **Minor** | Modular HTTP API endpoints, OpenAPI specification, and `/health` probe |
-| **Frontend Web Dashboard** | `1.0.1` | `2.1.0` | **`2.1.1`** | **Patch (Aligned)** | React 19 + Tailwind CSS v4 dashboard client (`frontend/package.json`) |
-| **Python Core Engine** | `0.1.0` | `2.1.0` | **`2.1.1`** | **Aligned** | Canonical Python distribution (`pyproject.toml` `recall-core`) |
+| **Application Release** | `1.0.1` | `2.1.0` | **`3.1.0`** | **Major** | RECALL Community Edition — accountless, auth-free, Phase 09 |
+| **HTTP API (FastAPI REST)** | `1.0.0` | `1.0.0` | **`1.2.0`** | **Minor** | Auth middleware removed; accountless Community edition |
+| **Frontend Web Dashboard** | `1.0.1` | `2.1.0` | **`3.1.0`** | **Major (Aligned)** | React 19 + Tailwind CSS v4 dashboard client (`frontend/package.json`) |
+| **Python Core Engine** | `0.1.0` | `2.1.0` | **`3.1.0`** | **Aligned** | Canonical Python distribution (`pyproject.toml` `recall-core`) |
 | **MCP Server Adapter** | Unversioned | `1.0.0` | **`1.0.0`** | **Initial** | FastMCP stdio interface (`recall_mcp.server`) |
 | **Database Schema** | `2` | `2` | **`2`** | **Unchanged** | Canonical SQLite schema version (`schema_version` migration level) |
 

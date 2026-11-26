@@ -115,7 +115,7 @@ def test_api_routes_work_without_uow_on_manager():
     mock_manager._semantic_index = Mock()
     mock_manager._semantic_index.health_check.return_value = Result.ok({"status": "healthy", "available": True})
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     # 1. Projects endpoint
@@ -169,7 +169,7 @@ def test_stats_endpoint_does_not_invoke_list_conflicts_route():
     mock_manager._semantic_index = Mock()
     mock_manager._semantic_index.health_check.return_value = Result.ok({"status": "healthy", "available": True})
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     # Check stats executes cleanly without invoking list_conflicts
@@ -192,7 +192,7 @@ def test_api_and_mcp_scope_and_lifecycle_consistency():
 
         # In-process memory manager shared across API and MCP wrappers for isolated integration
         manager = create_memory_manager(config)
-        app = create_app(manager, require_auth=False)
+        app = create_app(manager)
         client = TestClient(app)
         mcp_server = create_server(manager)
         search_tool = mcp_server._tool_manager.get_tool("recall_search").fn
@@ -281,7 +281,7 @@ def test_api_handles_database_failures_gracefully():
     # Simulate database connection / query failure
     mock_manager.list_projects_paginated.return_value = Result.err("database disk image is malformed")
 
-    app = create_app(mock_manager, require_auth=False)
+    app = create_app(mock_manager)
     client = TestClient(app)
 
     resp = client.get("/projects")

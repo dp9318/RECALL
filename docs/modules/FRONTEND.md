@@ -4,6 +4,9 @@
 
 Provide a modern, responsive, human-facing control surface for exploring agent memories, inspecting lineage graphs, managing user-authored custom instructions, and arbitrating detected memory conflicts.
 
+> [!NOTE]
+> **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.** The dashboard opens directly without a login screen, token prompts, authentication providers, or credential injection.
+
 ---
 
 ## 2. Technology Stack & Build Pipeline

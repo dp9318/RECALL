@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import sqlite3
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Iterator, Optional
 from uuid import UUID
 
@@ -35,6 +36,7 @@ class SQLiteUnitOfWork:
         embedding_function: Any = None,
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
+        chroma_persist_directory: Optional[Path] = None,
     ) -> None:
         self._config = config
         self._db_connection = DatabaseConnection(config)
@@ -43,6 +45,7 @@ class SQLiteUnitOfWork:
         self._embedding_function = embedding_function
         self._embedding_provider = embedding_provider
         self._embedding_model = embedding_model
+        self._chroma_persist_directory = chroma_persist_directory
 
         # Lazy-initialized repositories
         self._projects: Optional[SQLiteProjectRepository] = None
@@ -86,11 +89,12 @@ class SQLiteUnitOfWork:
         if self._semantic_index is None:
             # Lazy import to avoid circular dependency
             from database.repositories.semantic_index_repo import SQLiteSemanticIndexRepository
+            persist_dir = self._chroma_persist_directory or self._config.path.with_suffix(
+                self._config.path.suffix + ".chromadb"
+            )
             self._semantic_index = SQLiteSemanticIndexRepository(
                 self._ensure_connection(),
-                persist_directory=self._config.path.with_suffix(
-                    self._config.path.suffix + ".chromadb"
-                ),
+                persist_directory=persist_dir,
                 embedding_function=self._embedding_function,
                 embedding_provider=self._embedding_provider,
                 embedding_model=self._embedding_model,

@@ -124,7 +124,6 @@ def test_offline_api_timeout_and_non_blocking() -> None:
         env = {
             **dict(sys.platform and {}),
             "RECALL_API_URL": "http://127.0.0.1:59999/api/capture",
-            "RECALL_CAPTURE_TOKEN": "test_token_123",
         }
 
         start = time.perf_counter()

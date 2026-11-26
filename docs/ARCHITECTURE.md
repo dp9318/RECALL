@@ -9,6 +9,9 @@ RECALL is a persistent memory engine implemented as a Python core/service. It ha
 
 Both surfaces invoke the same core application services.
 
+> [!NOTE]
+> **RECALL Community is a local-first, accountless application. Authentication is exclusive to RECALL Pro.** Community edition operates locally without user login, session cookies, or access tokens.
+
 ## 2. High-Level Architecture
 
 ```text

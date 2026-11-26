@@ -26,50 +26,6 @@ DEFAULT_API_URL = "http://127.0.0.1:8080/api/capture"
 CONNECT_TIMEOUT_SECONDS = 2.0
 
 
-def _resolve_token(workspace_path: Path | None) -> str | None:
-    """Resolve the local capture token from environment or deterministic local storage."""
-    token = os.getenv("RECALL_CAPTURE_TOKEN")
-    if token and token.strip():
-        return token.strip()
-
-    env_file = os.getenv("RECALL_CAPTURE_TOKEN_FILE")
-    if env_file and env_file.strip():
-        candidate = Path(env_file.strip()).expanduser().resolve()
-        if candidate.is_file():
-            try:
-                return candidate.read_text(encoding="utf-8").strip()
-            except Exception:
-                pass
-
-    # Check dev workspace token file
-    if workspace_path:
-        dev_token_file = (workspace_path / ".dev_data" / ".capture_token").resolve()
-        if dev_token_file.is_file():
-            try:
-                return dev_token_file.read_text(encoding="utf-8").strip()
-            except Exception:
-                pass
-
-    # Check repository root dev token file
-    repo_root = Path(__file__).resolve().parent.parent
-    repo_dev_token = (repo_root / ".dev_data" / ".capture_token").resolve()
-    if repo_dev_token.is_file():
-        try:
-            return repo_dev_token.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-
-    # Check user home token file
-    home_token_file = (Path.home() / ".recall" / ".capture_token").resolve()
-    if home_token_file.is_file():
-        try:
-            return home_token_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-
-    return None
-
-
 def _get_staged_event_file(workspace_path: Path) -> Path | None:
     """Find a staged structured capture event file if one exists."""
     candidates = [
@@ -142,12 +98,6 @@ def run_hook(event_type: str) -> None:
                 pass
             return
 
-        # Resolve authentication token
-        token = _resolve_token(workspace_dir)
-        if not token:
-            sys.stderr.write("[RECALL-HOOK] Warning: no capture token available, skipping capture\n")
-            return
-
         # Build capture request payload
         api_url = os.getenv("RECALL_API_URL", DEFAULT_API_URL)
         payload = {
@@ -168,7 +118,6 @@ def run_hook(event_type: str) -> None:
             data=req_data,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {token}",
             },
             method="POST",
         )

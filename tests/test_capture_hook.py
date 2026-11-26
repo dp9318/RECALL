@@ -63,7 +63,6 @@ def test_hook_offline_api_exits_zero(tmp_path):
 
     env = {
         "RECALL_API_URL": "http://127.0.0.1:59998/api/capture",
-        "RECALL_CAPTURE_TOKEN": "test_tok",
     }
     stdin_data = json.dumps({"workspacePaths": [str(tmp_path)]})
 
@@ -210,8 +209,6 @@ def test_end_to_end_staging_hook_and_ingestion(tmp_path, monkeypatch):
     from recall_core.staging import stage_capture_event
 
     db_path = tmp_path / "e2e_capture.sqlite3"
-    token = "test_e2e_token_777888999"
-    monkeypatch.setenv("RECALL_CAPTURE_TOKEN", token)
 
     core = create_memory_manager(
         DatabaseConfig.from_path(db_path),
@@ -248,7 +245,6 @@ def test_end_to_end_staging_hook_and_ingestion(tmp_path, monkeypatch):
         # 2. Execute hook runner with workspace path in stdin
         env = {
             "RECALL_API_URL": f"http://127.0.0.1:{port}/api/capture",
-            "RECALL_CAPTURE_TOKEN": token,
         }
         stdin_data = json.dumps({"workspacePaths": [str(tmp_path)]})
         code, out, err = run_hook_proc("post-invocation", stdin_data, env=env)
