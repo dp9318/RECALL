@@ -1,23 +1,13 @@
-
 {
   "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "portkey-gemini": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Portkey Gemini",
-      "options": {
-        "baseURL": "https://api.portkey.ai/v1",
-        "apiKey": "{env:PORTKEY_API_KEY}",
-        "headers": {
-          "x-portkey-virtual-key": "{env:PORTKEY_VIRTUAL_KEY}"
-        }
+  "mcp": {
+    "recall": {
+      "type": "local",
+      "command": ["C:\\Games\\recall-2.1.1-windows\\.venv\\Scripts\\python.exe", "-m", "recall_mcp.server"],
+      "environment": {
+        "RECALL_MCP_WARMUP": "true"
       },
-      "models": {
-        "gemini-2.5-flash-lite": {
-          "name": "Gemini 2.5 Flash Lite"
-        }
-      }
+      "enabled": true
     }
-  },
-  "model": "portkey-gemini/gemini-2.5-flash-lite"
+  }
 }

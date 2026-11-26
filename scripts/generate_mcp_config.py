@@ -27,8 +27,10 @@ def generate_config(output_file: Path | None = None) -> dict[str, dict]:
             "recall": {
                 "command": python_cmd,
                 "args": ["-m", "recall_mcp.server"],
+                "cwd": str(repo_root),
                 "env": {
-                    "RECALL_MCP_WARMUP": "true"
+                    "RECALL_MCP_WARMUP": "true",
+                    "RECALL_MCP_MODE": "standard",
                 }
             }
         }
@@ -42,7 +44,8 @@ def generate_config(output_file: Path | None = None) -> dict[str, dict]:
                 "type": "local",
                 "command": [python_cmd, "-m", "recall_mcp.server"],
                 "environment": {
-                    "RECALL_MCP_WARMUP": "true"
+                    "RECALL_MCP_WARMUP": "true",
+                    "RECALL_MCP_MODE": "standard",
                 },
                 "enabled": True
             }

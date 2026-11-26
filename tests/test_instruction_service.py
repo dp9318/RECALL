@@ -297,3 +297,68 @@ class TestCustomInstructionService:
 
         assert result.success
         assert result.value == [shared]
+
+    def test_get_active_for_project_orders_project_before_global(self, mock_instruction_repo):
+        project_id = uuid4()
+        global_inst = CustomInstruction(id=uuid4(), content="Global", scope=Scope.GLOBAL)
+        project_inst = CustomInstruction(
+            id=uuid4(), content="Project", scope=Scope.PROJECT, project_id=project_id
+        )
+        mock_instruction_repo.get_active_for_scope.side_effect = [
+            Result.ok([global_inst]),
+            Result.ok([project_inst]),
+        ]
+
+        result = CustomInstructionService(mock_instruction_repo).get_active_for_project(project_id)
+
+        assert result.success
+        assert result.value == [project_inst, global_inst]
+
+    def test_update_rejects_empty_content_and_invalid_deleted_transition(self, mock_instruction_repo):
+        instruction_id = uuid4()
+        service = CustomInstructionService(mock_instruction_repo)
+
+        empty_res = service.update(instruction_id, CustomInstructionUpdateRequest(content="   "))
+        assert not empty_res.success
+        assert "empty" in empty_res.error.lower()
+
+        mock_instruction_repo.get.return_value = Result.ok(
+            CustomInstruction(id=instruction_id, content="Old", status=InstructionStatus.DELETED)
+        )
+        reactivate_res = service.update(
+            instruction_id,
+            CustomInstructionUpdateRequest(status=InstructionStatus.ACTIVE),
+        )
+        assert not reactivate_res.success
+        assert "invalid instruction status transition" in reactivate_res.error.lower()
+        mock_instruction_repo.update.assert_not_called()
+
+    def test_update_allows_active_to_inactive_to_active_transition(self, mock_instruction_repo):
+        instruction_id = uuid4()
+        service = CustomInstructionService(mock_instruction_repo)
+
+        mock_instruction_repo.get.return_value = Result.ok(
+            CustomInstruction(id=instruction_id, content="Rule", status=InstructionStatus.ACTIVE)
+        )
+        mock_instruction_repo.update.return_value = Result.ok(
+            CustomInstruction(id=instruction_id, content="Rule", status=InstructionStatus.INACTIVE, version=2)
+        )
+        res = service.update(instruction_id, CustomInstructionUpdateRequest(status=InstructionStatus.INACTIVE))
+        assert res.success
+        assert res.value.status == InstructionStatus.INACTIVE
+        assert res.value.version == 2
+
+    def test_update_rejects_reactivation_from_deleted_status(self, mock_instruction_repo):
+        instruction_id = uuid4()
+        service = CustomInstructionService(mock_instruction_repo)
+        mock_instruction_repo.get.return_value = Result.ok(
+            CustomInstruction(id=instruction_id, content="Old", status=InstructionStatus.DELETED)
+        )
+
+        res = service.update(
+            instruction_id,
+            CustomInstructionUpdateRequest(content="Mutated", status=InstructionStatus.ACTIVE),
+        )
+        assert not res.success
+        assert "deleted" in res.error.lower()
+        mock_instruction_repo.update.assert_not_called()

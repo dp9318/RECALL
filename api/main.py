@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import uvicorn
+from dotenv import load_dotenv
 
 from api.app import app
 
@@ -15,6 +16,7 @@ def main() -> None:
     network binding (e.g. 0.0.0.0) via RECALL_API_HOST requires appropriate
     network security controls (firewall, VPN, reverse proxy with TLS/auth).
     """
+    load_dotenv()
     host = os.getenv("RECALL_API_HOST", "127.0.0.1")
     port = int(os.getenv("RECALL_API_PORT", "8080"))
     reload = os.getenv("RECALL_API_RELOAD", "false").lower() in ("true", "1", "yes")

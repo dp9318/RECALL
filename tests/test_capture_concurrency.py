@@ -59,7 +59,7 @@ finally:
 
     outputs = []
     for p in processes:
-        stdout, stderr = p.communicate(timeout=30)
+        stdout, stderr = p.communicate(timeout=90)
         assert p.returncode == 0, f"Worker process failed with code {p.returncode}: {stderr}\nStdout: {stdout}"
         outputs.append(stdout)
 

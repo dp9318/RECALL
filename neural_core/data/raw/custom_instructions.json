@@ -1,0 +1,75 @@
+[
+  {
+    "instruction_id": "00f35cb6-1621-4926-b462-c8f1ebddf9e5",
+    "scope": "global",
+    "project_id": null,
+    "content": "my name is dipankar kumar",
+    "status": "active",
+    "version": 8,
+    "metadata": {},
+    "created_at": "2026-10-09T21:05:44.900722+00:00",
+    "updated_at": "2026-10-24T03:16:30.819087"
+  },
+  {
+    "instruction_id": "cf536943-2eb4-4e75-bd06-fda6e9210d87",
+    "scope": "global",
+    "project_id": null,
+    "content": "Global rule 038cfc",
+    "status": "inactive",
+    "version": 4,
+    "metadata": {},
+    "created_at": "2026-10-09T22:43:17.694329+00:00",
+    "updated_at": "2026-10-15T20:54:38.366192"
+  },
+  {
+    "instruction_id": "693647df-ea0d-4e19-a158-2b1fcea04c60",
+    "scope": "project",
+    "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+    "content": "Portfolio Project Instructions (Dipankar Kumar — \"Learn what the problem needs, then build it.\"):\n1. Documentation Hierarchy: Follow the source-of-truth priority: (1) Explicit instruction from Dipankar, (2) docs/PRD.md, (3) docs/DESIGN.md, (4) docs/CONTENT.md, (5) docs/ARCHITECTURE.md, (6) docs/TECH_STACK.md, (7) docs/DEVELOPMENT_RULES.md, (8) Existing implementation. Stop and ask before making major architectural changes, introducing frameworks/backends/databases, or adding unapproved dependencies.\n2. Content Integrity & Attribution: Never fabricate or exaggerate experience, job titles, metrics, technologies, or achievements. docs/CONTENT.md is the sole source of truth. Accurately distinguish collaborative from individual work. Position Dipankar as an early-career software engineer learning what the problem needs and building it, never as a senior engineer or specialized ML expert. Never expose private personal data.\n3. Architecture & Design: Keep implementation data-driven and clean. Portfolio data lives in typed TypeScript modules in src/data/ separated from UI components. Adhere strictly to the Picto-inspired design direction (clean typography, generous whitespace, structured grid, restrained interaction; no 3D/WebGL/flashy gimmicks).\n4. Verification & Scope: Keep changes focused with zero unrequested scope creep. Always verify with `npm run build` and check responsive layouts across mobile, tablet, and desktop before concluding any task. Never claim untested functionality works.",
+    "status": "inactive",
+    "version": 5,
+    "metadata": {
+      "category": "portfolio_core_instructions",
+      "project": "Portfolio Build — Learn What the Problem Needs"
+    },
+    "created_at": "2026-10-12T13:34:08.774111+00:00",
+    "updated_at": "2026-10-24T03:16:26.678761"
+  },
+  {
+    "instruction_id": "69b84077-3c8d-4f05-bf42-6f8ea207c20f",
+    "scope": "global",
+    "project_id": null,
+    "content": "My name is Dipankar only.",
+    "status": "active",
+    "version": 3,
+    "metadata": {},
+    "created_at": "2026-10-23T21:50:40.657658+00:00",
+    "updated_at": "2026-10-26T17:57:46.062583"
+  },
+  {
+    "instruction_id": "53036800-db23-4a9e-8182-3cc25c4f83f1",
+    "scope": "project",
+    "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+    "content": "Portfolio Core Governance & RECALL Documentation Requirements (Updated for V2.6):\n\n1. Documentation Hierarchy & Source of Truth:\n   - Priority: (1) Explicit instruction from Dipankar, (2) docs/PRD.md, (3) docs/DESIGN.md, (4) docs/CONTENT.md, (5) docs/ARCHITECTURE.md, (6) docs/TECH_STACK.md, (7) docs/DEVELOPMENT_RULES.md, (8) Existing implementation.\n   - Stop and ask before making major architectural changes, introducing frameworks/backends/databases, or adding unapproved dependencies.\n\n2. Content Integrity & Attribution:\n   - Never fabricate or exaggerate experience, job titles, metrics, technologies, or achievements. docs/CONTENT.md and src/data/*.ts are canonical.\n   - Accurately distinguish collaborative from individual work. Position Dipankar as an early-career software engineer (\"I learn what the problem needs and build it.\"). Never expose private data or credentials.\n\n3. Architecture & Design Discipline (V2.6 Accepted State):\n   - Keep implementation data-driven in typed TypeScript modules (`src/data/`) separated from UI components (`src/components/`, `src/sections/`).\n   - Preserve the accepted V2.6 Engineering Notebook Paper & Graphite design: `paper-background.webp` (`#F5F2EB`) + `paper-card.webp` (`#FAF8F3`), porous double-pass `#pencil-stroke-primary`/`#pencil-stroke-fine` SVG filters, delicate corner grazes, hatched exterior graphite smudges, `DP` branding, and the hand-drawn pencil `ScrollToTop` control. Do NOT revert to v1.8 3D/frosted glass or add Tailwind/Three.js.\n\n4. Verification, Scope & Session Startup:\n   - Before starting work, retrieve `PORTFOLIO_V2.6_MASTER_INDEX` and relevant V2.6 RECALL memories.\n   - Always verify with `npm run build` and check responsive viewports (`1920`, `1440`, `1280`, `1024`, `768`, `390`, `360px`) before concluding. Record milestones, root causes, and honest verification status in RECALL.",
+    "status": "active",
+    "version": 3,
+    "metadata": {
+      "category": "portfolio_unified_governance_and_recall_protocol",
+      "project": "Portfolio Build — Learn What the Problem Needs",
+      "version": "V2.6"
+    },
+    "created_at": "2026-11-24T14:56:55.278834+00:00",
+    "updated_at": "2026-11-25T02:17:12.668181"
+  },
+  {
+    "instruction_id": "e0bd0c20-543b-4ac2-bf48-db64a87dfb31",
+    "scope": "global",
+    "project_id": null,
+    "content": "Always document everything in development, including architectural decisions, phase progress, test results, and implementation details.",
+    "status": "active",
+    "version": 1,
+    "metadata": {},
+    "created_at": "2026-11-25T21:25:22.439431+00:00",
+    "updated_at": "2026-11-25T21:25:22.439431+00:00"
+  }
+]

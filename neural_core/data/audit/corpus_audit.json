@@ -1,0 +1,1329 @@
+{
+  "audit_timestamp": "2026-11-26T06:57:52.478585+00:00",
+  "source_directory": "D:\\proj\\Hackathon\\RECALL\\neural_core\\data\\raw",
+  "classification": {
+    "total_memories": 80,
+    "by_memory_type": {
+      "fact": 8,
+      "decision": 20,
+      "architecture": 13,
+      "checkpoint": 7,
+      "milestone": 3,
+      "concept": 1,
+      "release": 1,
+      "roadmap": 2,
+      "guidelines": 1,
+      "audit_findings": 1,
+      "context_update": 3,
+      "general": 20
+    },
+    "by_scope": {
+      "global": 1,
+      "project": 79
+    },
+    "by_status": {
+      "archived": 2,
+      "active": 78
+    },
+    "by_provenance": {
+      "api": 1,
+      "basic website": 1,
+      "user_explicit": 77,
+      "User-created memory": 1
+    },
+    "by_project_id": {
+      "global_unscoped": {
+        "count": 1,
+        "project_name": "Global / Unscoped"
+      },
+      "195081f5-657b-47fc-a578-57ce84464f75": {
+        "count": 50,
+        "project_name": "Portfolio"
+      },
+      "3ca43da6-f4e3-43ae-8e38-6e84cb963332": {
+        "count": 29,
+        "project_name": "RECALL"
+      }
+    },
+    "distinct_counts": {
+      "memory_type": 12,
+      "scope": 2,
+      "status": 2,
+      "provenance": 4,
+      "project_id": 3
+    },
+    "unusual_distributions": [
+      "Zero memories have status='superseded' and lineage.json has 0 records; historical evolution is recorded in prose (e.g., V1 -> V2 -> V2.6) rather than DB supersession edges.",
+      "Two memories are status='archived' (both are early/test-era records from 2026-10-09).",
+      "Non-standard provenance strings exist alongside canonical ones ('basic website', 'User-created memory', 'api').",
+      "74 of 80 memories have empty metadata ({}); only 6 carry explicit metadata."
+    ]
+  },
+  "content_quality": {
+    "exact_duplicate_groups": [],
+    "near_duplicate_pairs": [],
+    "incomplete_or_context_dependent": [
+      {
+        "memory_id": "21b024a8-8065-4dfd-bc05-0d291f544e0c",
+        "char_length": 32,
+        "reason": "Short/underspecified statement lacking standalone architectural or task context."
+      },
+      {
+        "memory_id": "fa651384-0622-4b22-a907-f3803ec11b6a",
+        "char_length": 44,
+        "reason": "Short/underspecified statement lacking standalone architectural or task context."
+      },
+      {
+        "memory_id": "1b896989-c05f-48ce-b93c-a1db92f00ee4",
+        "char_length": 33,
+        "reason": "Short/underspecified statement lacking standalone architectural or task context."
+      }
+    ],
+    "contradictory_pairs": [
+      {
+        "memory_id_a": "a191638e-6c65-467d-9787-4235beca720d",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "a191638e-6c65-467d-9787-4235beca720d",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "a191638e-6c65-467d-9787-4235beca720d",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "324893a2-76fe-4948-b9a7-9bd50fb77056",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "324893a2-76fe-4948-b9a7-9bd50fb77056",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "324893a2-76fe-4948-b9a7-9bd50fb77056",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "15eb0956-7070-45ef-a5c5-24bc5697be21",
+        "memory_id_b": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "15eb0956-7070-45ef-a5c5-24bc5697be21",
+        "memory_id_b": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      },
+      {
+        "memory_id_a": "15eb0956-7070-45ef-a5c5-24bc5697be21",
+        "memory_id_b": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "topic": "Portfolio UI design direction (3D WebGL / Apple Frosted Glass vs. Engineering Notebook Paper / No 3D-WebGL)",
+        "certainty": "confirmed_contradiction"
+      }
+    ],
+    "preference_changes_memory_ids": [
+      "a191638e-6c65-467d-9787-4235beca720d",
+      "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+      "c92c2422-20eb-43e4-bd13-34ccbbea0abd",
+      "3afeefab-22ec-4261-ae57-414da1120c5b",
+      "3b87f84c-db70-46ad-9984-96c984d2459e",
+      "fde383a5-2582-45e0-beef-9a050cdae8a6",
+      "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+      "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+      "fecc2872-53ef-4428-9e1b-aa124bc23e0c",
+      "84da26dc-6266-44f9-8e7a-b7f549a361a9",
+      "8eb40c82-c9cd-452f-a12d-63d17866c3db",
+      "4f4d0ee5-0068-4e79-8a8c-2c193f1491ac",
+      "a43b4535-c078-4640-a87d-3804658285eb",
+      "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+      "b2d8c03c-1cd0-441c-af4e-89f186cda17e",
+      "a474f795-4399-450d-a23c-d48aa77f419b",
+      "f7f0b360-c838-4859-aa9c-9166eea38254",
+      "324893a2-76fe-4948-b9a7-9bd50fb77056",
+      "a729a5bb-4263-4f53-8c92-e520458d226b",
+      "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+      "d4eaf4cd-4015-4ba4-9ef5-cf7211198256",
+      "d0615c6d-8883-4401-87c5-e6a82119d50d",
+      "9b9f92f0-e1b6-42d7-abe7-927ce76b3827",
+      "f61f2815-6a7b-44dd-8e85-353df611d062",
+      "63b4f9c2-1dfb-41b6-a285-e171a4e9ed76",
+      "61868f3b-8a34-46a6-89ee-ff08f592e5b1",
+      "9054b5b8-40fb-4884-8fdb-95ea5c89ab13",
+      "8366c546-18fa-42a6-b532-b965f63b5111",
+      "131be8b6-1885-467e-8051-38e6340ebe6e",
+      "a131cf9d-fde7-452e-8c00-a327dd446292",
+      "5c6c82ea-91e3-48fe-ab8b-3cdd1d958787",
+      "953855cf-b5fd-42d7-96d6-fec92e66aa2e",
+      "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+      "f669af40-6b84-4e5d-964d-055ccfbbbcc5",
+      "3321f2bf-9f8d-41b3-aafd-05ef1555515a",
+      "d3abfd1e-7b75-4dde-8671-a687e43df467",
+      "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+      "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+      "70bef2f9-6863-437f-9abb-8eb01936f3da",
+      "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+      "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+      "151621e0-d84f-4ee2-9197-3ccdf36450d6",
+      "8477839b-c0f0-4dc3-965a-cb272509b50f",
+      "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+      "062918a7-09bb-4b9b-bf79-22dec269f136",
+      "15eb0956-7070-45ef-a5c5-24bc5697be21",
+      "03fcdd06-a416-481b-9ba8-fda8788ea2e0",
+      "64dcf665-c0ca-40d9-8948-b59743a923ef",
+      "6fd4f18a-f094-4b5d-935e-d84d19f0e41b",
+      "fc79cfa5-8b21-48a7-8d78-8e77275169df",
+      "e138a102-1326-44fe-94df-76f80522fed6",
+      "7fa8386a-08b3-420a-83d1-d1d99385b134"
+    ],
+    "temporary_situations_memory_ids": [
+      "c92c2422-20eb-43e4-bd13-34ccbbea0abd",
+      "ed7f087d-b87b-4ee7-b5f6-7677d46b431f",
+      "24d1455a-d301-430b-ba5e-22ee3586bd38",
+      "3afeefab-22ec-4261-ae57-414da1120c5b",
+      "3b87f84c-db70-46ad-9984-96c984d2459e",
+      "fde383a5-2582-45e0-beef-9a050cdae8a6",
+      "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+      "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+      "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+      "d3443321-aecd-4f4d-97f3-66a5bdf26694",
+      "a43b4535-c078-4640-a87d-3804658285eb",
+      "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+      "4c8bd792-ea09-4b51-9164-12bde8249ead",
+      "b2d8c03c-1cd0-441c-af4e-89f186cda17e",
+      "938b254b-a004-4df4-9bcf-1a30870cdc7e",
+      "8556a183-6948-4708-b816-9f2356b69abd",
+      "3cf965a9-a1f2-411a-8073-41ba240c639b",
+      "e98a3c3d-7230-49a0-ad40-e40c152baff5",
+      "324893a2-76fe-4948-b9a7-9bd50fb77056",
+      "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+      "d4eaf4cd-4015-4ba4-9ef5-cf7211198256",
+      "d0615c6d-8883-4401-87c5-e6a82119d50d",
+      "9b9f92f0-e1b6-42d7-abe7-927ce76b3827",
+      "8366c546-18fa-42a6-b532-b965f63b5111",
+      "131be8b6-1885-467e-8051-38e6340ebe6e",
+      "5c6c82ea-91e3-48fe-ab8b-3cdd1d958787",
+      "062918a7-09bb-4b9b-bf79-22dec269f136",
+      "64dcf665-c0ca-40d9-8948-b59743a923ef",
+      "6fd4f18a-f094-4b5d-935e-d84d19f0e41b",
+      "fc79cfa5-8b21-48a7-8d78-8e77275169df",
+      "e138a102-1326-44fe-94df-76f80522fed6",
+      "bb1acd09-631a-4641-93b9-5fc76d857e74"
+    ],
+    "permanent_situations_memory_ids": [
+      "02f7f040-2500-4f5d-a26b-fb0635e0654e",
+      "bc67b672-8425-476e-8c55-4ae577b3cac0",
+      "d75d2e07-cf35-4cf6-b2b5-792b4337dabd",
+      "a191638e-6c65-467d-9787-4235beca720d",
+      "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+      "46d67c1b-2f92-47fc-8c37-4c83a10d2812",
+      "99a90bff-e9a8-4a48-8b67-528f2b3ab61d",
+      "ed7f087d-b87b-4ee7-b5f6-7677d46b431f",
+      "3afeefab-22ec-4261-ae57-414da1120c5b",
+      "3b87f84c-db70-46ad-9984-96c984d2459e",
+      "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+      "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+      "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+      "d3443321-aecd-4f4d-97f3-66a5bdf26694",
+      "fecc2872-53ef-4428-9e1b-aa124bc23e0c",
+      "84da26dc-6266-44f9-8e7a-b7f549a361a9",
+      "8eb40c82-c9cd-452f-a12d-63d17866c3db",
+      "4f4d0ee5-0068-4e79-8a8c-2c193f1491ac",
+      "a43b4535-c078-4640-a87d-3804658285eb",
+      "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+      "4c8bd792-ea09-4b51-9164-12bde8249ead",
+      "b2d8c03c-1cd0-441c-af4e-89f186cda17e",
+      "d6d45968-a2f0-454e-a45a-889cad5e39a1",
+      "b2182dd2-445b-4d96-953e-f5cee2974a1b",
+      "a474f795-4399-450d-a23c-d48aa77f419b",
+      "938b254b-a004-4df4-9bcf-1a30870cdc7e",
+      "8556a183-6948-4708-b816-9f2356b69abd",
+      "8ab81e41-a1f7-48e0-8589-d3cb31012be4",
+      "3cf965a9-a1f2-411a-8073-41ba240c639b",
+      "e98a3c3d-7230-49a0-ad40-e40c152baff5",
+      "08d27408-45a8-40a5-9df9-d24d2da9b894",
+      "ca60fc17-372b-4c3e-b340-efde54ea6722",
+      "324893a2-76fe-4948-b9a7-9bd50fb77056",
+      "a729a5bb-4263-4f53-8c92-e520458d226b",
+      "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+      "d4eaf4cd-4015-4ba4-9ef5-cf7211198256",
+      "d0615c6d-8883-4401-87c5-e6a82119d50d",
+      "61868f3b-8a34-46a6-89ee-ff08f592e5b1",
+      "9054b5b8-40fb-4884-8fdb-95ea5c89ab13",
+      "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+      "f669af40-6b84-4e5d-964d-055ccfbbbcc5",
+      "3321f2bf-9f8d-41b3-aafd-05ef1555515a",
+      "d3abfd1e-7b75-4dde-8671-a687e43df467",
+      "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+      "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+      "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+      "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+      "8477839b-c0f0-4dc3-965a-cb272509b50f",
+      "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+      "062918a7-09bb-4b9b-bf79-22dec269f136",
+      "15eb0956-7070-45ef-a5c5-24bc5697be21",
+      "03fcdd06-a416-481b-9ba8-fda8788ea2e0",
+      "64dcf665-c0ca-40d9-8948-b59743a923ef",
+      "6fd4f18a-f094-4b5d-935e-d84d19f0e41b",
+      "fc79cfa5-8b21-48a7-8d78-8e77275169df",
+      "e138a102-1326-44fe-94df-76f80522fed6",
+      "bb1acd09-631a-4641-93b9-5fc76d857e74",
+      "7fa8386a-08b3-420a-83d1-d1d99385b134"
+    ],
+    "explicit_constraints_memory_ids": [
+      "bc67b672-8425-476e-8c55-4ae577b3cac0",
+      "d75d2e07-cf35-4cf6-b2b5-792b4337dabd",
+      "a191638e-6c65-467d-9787-4235beca720d",
+      "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+      "46d67c1b-2f92-47fc-8c37-4c83a10d2812",
+      "99a90bff-e9a8-4a48-8b67-528f2b3ab61d",
+      "24d1455a-d301-430b-ba5e-22ee3586bd38",
+      "3afeefab-22ec-4261-ae57-414da1120c5b",
+      "3b87f84c-db70-46ad-9984-96c984d2459e",
+      "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+      "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+      "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+      "d3443321-aecd-4f4d-97f3-66a5bdf26694",
+      "fecc2872-53ef-4428-9e1b-aa124bc23e0c",
+      "84da26dc-6266-44f9-8e7a-b7f549a361a9",
+      "8eb40c82-c9cd-452f-a12d-63d17866c3db",
+      "4f4d0ee5-0068-4e79-8a8c-2c193f1491ac",
+      "a43b4535-c078-4640-a87d-3804658285eb",
+      "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+      "4c8bd792-ea09-4b51-9164-12bde8249ead",
+      "d6d45968-a2f0-454e-a45a-889cad5e39a1",
+      "a474f795-4399-450d-a23c-d48aa77f419b",
+      "3cf965a9-a1f2-411a-8073-41ba240c639b",
+      "e98a3c3d-7230-49a0-ad40-e40c152baff5",
+      "08d27408-45a8-40a5-9df9-d24d2da9b894",
+      "f61f2815-6a7b-44dd-8e85-353df611d062",
+      "9054b5b8-40fb-4884-8fdb-95ea5c89ab13",
+      "d3abfd1e-7b75-4dde-8671-a687e43df467",
+      "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+      "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+      "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+      "8477839b-c0f0-4dc3-965a-cb272509b50f",
+      "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+      "062918a7-09bb-4b9b-bf79-22dec269f136",
+      "15eb0956-7070-45ef-a5c5-24bc5697be21",
+      "64dcf665-c0ca-40d9-8948-b59743a923ef",
+      "fc79cfa5-8b21-48a7-8d78-8e77275169df",
+      "e138a102-1326-44fe-94df-76f80522fed6",
+      "bb1acd09-631a-4641-93b9-5fc76d857e74"
+    ],
+    "references_other_ids_or_history": [
+      {
+        "memory_id": "c92c2422-20eb-43e4-bd13-34ccbbea0abd",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "ed7f087d-b87b-4ee7-b5f6-7677d46b431f",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "24d1455a-d301-430b-ba5e-22ee3586bd38",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "3afeefab-22ec-4261-ae57-414da1120c5b",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "3b87f84c-db70-46ad-9984-96c984d2459e",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "fde383a5-2582-45e0-beef-9a050cdae8a6",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "4b4d9779-9565-48bd-b34a-88e5752ebe48"
+        ],
+        "has_named_index_or_stage_ref": false
+      },
+      {
+        "memory_id": "a43b4535-c078-4640-a87d-3804658285eb",
+        "referenced_uuids": [
+          "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+          "fecc2872-53ef-4428-9e1b-aa124bc23e0c",
+          "84da26dc-6266-44f9-8e7a-b7f549a361a9",
+          "8eb40c82-c9cd-452f-a12d-63d17866c3db",
+          "4f4d0ee5-0068-4e79-8a8c-2c193f1491ac",
+          "9f0d072d-dead-413e-8a76-db6b2ed0264a"
+        ],
+        "has_named_index_or_stage_ref": false
+      },
+      {
+        "memory_id": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "referenced_uuids": [
+          "53036800-db23-4a9e-8182-3cc25c4f83f1"
+        ],
+        "has_named_index_or_stage_ref": false
+      },
+      {
+        "memory_id": "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "f669af40-6b84-4e5d-964d-055ccfbbbcc5",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "3321f2bf-9f8d-41b3-aafd-05ef1555515a",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "d3abfd1e-7b75-4dde-8671-a687e43df467",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "70bef2f9-6863-437f-9abb-8eb01936f3da",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "151621e0-d84f-4ee2-9197-3ccdf36450d6",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "8477839b-c0f0-4dc3-965a-cb272509b50f",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "062918a7-09bb-4b9b-bf79-22dec269f136",
+        "referenced_uuids": [],
+        "has_named_index_or_stage_ref": true
+      },
+      {
+        "memory_id": "15eb0956-7070-45ef-a5c5-24bc5697be21",
+        "referenced_uuids": [
+          "195081f5-657b-47fc-a578-57ce84464f75",
+          "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+          "f669af40-6b84-4e5d-964d-055ccfbbbcc5",
+          "3321f2bf-9f8d-41b3-aafd-05ef1555515a",
+          "d3abfd1e-7b75-4dde-8671-a687e43df467",
+          "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+          "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+          "70bef2f9-6863-437f-9abb-8eb01936f3da",
+          "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+          "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+          "151621e0-d84f-4ee2-9197-3ccdf36450d6",
+          "8477839b-c0f0-4dc3-965a-cb272509b50f",
+          "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+          "062918a7-09bb-4b9b-bf79-22dec269f136"
+        ],
+        "has_named_index_or_stage_ref": true
+      }
+    ]
+  },
+  "training_suitability_summary": {
+    "query_compression_suitable": 73,
+    "conflict_resolution_suitable": 64,
+    "context_assembly_suitable": 73,
+    "excluded_noise_or_fragment": 7,
+    "per_memory": [
+      {
+        "memory_id": "21b024a8-8065-4dfd-bc05-0d291f544e0c",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "fa651384-0622-4b22-a907-f3803ec11b6a",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": ""
+      },
+      {
+        "memory_id": "02f7f040-2500-4f5d-a26b-fb0635e0654e",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "1b896989-c05f-48ce-b93c-a1db92f00ee4",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "bc67b672-8425-476e-8c55-4ae577b3cac0",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d75d2e07-cf35-4cf6-b2b5-792b4337dabd",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "a191638e-6c65-467d-9787-4235beca720d",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "58fde8c0-818a-4891-9b0a-6902c4cd42b2",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "46d67c1b-2f92-47fc-8c37-4c83a10d2812",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "99a90bff-e9a8-4a48-8b67-528f2b3ab61d",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "c92c2422-20eb-43e4-bd13-34ccbbea0abd",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "ed7f087d-b87b-4ee7-b5f6-7677d46b431f",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "24d1455a-d301-430b-ba5e-22ee3586bd38",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "3afeefab-22ec-4261-ae57-414da1120c5b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "3b87f84c-db70-46ad-9984-96c984d2459e",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "fde383a5-2582-45e0-beef-9a050cdae8a6",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d68f9c95-2e7d-4fb2-aaf0-b5d43cdd0f7f",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "7bb26c7a-ee47-4bdb-9e24-a23349a243f8",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d3443321-aecd-4f4d-97f3-66a5bdf26694",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "fecc2872-53ef-4428-9e1b-aa124bc23e0c",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "84da26dc-6266-44f9-8e7a-b7f549a361a9",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "8eb40c82-c9cd-452f-a12d-63d17866c3db",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "4f4d0ee5-0068-4e79-8a8c-2c193f1491ac",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "9f0d072d-dead-413e-8a76-db6b2ed0264a",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "a43b4535-c078-4640-a87d-3804658285eb",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "fd0882f8-b8ec-4399-a5a3-9645d986c069",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "4c8bd792-ea09-4b51-9164-12bde8249ead",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "b2d8c03c-1cd0-441c-af4e-89f186cda17e",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d6d45968-a2f0-454e-a45a-889cad5e39a1",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "b2182dd2-445b-4d96-953e-f5cee2974a1b",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "a474f795-4399-450d-a23c-d48aa77f419b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "938b254b-a004-4df4-9bcf-1a30870cdc7e",
+        "query_compression": false,
+        "conflict_resolution": false,
+        "context_assembly": false,
+        "rationale": "Excluded from primary training signal: test artifact or overly terse fragment."
+      },
+      {
+        "memory_id": "8556a183-6948-4708-b816-9f2356b69abd",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "8ab81e41-a1f7-48e0-8589-d3cb31012be4",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "3cf965a9-a1f2-411a-8073-41ba240c639b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "e98a3c3d-7230-49a0-ad40-e40c152baff5",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "08d27408-45a8-40a5-9df9-d24d2da9b894",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f7f0b360-c838-4859-aa9c-9166eea38254",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "3f45f740-5ce4-42c1-86e8-1e888389221a",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "ca60fc17-372b-4c3e-b340-efde54ea6722",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "70322334-3edb-454f-b48b-4ba39539115b",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "db4d7bc6-2429-43c9-9a19-801feff6a1ef",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "324893a2-76fe-4948-b9a7-9bd50fb77056",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "a729a5bb-4263-4f53-8c92-e520458d226b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "5e08a24f-3ae0-4f77-ac80-2c851cffdc96",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d4eaf4cd-4015-4ba4-9ef5-cf7211198256",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d0615c6d-8883-4401-87c5-e6a82119d50d",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "9b9f92f0-e1b6-42d7-abe7-927ce76b3827",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f61f2815-6a7b-44dd-8e85-353df611d062",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "63b4f9c2-1dfb-41b6-a285-e171a4e9ed76",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "61868f3b-8a34-46a6-89ee-ff08f592e5b1",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "9054b5b8-40fb-4884-8fdb-95ea5c89ab13",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "8366c546-18fa-42a6-b532-b965f63b5111",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "131be8b6-1885-467e-8051-38e6340ebe6e",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "a131cf9d-fde7-452e-8c00-a327dd446292",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "5c6c82ea-91e3-48fe-ab8b-3cdd1d958787",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "953855cf-b5fd-42d7-96d6-fec92e66aa2e",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "6f2833dd-51ec-49c2-a5fa-a94d36a218f9",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f669af40-6b84-4e5d-964d-055ccfbbbcc5",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "3321f2bf-9f8d-41b3-aafd-05ef1555515a",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "d3abfd1e-7b75-4dde-8671-a687e43df467",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f0da1339-a3c5-4d79-9eec-d17a6ccafd4b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "70bef2f9-6863-437f-9abb-8eb01936f3da",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "151621e0-d84f-4ee2-9197-3ccdf36450d6",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "8477839b-c0f0-4dc3-965a-cb272509b50f",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "f8427c88-3fac-40d3-8b71-217d8a6579b0",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "062918a7-09bb-4b9b-bf79-22dec269f136",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "15eb0956-7070-45ef-a5c5-24bc5697be21",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "03fcdd06-a416-481b-9ba8-fda8788ea2e0",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "11a5e4a4-0f64-4b76-a88a-3a8c0b8cb82a",
+        "query_compression": true,
+        "conflict_resolution": false,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "64dcf665-c0ca-40d9-8948-b59743a923ef",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "6fd4f18a-f094-4b5d-935e-d84d19f0e41b",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "fc79cfa5-8b21-48a7-8d78-8e77275169df",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "e138a102-1326-44fe-94df-76f80522fed6",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "bb1acd09-631a-4641-93b9-5fc76d857e74",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      },
+      {
+        "memory_id": "7fa8386a-08b3-420a-83d1-d1d99385b134",
+        "query_compression": true,
+        "conflict_resolution": true,
+        "context_assembly": true,
+        "rationale": "Rich technical/project detail suitable for query-to-keyword/intent compression. Contains explicit constraints, negations, or version/design evolution useful for conflict resolution. Self-contained factual/decision record suitable for grounded context packing."
+      }
+    ]
+  },
+  "custom_instructions": {
+    "total": 6,
+    "by_scope": {
+      "global": 4,
+      "project": 2
+    },
+    "by_status": {
+      "active": 4,
+      "inactive": 2
+    },
+    "records": [
+      {
+        "instruction_id": "00f35cb6-1621-4926-b462-c8f1ebddf9e5",
+        "scope": "global",
+        "project_id": null,
+        "status": "active",
+        "version": 8,
+        "char_length": 25,
+        "suitable_for_context_assembly": false,
+        "notes": "Short personal identity instruction; note potential ambiguity between full-name vs first-name-only global instructions."
+      },
+      {
+        "instruction_id": "cf536943-2eb4-4e75-bd06-fda6e9210d87",
+        "scope": "global",
+        "project_id": null,
+        "status": "inactive",
+        "version": 4,
+        "char_length": 18,
+        "suitable_for_context_assembly": false,
+        "notes": "Test placeholder instruction (inactive)."
+      },
+      {
+        "instruction_id": "693647df-ea0d-4e19-a158-2b1fcea04c60",
+        "scope": "project",
+        "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+        "status": "inactive",
+        "version": 5,
+        "char_length": 1508,
+        "suitable_for_context_assembly": false,
+        "notes": "Rich governance/protocol instruction; high-authority context assembly example."
+      },
+      {
+        "instruction_id": "69b84077-3c8d-4f05-bf42-6f8ea207c20f",
+        "scope": "global",
+        "project_id": null,
+        "status": "active",
+        "version": 3,
+        "char_length": 25,
+        "suitable_for_context_assembly": false,
+        "notes": "Short personal identity instruction; note potential ambiguity between full-name vs first-name-only global instructions."
+      },
+      {
+        "instruction_id": "53036800-db23-4a9e-8182-3cc25c4f83f1",
+        "scope": "project",
+        "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+        "status": "active",
+        "version": 3,
+        "char_length": 1870,
+        "suitable_for_context_assembly": true,
+        "notes": "Rich governance/protocol instruction; high-authority context assembly example."
+      },
+      {
+        "instruction_id": "e0bd0c20-543b-4ac2-bf48-db64a87dfb31",
+        "scope": "global",
+        "project_id": null,
+        "status": "active",
+        "version": 1,
+        "char_length": 135,
+        "suitable_for_context_assembly": true,
+        "notes": "Rich governance/protocol instruction; high-authority context assembly example."
+      }
+    ],
+    "priority_relationships": [
+      "Project-scoped active instruction (53036800-db23-4a9e-8182-3cc25c4f83f1, V2.6) supersedes inactive project instruction (693647df-ea0d-4e19-a158-2b1fcea04c60) and takes precedence over global instructions for the Portfolio project.",
+      "Two active global instructions (00f35cb6-1621-4926-b462-c8f1ebddf9e5 and 69b84077-3c8d-4f05-bf42-6f8ea207c20f) contain a minor identity-formatting conflict (full name vs. first name only), providing a real-world instruction-conflict test case."
+    ]
+  },
+  "privacy_and_quality": {
+    "already_redacted_secrets_in_raw": 1,
+    "flagged_records_by_id": [
+      {
+        "memory_id": "21b024a8-8065-4dfd-bc05-0d291f544e0c",
+        "flags": [
+          "test_or_smoke_artifact"
+        ]
+      },
+      {
+        "memory_id": "02f7f040-2500-4f5d-a26b-fb0635e0654e",
+        "flags": [
+          "test_or_smoke_artifact"
+        ]
+      },
+      {
+        "memory_id": "46d67c1b-2f92-47fc-8c37-4c83a10d2812",
+        "flags": [
+          "contains_email_address"
+        ]
+      },
+      {
+        "memory_id": "1968c6c2-d638-4741-a6e7-f2fddcaf8ef1",
+        "flags": [
+          "already_redacted_secret_marker"
+        ]
+      },
+      {
+        "memory_id": "9f0d072d-dead-413e-8a76-db6b2ed0264a",
+        "flags": [
+          "test_or_smoke_artifact"
+        ]
+      },
+      {
+        "memory_id": "a43b4535-c078-4640-a87d-3804658285eb",
+        "flags": [
+          "test_or_smoke_artifact"
+        ]
+      },
+      {
+        "memory_id": "938b254b-a004-4df4-9bcf-1a30870cdc7e",
+        "flags": [
+          "test_or_smoke_artifact"
+        ]
+      },
+      {
+        "memory_id": "8366c546-18fa-42a6-b532-b965f63b5111",
+        "flags": [
+          "contains_email_address"
+        ]
+      },
+      {
+        "memory_id": "e9305fe3-c7c6-4636-8994-b67ab75eacb4",
+        "flags": [
+          "contains_email_address"
+        ]
+      },
+      {
+        "memory_id": "4a289425-fc51-4b38-b9e4-2cfae9f38d27",
+        "flags": [
+          "contains_email_address"
+        ]
+      },
+      {
+        "memory_id": "f691c694-6c57-42e0-a031-8fe2874e5bc0",
+        "flags": [
+          "contains_email_address"
+        ]
+      }
+    ],
+    "recommended_exclusions_for_training": [
+      "02f7f040-2500-4f5d-a26b-fb0635e0654e",
+      "21b024a8-8065-4dfd-bc05-0d291f544e0c",
+      "938b254b-a004-4df4-9bcf-1a30870cdc7e",
+      "9f0d072d-dead-413e-8a76-db6b2ed0264a",
+      "a43b4535-c078-4640-a87d-3804658285eb"
+    ],
+    "sanitization_action_for_export_package": "Applied deterministic email and phone PII redaction ([REDACTED_PII:EMAIL], [REDACTED_PII:PHONE]) to all packaged copies without altering neural_core/data/raw/."
+  }
+}

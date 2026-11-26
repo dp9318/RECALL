@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -42,21 +44,62 @@ if not logger.handlers:
 MAX_QUERY_LENGTH = 1_000
 MAX_CONTENT_LENGTH = 10_000
 MAX_RESULTS = 50
+MIN_COMPACT_ACTIVE_MEMORIES = 5
+_IDEMPOTENCY_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
+_ALLOWED_FACTORY_PREFIXES = ("recall_core.", "tests.")
+
+
+def _load_mcp_mode() -> str:
+    mode = os.environ.get("RECALL_MCP_MODE", "standard").strip().lower()
+    if mode not in {"standard", "read-only"}:
+        raise ValueError(f"Unsupported RECALL_MCP_MODE {mode!r}; expected 'standard' or 'read-only'")
+    return mode
+
+
+def _load_allowed_project_ids() -> set[UUID] | None:
+    raw = os.environ.get("RECALL_ALLOWED_PROJECT_IDS")
+    if raw is None:
+        if os.environ.get("RECALL_MCP_STRICT_ISOLATION", "false").lower() in ("true", "1", "yes"):
+            return set()
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return set()
+    allowed: set[UUID] = set()
+    for part in stripped.split(","):
+        token = part.strip()
+        if not token:
+            continue
+        try:
+            allowed.add(UUID(token))
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Malformed UUID in RECALL_ALLOWED_PROJECT_IDS: {token!r}") from exc
+    return allowed
+
+
+def _validate_project_authorized(project_uuid: UUID, allowed_projects: set[UUID] | None) -> None:
+    if allowed_projects is None:
+        return
+    if not allowed_projects:
+        raise ToolError("No projects are authorized in RECALL_ALLOWED_PROJECT_IDS")
+    if project_uuid not in allowed_projects:
+        raise ToolError("Access denied: project_id is not in RECALL_ALLOWED_PROJECT_IDS")
 
 
 def create_server(memory_manager: MemoryManager) -> FastMCP:
     """Create and configure a FastMCP server bound to the RECALL Core MemoryManager.
 
-    Registers exactly the 6 canonical agent tools:
-    `recall_search`, `recall_get_context`, `recall_compact_memory`,
-    `recall_create_custom_instruction`, `recall_save_memory`, `recall_save_project`.
-
-    Args:
-        memory_manager: Active MemoryManager facade instance.
-
-    Returns:
-        FastMCP: Configured FastMCP server instance ready for stdio or SSE transport.
+    Registers the canonical agent tools (or read-only subset when RECALL_MCP_MODE=read-only).
     """
+    mcp_mode = _load_mcp_mode()
+    allowed_projects = _load_allowed_project_ids()
+    allow_global_instructions = (
+        os.environ.get("RECALL_MCP_ALLOW_GLOBAL_INSTRUCTIONS", "false").lower() in ("true", "1", "yes")
+    )
+    allow_global_context = (
+        allowed_projects is None
+        or os.environ.get("RECALL_MCP_ALLOW_GLOBAL_CONTEXT", "false").lower() in ("true", "1", "yes")
+    )
     server = FastMCP("RECALL")
 
     @server.tool()
@@ -68,7 +111,13 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
     ) -> dict[str, Any]:
         """Search RECALL memories within one required project scope."""
         query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
-        project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
+        project_uuid, session_uuid = _validate_scope(
+            memory_manager,
+            project_id,
+            session_id,
+            create_session=False,
+            allowed_projects=allowed_projects,
+        )
         _validate_limit(limit)
         t_start = time.perf_counter()
         logger.info(f"recall_search START: query='{query[:60]}...', project_id='{project_id}', limit={limit}")
@@ -80,6 +129,7 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 project_id=project_uuid,
                 session_id=session_uuid,
                 limit=limit,
+                include_global=allow_global_context,
             )
         )
         t_retrieve_end = time.perf_counter()
@@ -112,7 +162,13 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         """Assemble project context through the RECALL Core."""
         t_start = time.perf_counter()
         logger.info(f"recall_get_context START: project_id='{project_id}', query={query!r}, limit={limit}")
-        project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
+        project_uuid, session_uuid = _validate_scope(
+            memory_manager,
+            project_id,
+            session_id,
+            create_session=False,
+            allowed_projects=allowed_projects,
+        )
         _validate_limit(limit)
         if query is not None:
             query = _validate_text(query, "query", max_length=MAX_QUERY_LENGTH)
@@ -125,6 +181,7 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 query=query,
                 retrieval_limit=limit,
                 include_historical=include_historical,
+                include_global=allow_global_context,
             )
         )
         t_assemble_end = time.perf_counter()
@@ -138,6 +195,9 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         )
         return _to_json(result.value)
 
+    if mcp_mode == "read-only":
+        return server
+
     @server.tool()
     def recall_save_memory(
         content: str,
@@ -145,10 +205,16 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         session_id: str | None = None,
         memory_type: str = "general",
     ) -> dict[str, Any]:
-        """Save a user-authored memory through canonical Core persistence."""
+        """Save an agent-submitted memory through canonical Core persistence."""
         t_start = time.perf_counter()
         logger.info(f"recall_save_memory START: project_id='{project_id}', type='{memory_type}'")
-        project_uuid, session_uuid = _validate_scope(memory_manager, project_id, session_id)
+        project_uuid, session_uuid = _validate_scope(
+            memory_manager,
+            project_id,
+            session_id,
+            create_session=True,
+            allowed_projects=allowed_projects,
+        )
         content = _validate_text(content, "content", max_length=MAX_CONTENT_LENGTH)
         memory_type = _validate_text(memory_type, "memory_type", max_length=64, default="general")
 
@@ -160,7 +226,7 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 scope=Scope.PROJECT,
                 memory_type=memory_type,
                 content=content,
-                provenance="user_explicit",
+                provenance="agent_saved",
             )
         )
         t_save_end = time.perf_counter()
@@ -180,10 +246,16 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         session_id: str | None = None,
         preserve_lineage: Literal[True] = True,
         max_active_memories: int = 50,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """Compact a project's memories through the existing Core operation."""
         project_uuid, session_uuid = _validate_optional_scope(
-            memory_manager, project_id, session_id, project_required=True
+            memory_manager,
+            project_id,
+            session_id,
+            project_required=True,
+            create_session=False,
+            allowed_projects=allowed_projects,
         )
         if not isinstance(preserve_lineage, bool):
             raise ToolError("preserve_lineage must be a boolean")
@@ -192,9 +264,16 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         if (
             isinstance(max_active_memories, bool)
             or not isinstance(max_active_memories, int)
-            or max_active_memories < 1
+            or max_active_memories < MIN_COMPACT_ACTIVE_MEMORIES
         ):
-            raise ToolError("max_active_memories must be a positive integer")
+            raise ToolError(
+                f"max_active_memories must be an integer >= {MIN_COMPACT_ACTIVE_MEMORIES}"
+            )
+        if idempotency_key is not None:
+            if not isinstance(idempotency_key, str) or not _IDEMPOTENCY_KEY_RE.match(idempotency_key):
+                raise ToolError(
+                    "idempotency_key must be 1..128 characters matching [A-Za-z0-9_.:-]+"
+                )
 
         result = memory_manager.compact(
             CompactRequest(
@@ -202,6 +281,7 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
                 session_id=session_uuid,
                 preserve_lineage=preserve_lineage,
                 max_active_memories=max_active_memories,
+                idempotency_key=idempotency_key,
             )
         )
         if not result.success or result.value is None:
@@ -211,20 +291,26 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
     @server.tool()
     def recall_create_custom_instruction(
         content: str,
-        scope: str = "global",
+        scope: str = "project",
         project_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Create a global or project-scoped custom instruction."""
+        """Create a project-scoped (or explicitly enabled global) custom instruction."""
         content = _validate_text(content, "content", max_length=MAX_CONTENT_LENGTH)
         scope_value = _parse_enum(scope, Scope, "scope")
         project_uuid = _parse_optional_uuid(project_id, "project_id")
-        if scope_value is Scope.PROJECT:
+        if scope_value is Scope.GLOBAL:
+            if not allow_global_instructions:
+                raise ToolError("Global custom instruction creation is disabled for MCP agents")
+            if project_uuid is not None:
+                raise ToolError("project_id is only valid for project-scoped instructions")
+            if allowed_projects is not None:
+                raise ToolError("Global custom instructions are disabled when RECALL_ALLOWED_PROJECT_IDS is active")
+        else:
             if project_uuid is None:
                 raise ToolError("project_id is required for project-scoped instructions")
+            _validate_project_authorized(project_uuid, allowed_projects)
             _validate_project_exists(memory_manager, project_uuid)
-        elif project_uuid is not None:
-            raise ToolError("project_id is only valid for project-scoped instructions")
 
         result = memory_manager.create_instruction(
             CustomInstructionCreateRequest(
@@ -251,6 +337,11 @@ def create_server(memory_manager: MemoryManager) -> FastMCP:
         if description is not None:
             description = _validate_text(description, "description", max_length=2000)
         project_uuid = _parse_optional_uuid(project_id, "project_id")
+
+        if allowed_projects is not None:
+            if project_uuid is None:
+                raise ToolError("project_id is required when RECALL_ALLOWED_PROJECT_IDS is configured")
+            _validate_project_authorized(project_uuid, allowed_projects)
 
         logger.info(f"recall_save_project START: name='{name}', project_id={project_id}")
 
@@ -295,18 +386,26 @@ def _validate_optional_scope(
     session_id: str | None,
     *,
     project_required: bool = False,
+    create_session: bool = True,
+    allowed_projects: set[UUID] | None = None,
 ) -> tuple[UUID | None, UUID | None]:
     project_uuid = _parse_optional_uuid(project_id, "project_id")
     if project_required and project_uuid is None:
         raise ToolError("project_id is required")
     if project_uuid is not None:
+        _validate_project_authorized(project_uuid, allowed_projects)
         _validate_project_exists(memory_manager, project_uuid)
 
     session_uuid = _parse_optional_uuid(session_id, "session_id")
     if session_uuid is not None:
         if project_uuid is None:
             raise ToolError("project_id is required when session_id is provided")
-        session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
+        if create_session:
+            session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
+        else:
+            existing = memory_manager.get_session(session_uuid)
+            if existing.success and existing.value is not None and existing.value.project_id != project_uuid:
+                raise ToolError("session_id does not belong to project_id")
     return project_uuid, session_uuid
 
 
@@ -443,11 +542,15 @@ def _validate_scope(
     memory_manager: MemoryManager,
     project_id: str | UUID,
     session_id: str | UUID | None,
+    *,
+    create_session: bool = True,
+    allowed_projects: set[UUID] | None = None,
 ) -> tuple[UUID, UUID | None]:
     try:
         project_uuid = UUID(str(project_id).strip())
     except (ValueError, TypeError, AttributeError) as exc:
         raise ToolError("project_id must be a valid UUID") from exc
+    _validate_project_authorized(project_uuid, allowed_projects)
     _validate_project_exists(memory_manager, project_uuid)
 
     session_uuid = None
@@ -457,7 +560,12 @@ def _validate_scope(
         except (ValueError, TypeError, AttributeError) as exc:
             raise ToolError("session_id must be a valid UUID") from exc
 
-        session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
+        if create_session:
+            session_uuid = _resolve_or_create_session(memory_manager, project_uuid, session_uuid)
+        else:
+            existing = memory_manager.get_session(session_uuid)
+            if existing.success and existing.value is not None and existing.value.project_id != project_uuid:
+                raise ToolError("session_id does not belong to project_id")
 
     return project_uuid, session_uuid
 
@@ -485,6 +593,11 @@ def _load_core_factory(factory_path: str) -> MemoryManager:
     module_name, separator, attribute_name = factory_path.partition(":")
     if not separator or not module_name or not attribute_name:
         raise RuntimeError("RECALL_CORE_FACTORY must use the format 'package.module:factory'")
+    allow_unsafe = os.environ.get("RECALL_ALLOW_UNSAFE_FACTORY", "false").lower() in ("true", "1", "yes")
+    if not allow_unsafe and not module_name.startswith(_ALLOWED_FACTORY_PREFIXES):
+        raise RuntimeError(
+            f"RECALL_CORE_FACTORY module '{module_name}' is not in allowlisted prefixes {_ALLOWED_FACTORY_PREFIXES}"
+        )
 
     try:
         module = importlib.import_module(module_name)
@@ -514,8 +627,45 @@ def _load_core_factory(factory_path: str) -> MemoryManager:
     return memory_manager
 
 
+def run_doctor() -> int:
+    """Run pre-flight diagnostics for RECALL MCP installation and configuration."""
+    report: dict[str, Any] = {
+        "python": sys.version.split()[0],
+        "mcp_mode": None,
+        "allowed_projects": None,
+        "core_init": "error",
+        "stats": None,
+        "ok": False,
+    }
+    try:
+        report["mcp_mode"] = _load_mcp_mode()
+        allowed = _load_allowed_project_ids()
+        report["allowed_projects"] = [str(p) for p in sorted(allowed)] if allowed is not None else "unrestricted"
+        factory_path = os.environ.get("RECALL_CORE_FACTORY")
+        manager = _load_core_factory(factory_path) if factory_path else create_memory_manager()
+        try:
+            report["core_init"] = "ok"
+            stats_res = manager.get_stats()
+            if stats_res.success:
+                report["stats"] = stats_res.value
+            report["ok"] = bool(stats_res.success)
+        finally:
+            manager.close()
+    except Exception as exc:
+        report["error"] = str(exc)
+    print(json.dumps(report, indent=2, default=str))
+    return 0 if report["ok"] else 1
+
+
 def main() -> None:
     """Start MCP with the default Core composition or an application override."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+    if "--doctor" in sys.argv[1:]:
+        raise SystemExit(run_doctor())
     t_start = time.perf_counter()
     logger.info("Initializing RECALL MCP Server...")
     

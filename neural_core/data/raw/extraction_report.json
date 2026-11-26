@@ -1,0 +1,56 @@
+{
+  "extraction_timestamp": "2026-11-26T06:54:49.796374+00:00",
+  "source_database": "C:\\Users\\dipan\\.recall\\recall.sqlite3",
+  "sqlite_open_mode": "ro",
+  "output_directory": "D:\\proj\\Hackathon\\RECALL\\neural_core\\data\\raw",
+  "exported_counts": {
+    "memories": 80,
+    "projects": 2,
+    "sessions": 5,
+    "lineage": 0,
+    "custom_instructions": 6
+  },
+  "excluded_deleted_counts": {
+    "memories": 13,
+    "custom_instructions": 0
+  },
+  "row_counts_by_status": {
+    "memories": {
+      "deleted": 13,
+      "archived": 2,
+      "active": 78
+    },
+    "custom_instructions": {
+      "active": 4,
+      "inactive": 2
+    },
+    "projects": {
+      "active": 2
+    },
+    "sessions": {
+      "active": 5
+    }
+  },
+  "missing_metadata": {
+    "projects": 1,
+    "sessions": 4,
+    "memories": 74,
+    "custom_instructions": 4
+  },
+  "invalid_json": {},
+  "redaction_counts": {
+    "projects": 0,
+    "sessions": 0,
+    "memories": 1,
+    "custom_instructions": 0
+  },
+  "total_redactions": 1,
+  "validated_files": {
+    "memories.jsonl": 80,
+    "projects.json": 2,
+    "sessions.json": 5,
+    "lineage.json": 0,
+    "custom_instructions.json": 6,
+    "extraction_report.json": 1
+  }
+}

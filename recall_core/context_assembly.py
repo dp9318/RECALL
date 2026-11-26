@@ -70,24 +70,25 @@ class ContextAssemblyService:
                     return Result.err(active_result.error or "Failed to load active memories")
                 active_memories = active_result.value or []
 
-                global_result = self._memory_repo.search(
-                    MemorySearchParams(
-                        scope=Scope.GLOBAL,
-                        status=MemoryStatus.ACTIVE,
-                        limit=request.retrieval_limit,
+                if getattr(request, "include_global", True):
+                    global_result = self._memory_repo.search(
+                        MemorySearchParams(
+                            scope=Scope.GLOBAL,
+                            status=MemoryStatus.ACTIVE,
+                            limit=request.retrieval_limit,
+                        )
                     )
-                )
-                if not global_result.success:
-                    return Result.err(
-                        global_result.error or "Failed to load active global memories"
-                    )
-                if global_result.value:
-                    active_ids = {memory.id for memory in active_memories}
-                    active_memories.extend(
-                        memory
-                        for memory in global_result.value.items
-                        if memory.project_id is None and memory.id not in active_ids
-                    )
+                    if not global_result.success:
+                        return Result.err(
+                            global_result.error or "Failed to load active global memories"
+                        )
+                    if global_result.value:
+                        active_ids = {memory.id for memory in active_memories}
+                        active_memories.extend(
+                            memory
+                            for memory in global_result.value.items
+                            if memory.project_id is None and memory.id not in active_ids
+                        )
 
             # Get resolved memories (memories that were part of conflict resolutions)
             resolved_memories = []
@@ -117,6 +118,7 @@ class ContextAssemblyService:
                     session_id=request.session_id,
                     limit=request.retrieval_limit,
                     include_historical=request.include_historical,
+                    include_global=getattr(request, "include_global", True),
                 )
                 retrieval_result = self._retrieval_service.retrieve(retrieval_request)
                 if not retrieval_result.success:
@@ -153,13 +155,21 @@ class ContextAssemblyService:
         """Apply conflict resolutions to assembled context."""
         context.conflict_resolutions = resolutions
 
+        superseded_ids = set()
         # Add resolved memories to the context
         for resolution in resolutions:
             for candidate in resolution.preferred_candidates:
-                if candidate.memory not in context.resolved_memories:
+                if candidate.memory and candidate.memory not in context.resolved_memories:
                     context.resolved_memories.append(candidate.memory)
             for candidate in resolution.superseded_candidates:
-                if candidate.memory not in context.historical_memories:
-                    context.historical_memories.append(candidate.memory)
+                if candidate.memory:
+                    superseded_ids.add(candidate.memory.id)
+                    if candidate.memory not in context.historical_memories:
+                        context.historical_memories.append(candidate.memory)
+
+        if superseded_ids:
+            context.active_memories = [
+                mem for mem in context.active_memories if mem.id not in superseded_ids
+            ]
 
         return context

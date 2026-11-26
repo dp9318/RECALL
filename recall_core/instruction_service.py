@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 from uuid import UUID
 
-from contracts.base import Result
+from contracts.base import InstructionStatus, Result
 from contracts.instruction import (
     CustomInstruction,
     CustomInstructionCreateRequest,
@@ -13,6 +13,20 @@ from contracts.instruction import (
     CustomInstructionUpdateRequest,
 )
 from database.repositories import CustomInstructionRepository
+
+_VALID_INSTRUCTION_TRANSITIONS: dict[InstructionStatus, set[InstructionStatus]] = {
+    InstructionStatus.ACTIVE: {
+        InstructionStatus.ACTIVE,
+        InstructionStatus.INACTIVE,
+        InstructionStatus.DELETED,
+    },
+    InstructionStatus.INACTIVE: {
+        InstructionStatus.ACTIVE,
+        InstructionStatus.INACTIVE,
+        InstructionStatus.DELETED,
+    },
+    InstructionStatus.DELETED: set(),
+}
 
 
 class CustomInstructionService:
@@ -33,7 +47,26 @@ class CustomInstructionService:
         return self._repository.get(instruction_id)
 
     def update(self, instruction_id: UUID, request: CustomInstructionUpdateRequest) -> Result[Optional[CustomInstruction]]:
-        """Update a custom instruction."""
+        """Update a custom instruction with content and state-transition validation."""
+        if request.content is not None and not request.content.strip():
+            return Result.err("Instruction content cannot be empty")
+
+        if request.status is not None:
+            existing = self._repository.get(instruction_id)
+            if isinstance(existing, Result):
+                if not existing.success:
+                    return Result.err(existing.error or "Failed to load instruction for update")
+                if existing.value is None:
+                    return Result.ok(None)
+                if isinstance(existing.value, CustomInstruction):
+                    current_status = existing.value.status
+                    if current_status == InstructionStatus.DELETED:
+                        return Result.err("Invalid instruction status transition: cannot update a deleted instruction")
+                    if request.status not in _VALID_INSTRUCTION_TRANSITIONS.get(current_status, set()):
+                        return Result.err(
+                            f"Invalid instruction status transition: {current_status.value} -> {request.status.value}"
+                        )
+
         return self._repository.update(instruction_id, request)
 
     def delete(self, instruction_id: UUID) -> Result[bool]:
@@ -56,7 +89,7 @@ class CustomInstructionService:
         return self.get_active_for_scope("global")
 
     def get_active_for_project(self, project_id: UUID) -> Result[list[CustomInstruction]]:
-        """Get active instructions for a project (global + project-scoped)."""
+        """Get active instructions for a project (project-scoped precedence over global)."""
         global_result = self.get_active_global()
         if not global_result.success:
             return global_result
@@ -65,11 +98,12 @@ class CustomInstructionService:
         if not project_result.success:
             return project_result
 
-        # Repositories should scope their results correctly, but deduplicate
-        # defensively in case an adapter returns an instruction in both lists.
+        # Project-scoped instructions take precedence over global instructions.
+        project_items = project_result.value if isinstance(project_result.value, list) else []
+        global_items = global_result.value if isinstance(global_result.value, list) else []
         combined = []
         seen_ids = set()
-        for instruction in (global_result.value or []) + (project_result.value or []):
+        for instruction in project_items + global_items:
             if instruction.id in seen_ids:
                 continue
             seen_ids.add(instruction.id)

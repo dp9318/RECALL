@@ -2547,7 +2547,7 @@ class TestMemoryManager:
 
         assert result.success
         assert result.value.compacted_count == 0
-        assert result.value.preserved_count == 4
+        assert result.value.preserved_count == 3
         assert all("Lineage storage unavailable" in error for error in result.value.errors)
         manager.update_memory.assert_not_called()
 

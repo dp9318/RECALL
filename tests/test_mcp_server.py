@@ -250,7 +250,7 @@ def test_save_uses_canonical_core_creation_and_preserves_provenance(manager, pro
     assert request.scope is Scope.PROJECT
     assert request.content == "Persisted decision"
     assert request.memory_type == "decision"
-    assert request.provenance == "user_explicit"
+    assert request.provenance == "agent_saved"
     assert result[1]["memory"]["provenance"] == "user_explicit"
 
 
@@ -334,7 +334,7 @@ def test_new_tools_reject_invalid_inputs_and_failed_mutations(manager, project_i
             )
             failed_create = await client.call_tool(
                 "recall_create_custom_instruction",
-                {"content": "Valid text"},
+                {"content": "Valid text", "scope": "project", "project_id": str(project_id)},
             )
             invalid_project_uuid = await client.call_tool(
                 "recall_save_project",

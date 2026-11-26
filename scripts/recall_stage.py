@@ -14,6 +14,10 @@ import sys
 from pathlib import Path
 from uuid import UUID
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from contracts.capture import ELIGIBLE_CAPTURE_CATEGORIES
 from recall_core.staging import stage_capture_event
 

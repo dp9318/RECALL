@@ -1,0 +1,55 @@
+[
+  {
+    "session_id": "52678c4b-b340-42a0-b534-cb15634946de",
+    "project_id": "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+    "started_at": "2026-10-09T22:28:49.793365+00:00",
+    "ended_at": null,
+    "status": "active",
+    "metadata": {},
+    "created_at": "2026-10-09T22:28:49.793365+00:00",
+    "updated_at": "2026-10-09T22:28:49.793365+00:00"
+  },
+  {
+    "session_id": "7000c30a-b95c-4731-bd39-85dc70e6e5c4",
+    "project_id": "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+    "started_at": "2026-10-09T22:28:58.795970+00:00",
+    "ended_at": null,
+    "status": "active",
+    "metadata": {},
+    "created_at": "2026-10-09T22:28:58.795970+00:00",
+    "updated_at": "2026-10-09T22:28:58.795970+00:00"
+  },
+  {
+    "session_id": "05305511-fef6-4c5c-8f74-882c91722555",
+    "project_id": "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+    "started_at": "2026-10-09T22:28:58.798546+00:00",
+    "ended_at": null,
+    "status": "active",
+    "metadata": {},
+    "created_at": "2026-10-09T22:28:58.798546+00:00",
+    "updated_at": "2026-10-09T22:28:58.798546+00:00"
+  },
+  {
+    "session_id": "11e780c2-0afb-4afd-ab70-f0d0db07dce6",
+    "project_id": "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+    "started_at": "2026-10-09T22:30:32.388663+00:00",
+    "ended_at": null,
+    "status": "active",
+    "metadata": {},
+    "created_at": "2026-10-09T22:30:32.388663+00:00",
+    "updated_at": "2026-10-09T22:30:32.388663+00:00"
+  },
+  {
+    "session_id": "4b4d9779-9565-48bd-b34a-88e5752ebe48",
+    "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+    "started_at": "2026-10-12T14:18:54.713158+00:00",
+    "ended_at": null,
+    "status": "active",
+    "metadata": {
+      "name": "Portfolio Development — Stage 3",
+      "purpose": "Reconcile the portfolio's RECALL registration and implement the first verified asset-pipeline milestone."
+    },
+    "created_at": "2026-10-12T14:18:54.713158+00:00",
+    "updated_at": "2026-10-12T14:18:54.713158+00:00"
+  }
+]

@@ -1,11 +1,14 @@
 {
   "mcpServers": {
     "recall": {
-      "command": "D:\\proj\\Hackathon\\RECALL\\.venv\\Scripts\\python.exe",
+      "command": "C:\\Games\\recall-2.1.1-windows\\.venv\\Scripts\\python.exe",
       "args": [
         "-m",
         "recall_mcp.server"
-      ]
+      ],
+      "env": {
+        "RECALL_MCP_WARMUP": "true"
+      }
     }
   }
 }

@@ -6,8 +6,10 @@
         "-m",
         "recall_mcp.server"
       ],
+      "cwd": "<ABSOLUTE_PATH_TO_RECALL_REPO>",
       "env": {
-        "RECALL_MCP_WARMUP": "true"
+        "RECALL_MCP_WARMUP": "true",
+        "RECALL_MCP_MODE": "standard"
       }
     }
   }

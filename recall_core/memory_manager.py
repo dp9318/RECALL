@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
+from collections import deque
 from datetime import datetime, timezone
-from typing import Optional
-from uuid import UUID
+from typing import Any, Optional
+from uuid import UUID, uuid4
 
-from contracts.base import Result, PaginatedResult, PaginationParams, Scope
+from contracts.base import ConflictResolutionStatus, Result, PaginatedResult, PaginationParams, Scope
 from contracts.conflict import ConflictResolutionRequest, ConflictResolutionResult
 from contracts.instruction import (
     CustomInstruction,
@@ -602,9 +604,10 @@ class MemoryManager:
                         canonical_result.error
                         or "Failed to validate conflict candidates against canonical memory"
                     )
+                canonical_items = canonical_result.value if isinstance(canonical_result.value, list) else []
                 canonical = {
                     memory.id: memory
-                    for memory in (canonical_result.value or [])
+                    for memory in canonical_items
                 }
                 for candidate in supplied_candidates:
                     if candidate.memory is None:
@@ -673,6 +676,18 @@ class MemoryManager:
             if not mem_res.success:
                 return Result.err(mem_res.error or "Unable to query memories for conflict check")
             memories = list(mem_res.value.items if mem_res.value is not None else [])
+            if project_id is not None:
+                global_res = self._uow.memories.search(
+                    MemorySearchParams(scope=Scope.GLOBAL, status=MemoryStatus.ACTIVE, limit=limit)
+                )
+                if not global_res.success:
+                    return Result.err(global_res.error or "Unable to query global memories for conflict check")
+                if global_res.value is not None and isinstance(global_res.value.items, list):
+                    seen_ids = {m.id for m in memories}
+                    memories.extend(
+                        m for m in global_res.value.items
+                        if m.project_id is None and m.id not in seen_ids
+                    )
             if len(memories) < 2:
                 return Result.ok(None)
             from contracts.conflict import ConflictCandidate
@@ -680,7 +695,13 @@ class MemoryManager:
                 ConflictCandidate(id=m.id, memory=m, relevance_score=1.0)
                 for m in memories
             ]
-            return self.detect_and_resolve_conflicts(candidates, [], project_id=project_id)
+            instr_res = self.get_active_instructions(project_id)
+            if not instr_res.success:
+                return Result.err(instr_res.error or "Failed to load active custom instructions for conflict check")
+            active_instructions = instr_res.value or []
+            return self.detect_and_resolve_conflicts(
+                candidates, active_instructions, project_id=project_id
+            )
         except Exception as exc:
             return Result.err(f"Conflict detection failed: {exc}")
 
@@ -702,9 +723,37 @@ class MemoryManager:
                     return Result.err(
                         instr_result.error or "Failed to load required custom instructions"
                     )
+                instructions = instr_result.value or []
+                if not getattr(request, "include_global", True) and request.project_id is not None:
+                    instructions = [
+                        inst for inst in instructions
+                        if inst.scope == Scope.PROJECT and inst.project_id == request.project_id
+                    ]
                 context = self._context_assembly.apply_custom_instructions(
-                    context, instr_result.value or []
+                    context, instructions
                 )
+
+            if len(context.active_memories) >= 2:
+                from contracts.conflict import ConflictCandidate
+                candidates = [
+                    ConflictCandidate(id=m.id, memory=m, relevance_score=1.0)
+                    for m in context.active_memories
+                ]
+                conflict_res = self.detect_and_resolve_conflicts(
+                    candidates,
+                    context.custom_instructions,
+                    project_id=request.project_id,
+                )
+                if not conflict_res.success:
+                    return Result.err(
+                        conflict_res.error or "Conflict resolution failed during context assembly"
+                    )
+                if conflict_res.value is not None:
+                    res_val = conflict_res.value
+                    if res_val.decisions or res_val.preferred_candidates or res_val.unresolved_candidates:
+                        context = self._context_assembly.apply_conflict_resolutions(
+                            context, [res_val]
+                        )
 
             return Result.ok(context)
 
@@ -713,33 +762,162 @@ class MemoryManager:
 
     # --- /recall compact ---
 
+    @staticmethod
+    def _is_compaction_eligible(memory: Memory, conflicted_ids: set[UUID]) -> bool:
+        """Return True if an active memory may be compacted without losing authority or conflict state."""
+        if memory.status != MemoryStatus.ACTIVE:
+            return False
+        if memory.id in conflicted_ids:
+            return False
+        if memory.metadata.get("unresolved") is True:
+            return False
+        if memory.metadata.get("conflict_status") in {"unresolved", "abstained"}:
+            return False
+        if memory.metadata.get("pinned") is True or memory.metadata.get("authoritative") is True:
+            return False
+        if memory.provenance == "explicit_user_update":
+            return False
+        return True
+
+    @staticmethod
+    def _safe_int(value: Any, default: int = 0) -> int:
+        try:
+            return int(value) if value is not None else default
+        except (TypeError, ValueError):
+            return default
+
+    @contextlib.contextmanager
+    def _transaction_context(self):
+        tx = self._uow.begin()
+        if hasattr(tx, "__enter__") and hasattr(tx, "__exit__"):
+            with tx:
+                yield
+        else:
+            yield
+
+    def _load_all_memories(self, project_id: Optional[UUID] = None) -> Result[list[Memory]]:
+        """Load all canonical memories (including historical) via pagination."""
+        all_items: list[Memory] = []
+        offset = 0
+        page_size = 200
+        while True:
+            res = self._uow.memories.search(
+                MemorySearchParams(
+                    project_id=project_id,
+                    include_historical=True,
+                    limit=page_size,
+                    offset=offset,
+                )
+            )
+            if not res.success:
+                return Result.err(res.error or "Failed to load memories")
+            page = res.value.items if res.value is not None else []
+            all_items.extend(page)
+            if len(page) < page_size:
+                break
+            offset += page_size
+        return Result.ok(all_items)
+
+    def flush_pending_semantic_sync(self, project_id: Optional[UUID] = None) -> Result[int]:
+        """Replay durable canonical-backed pending semantic index sync operations."""
+        if self._semantic_index is None:
+            return Result.ok(0)
+        try:
+            load_res = self._load_all_memories(project_id=project_id)
+            if not load_res.success:
+                return Result.err(load_res.error or "Failed to load pending semantic sync items")
+            items = load_res.value or []
+            synced_ids: list[UUID] = []
+            for memory in items:
+                pending = memory.metadata.get("pending_semantic_sync")
+                if pending not in {"upsert", "remove"}:
+                    continue
+                if pending == "upsert" and memory.status == MemoryStatus.ACTIVE:
+                    idx_res = self._semantic_index.index_memory(memory)
+                else:
+                    idx_res = self._semantic_index.remove_memory(memory.id)
+                if not idx_res.success:
+                    if synced_ids:
+                        with self._transaction_context():
+                            for mid in synced_ids:
+                                self._uow.memories.update(
+                                    mid,
+                                    MemoryUpdateRequest(metadata={"pending_semantic_sync": None}),
+                                )
+                    return Result.err(idx_res.error or f"Semantic sync failed for {memory.id}")
+                synced_ids.append(memory.id)
+
+            if synced_ids:
+                with self._transaction_context():
+                    for mid in synced_ids:
+                        upd_res = self._uow.memories.update(
+                            mid,
+                            MemoryUpdateRequest(metadata={"pending_semantic_sync": None}),
+                        )
+                        if not upd_res.success:
+                            return Result.err(upd_res.error or f"Failed to clear sync outbox for {mid}")
+            return Result.ok(len(synced_ids))
+        except Exception as exc:
+            return Result.err(f"Pending semantic sync failed: {exc}")
+
+    def traverse_lineage(self, memory_id: UUID | str, max_depth: int = 20) -> Result[dict[str, list[UUID]]]:
+        """Traverse ancestor and descendant memory IDs across multi-round compaction DAGs."""
+        try:
+            root_id = memory_id if isinstance(memory_id, UUID) else UUID(str(memory_id))
+            ancestors: list[UUID] = []
+            descendants: list[UUID] = []
+
+            for direction in ("ancestors", "descendants"):
+                visited: set[UUID] = {root_id}
+                queue: deque[tuple[UUID, int]] = deque([(root_id, 0)])
+                while queue:
+                    current_id, depth = queue.popleft()
+                    if depth >= max_depth:
+                        continue
+                    lineage_res = self._uow.memories.get_lineage(current_id)
+                    if not lineage_res.success:
+                        return Result.err(lineage_res.error or "Failed to traverse lineage")
+                    for edge in lineage_res.value or []:
+                        nxt = edge.parent_id if (direction == "ancestors" and edge.child_id == current_id) else (
+                            edge.child_id if (direction == "descendants" and edge.parent_id == current_id) else None
+                        )
+                        if nxt is not None and nxt not in visited:
+                            visited.add(nxt)
+                            if direction == "ancestors":
+                                ancestors.append(nxt)
+                            else:
+                                descendants.append(nxt)
+                            queue.append((nxt, depth + 1))
+
+            return Result.ok({"ancestors": ancestors, "descendants": descendants})
+        except Exception as exc:
+            return Result.err(f"Lineage traversal failed: {exc}")
+
     def compact(self, request: CompactRequest) -> Result[CompactResult]:
         """
-        Compact eligible context while preserving canonical history and lineage.
+        Compact eligible context atomically while preserving canonical history and lineage.
 
-        The oldest active memories above the configured cap are replaced by
-        one active summary; source records remain canonical and superseded.
-        Compaction lineage is mandatory.
+        Runs summary creation, lineage insertion, source supersession, version allocation,
+        and durable outbox marking inside one BEGIN IMMEDIATE canonical transaction.
         """
         try:
             compacted = 0
             superseded = 0
             archived = 0
             preserved = 0
-            errors = []
+            errors: list[str] = []
 
             if not request.project_id:
                 return Result.err("Project ID required for compaction")
             if request.preserve_lineage is not True:
-                return Result.err(
-                    "Lineage preservation is mandatory for compaction"
-                )
+                return Result.err("Lineage preservation is mandatory for compaction")
             if (
                 isinstance(request.max_active_memories, bool)
                 or not isinstance(request.max_active_memories, int)
                 or request.max_active_memories < 1
             ):
                 return Result.err("max_active_memories must be a positive integer")
+
             project_result = self.get_project(request.project_id)
             if not project_result.success or project_result.value is None:
                 return Result.err(project_result.error or "Project not found")
@@ -750,122 +928,238 @@ class MemoryManager:
                 if session_result.value.project_id != request.project_id:
                     return Result.err("Session does not belong to the requested project")
 
-            # Get all memories for the project
-            search_params = MemorySearchParams(
-                project_id=request.project_id,
-                include_historical=True,
-                limit=1000,
-            )
-            search_result = self._uow.memories.search(search_params)
-            if not search_result.success:
-                return Result.err(search_result.error or "Failed to load memories for compaction")
-            if not search_result.value or not search_result.value.items:
-                return Result.ok(CompactResult())
+            conflicted_ids: set[UUID] = set()
+            conflicts_res = self.get_conflicts(project_id=request.project_id, limit=1000)
+            if not conflicts_res.success:
+                return Result.err(conflicts_res.error or "Conflict check failed before compaction")
+            if conflicts_res.value is not None:
+                if isinstance(conflicts_res.value.unresolved_candidates, list):
+                    for cand in conflicts_res.value.unresolved_candidates:
+                        if cand.memory is not None:
+                            conflicted_ids.add(cand.memory.id)
+                if isinstance(conflicts_res.value.decisions, list):
+                    for dec in conflicts_res.value.decisions:
+                        if dec.action == "unresolved":
+                            conflicted_ids.add(dec.candidate_id)
 
-            all_memories = search_result.value.items
-            active_memories = [m for m in all_memories if m.status == MemoryStatus.ACTIVE]
+            summary_id: Optional[UUID] = None
+            compaction_version: Optional[int] = None
+            idempotent_replay = False
+            replay_result: Optional[CompactResult] = None
 
-            summary_created = False
+            class _LineageRollbackError(RuntimeError):
+                pass
 
-            # Replace the selected source memories with one compact summary.
-            if len(active_memories) > request.max_active_memories:
-                active_memories.sort(key=lambda m: m.updated_at)
+            try:
+                with self._transaction_context():
+                    load_result = self._load_all_memories(project_id=request.project_id)
+                    if not load_result.success:
+                        raise RuntimeError(load_result.error or "Failed to load memories for compaction")
+                    all_memories = load_result.value or []
+                    if not all_memories:
+                        return Result.ok(CompactResult())
 
-                compact_count = len(active_memories) - request.max_active_memories + 1
-                to_compact = active_memories[:compact_count]
-                summary_content = "\n".join(
-                    f"[{memory.id}] {memory.content[:500]}" for memory in to_compact
-                )
-                source_sessions = {memory.session_id for memory in to_compact}
-                summary_session_id = (
-                    next(iter(source_sessions)) if len(source_sessions) == 1 else None
-                )
-                summary_request = MemoryCreateRequest(
-                    project_id=request.project_id,
-                    session_id=summary_session_id,
-                    scope=Scope.PROJECT,
-                    memory_type="compaction_summary",
-                    content=f"[Compacted]\n{summary_content}",
-                    provenance="compaction_summary",
-                    metadata={
-                        "compacted": True,
-                        "original_ids": [str(memory.id) for memory in to_compact],
-                    },
-                )
+                    active_memories = [m for m in all_memories if m.status == MemoryStatus.ACTIVE]
 
-                try:
-                    summary_result = self.create_memory(summary_request)
-                except Exception as e:
-                    return Result.err(f"Compaction failed while creating summary: {e}")
-                if not summary_result.success or summary_result.value is None:
-                    return Result.err(
-                        summary_result.error or "Failed to create compaction summary"
+                    if request.idempotency_key:
+                        for existing in all_memories:
+                            if (
+                                existing.memory_type == "compaction_summary"
+                                and existing.metadata.get("idempotency_key") == request.idempotency_key
+                            ):
+                                orig_session = existing.metadata.get("compaction_session_id")
+                                orig_cap = existing.metadata.get("compaction_max_active")
+                                req_session = str(request.session_id) if request.session_id is not None else None
+                                if (
+                                    (orig_session is not None or "compaction_session_id" in existing.metadata)
+                                    and orig_session != req_session
+                                ) or (
+                                    orig_cap is not None and orig_cap != request.max_active_memories
+                                ):
+                                    return Result.err(
+                                        "idempotency_key already used with different compaction parameters"
+                                    )
+                                replay_result = CompactResult(
+                                    compacted_count=0,
+                                    superseded_count=0,
+                                    archived_count=0,
+                                    preserved_count=len(active_memories),
+                                    summary_id=existing.id,
+                                    compaction_version=self._safe_int(
+                                        existing.metadata.get("compaction_version"), default=0
+                                    ) or None,
+                                    idempotent_replay=True,
+                                )
+                                break
+
+                    if replay_result is None:
+                        scoped_active = [
+                            m for m in active_memories
+                            if request.session_id is None or m.session_id == request.session_id
+                        ]
+                        eligible_active = [
+                            m for m in scoped_active
+                            if self._is_compaction_eligible(m, conflicted_ids)
+                        ]
+
+                        summary_created = False
+                        newly_superseded: list[Memory] = []
+                        if len(eligible_active) > request.max_active_memories:
+                            eligible_active.sort(
+                                key=lambda m: m.updated_at.timestamp() if isinstance(m.updated_at, datetime) else 0.0
+                            )
+                            compact_count = len(eligible_active) - request.max_active_memories + 1
+                            to_compact = eligible_active[:compact_count]
+
+                            max_version = max(
+                                (
+                                    self._safe_int(m.metadata.get("compaction_version"), default=0)
+                                    for m in all_memories
+                                    if m.memory_type == "compaction_summary"
+                                ),
+                                default=0,
+                            )
+                            compaction_version = max_version + 1
+                            compaction_op_id = str(uuid4())
+                            now_iso = datetime.now(timezone.utc).isoformat()
+
+                            summary_content = "\n".join(
+                                f"[{memory.id}] {memory.content[:500]}" for memory in to_compact
+                            )
+                            source_sessions = {memory.session_id for memory in to_compact}
+                            summary_session_id = (
+                                request.session_id
+                                if request.session_id is not None
+                                else (next(iter(source_sessions)) if len(source_sessions) == 1 else None)
+                            )
+                            summary_metadata: dict[str, Any] = {
+                                "compacted": True,
+                                "compaction_version": compaction_version,
+                                "compaction_op_id": compaction_op_id,
+                                "compacted_at": now_iso,
+                                "compaction_session_id": str(request.session_id) if request.session_id is not None else None,
+                                "compaction_max_active": request.max_active_memories,
+                                "original_ids": [str(memory.id) for memory in to_compact],
+                                "pending_semantic_sync": "upsert",
+                            }
+                            if request.idempotency_key:
+                                summary_metadata["idempotency_key"] = request.idempotency_key
+
+                            summary_request = MemoryCreateRequest(
+                                project_id=request.project_id,
+                                session_id=summary_session_id,
+                                scope=Scope.PROJECT,
+                                memory_type="compaction_summary",
+                                content=f"[Compacted v{compaction_version}]\n{summary_content}",
+                                provenance="compaction_summary",
+                                metadata=summary_metadata,
+                            )
+                            create_fn = self.create_memory if "create_memory" in self.__dict__ else self._uow.memories.create
+                            update_fn = self.update_memory if "update_memory" in self.__dict__ else self._uow.memories.update
+
+                            summary_result = create_fn(summary_request)
+                            if not summary_result.success or summary_result.value is None:
+                                raise RuntimeError(summary_result.error or "Failed to create compaction summary")
+
+                            summary = summary_result.value
+                            summary_id = summary.id
+                            summary_created = True
+
+                            for memory in to_compact:
+                                lineage_result = self._uow.memories.create_lineage(
+                                    MemoryLineage(
+                                        parent_id=memory.id,
+                                        child_id=summary.id,
+                                        relationship="supersedes",
+                                        reason="compaction_summary",
+                                    )
+                                )
+                                if not lineage_result.success:
+                                    raise _LineageRollbackError(
+                                        f"Failed to preserve lineage for {memory.id}: {lineage_result.error}"
+                                    )
+
+                                update_result = update_fn(
+                                    memory.id,
+                                    MemoryUpdateRequest(
+                                        status=MemoryStatus.SUPERSEDED,
+                                        metadata={
+                                            **memory.metadata,
+                                            "compacted_at": now_iso,
+                                            "compaction_summary_id": str(summary.id),
+                                            "compaction_op_id": compaction_op_id,
+                                            "pending_semantic_sync": "remove",
+                                        },
+                                    ),
+                                )
+                                if not update_result.success or update_result.value is None:
+                                    raise _LineageRollbackError(
+                                        f"Failed to supersede {memory.id}: {update_result.error}"
+                                    )
+                                newly_superseded.append(update_result.value)
+                                superseded += 1
+                                compacted += 1
+
+                        # Recoverable archival policy: mark SUPERSEDED tail > 100 as ARCHIVED without deleting rows/lineage.
+                        update_fn = self.update_memory if "update_memory" in self.__dict__ else self._uow.memories.update
+                        historical_memories = [
+                            m for m in all_memories if m.status == MemoryStatus.SUPERSEDED
+                        ] + newly_superseded
+                        historical_memories.sort(
+                            key=lambda m: m.updated_at.timestamp() if isinstance(m.updated_at, datetime) else 0.0,
+                            reverse=True,
+                        )
+                        if len(historical_memories) > 100:
+                            archival_time = datetime.now(timezone.utc).isoformat()
+                            for memory in historical_memories[100:]:
+                                upd_res = update_fn(
+                                    memory.id,
+                                    MemoryUpdateRequest(
+                                        status=MemoryStatus.ARCHIVED,
+                                        metadata={
+                                            **memory.metadata,
+                                            "archived_at": archival_time,
+                                            "pending_semantic_sync": "remove",
+                                        },
+                                    ),
+                                )
+                                if not upd_res.success:
+                                    raise RuntimeError(f"Failed to archive {memory.id}: {upd_res.error}")
+                                archived += 1
+
+                        preserved = len(active_memories) - compacted + int(summary_created)
+            except _LineageRollbackError as lineage_exc:
+                return Result.ok(
+                    CompactResult(
+                        compacted_count=0,
+                        superseded_count=0,
+                        archived_count=0,
+                        preserved_count=len(active_memories),
+                        errors=[str(lineage_exc)],
                     )
+                )
 
-                summary_created = True
-                summary = summary_result.value
-                for memory in to_compact:
-                    try:
-                        lineage_result = self._uow.memories.create_lineage(
-                            MemoryLineage(
-                                parent_id=memory.id,
-                                child_id=summary.id,
-                                relationship="supersedes",
-                                reason="compaction_summary",
-                            )
-                        )
-                        if not lineage_result.success:
-                            errors.append(
-                                f"Failed to preserve lineage for {memory.id}: "
-                                f"{lineage_result.error}"
-                            )
-                            continue
+            # Post-commit derived semantic index sync (outbox replay; canonical storage remains intact if this fails).
+            sync_res = self.flush_pending_semantic_sync(request.project_id)
+            if not sync_res.success and sync_res.error:
+                errors.append(sync_res.error)
 
-                        update_result = self.update_memory(
-                            memory.id,
-                            MemoryUpdateRequest(
-                                status=MemoryStatus.SUPERSEDED,
-                                metadata={
-                                    **memory.metadata,
-                                    "compacted_at": datetime.now(timezone.utc).isoformat(),
-                                },
-                            ),
-                        )
-                        if update_result.success and update_result.value is not None:
-                            superseded += 1
-                            compacted += 1
-                        else:
-                            errors.append(
-                                f"Failed to supersede {memory.id}: {update_result.error}"
-                            )
-                    except Exception as e:
-                        errors.append(f"Error compacting {memory.id}: {str(e)}")
+            if replay_result is not None:
+                replay_result.errors = errors
+                return Result.ok(replay_result)
 
-            # Archive old superseded memories beyond a threshold
-            historical_memories = [m for m in all_memories if m.status in (MemoryStatus.SUPERSEDED, MemoryStatus.ARCHIVED)]
-            historical_memories.sort(key=lambda m: m.updated_at, reverse=True)
-
-            # Keep last 100 historical, archive the rest
-            if len(historical_memories) > 100:
-                for memory in historical_memories[100:]:
-                    try:
-                        update_result = self.update_memory(memory.id, MemoryUpdateRequest(
-                            status=MemoryStatus.ARCHIVED,
-                        ))
-                        if update_result.success:
-                            archived += 1
-                    except Exception as e:
-                        errors.append(f"Error archiving {memory.id}: {str(e)}")
-
-            preserved = len(active_memories) - compacted + int(summary_created)
-
-            return Result.ok(CompactResult(
-                compacted_count=compacted,
-                superseded_count=superseded,
-                archived_count=archived,
-                preserved_count=preserved,
-                errors=errors,
-            ))
+            return Result.ok(
+                CompactResult(
+                    compacted_count=compacted,
+                    superseded_count=superseded,
+                    archived_count=archived,
+                    preserved_count=preserved,
+                    errors=errors,
+                    summary_id=summary_id,
+                    compaction_version=compaction_version,
+                    idempotent_replay=idempotent_replay,
+                )
+            )
 
         except Exception as e:
             return Result.err(f"Compaction failed: {str(e)}")

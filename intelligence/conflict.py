@@ -257,6 +257,26 @@ class DefaultConflictResolver(ConflictResolver):
                 return Result.ok(result)
             llm_result = self.invoke_llm_arbitration(request.candidates, llm_context)
             if llm_result.success:
+                if (
+                    llm_result.value is not None
+                    and llm_result.value.preferred_candidates
+                    and self._violates_instructions(
+                        llm_result.value.preferred_candidates[0].memory,
+                        request.custom_instructions,
+                    )
+                ):
+                    return Result.ok(
+                        ConflictResolutionResult(
+                            status=ConflictResolutionStatus.ABSTAINED,
+                            unresolved_candidates=request.candidates,
+                            resolution_reason=(
+                                "Model arbitration selected a candidate that conflicts with an "
+                                "active custom instruction; blocked by authority policy."
+                            ),
+                            model_used=True,
+                            metadata={"rule": "llm_instruction_override_blocked"},
+                        )
+                    )
                 return llm_result
 
         return Result.ok(result)
@@ -267,7 +287,7 @@ class DefaultConflictResolver(ConflictResolver):
         for candidate in candidates:
             if (
                 candidate.memory is not None
-                and candidate.memory.is_active()
+                and candidate.memory.status != MemoryStatus.DELETED
                 and candidate.memory.id not in seen_ids
             ):
                 valid_candidates.append(candidate)
@@ -276,11 +296,42 @@ class DefaultConflictResolver(ConflictResolver):
             return ConflictResolutionResult(status=ConflictResolutionStatus.UNRESOLVED, resolution_reason="No valid memory candidates available.")
 
         active_instructions = [instruction for instruction in custom_instructions if instruction.is_active()]
-        matching_candidates = [
-            candidate for candidate in valid_candidates
-            if self._matches_instruction(candidate.memory, active_instructions)
+        project_instructions = [i for i in active_instructions if i.scope == Scope.PROJECT]
+        global_instructions = [i for i in active_instructions if i.scope == Scope.GLOBAL]
+
+        violating_candidates = [
+            candidate
+            for candidate in valid_candidates
+            if self._violates_instructions(candidate.memory, project_instructions)
+            or (
+                not self._matches_instruction(candidate.memory, project_instructions)
+                and self._violates_instructions(candidate.memory, global_instructions)
+            )
         ]
-        eligible_candidates = matching_candidates or valid_candidates
+        violating_ids = {c.memory.id for c in violating_candidates if c.memory is not None}
+        non_violating = [
+            candidate
+            for candidate in valid_candidates
+            if candidate.memory is not None and candidate.memory.id not in violating_ids
+        ]
+        if active_instructions and not non_violating:
+            return ConflictResolutionResult(
+                status=ConflictResolutionStatus.UNRESOLVED,
+                unresolved_candidates=valid_candidates,
+                resolution_reason="All candidate memories conflict with active custom instructions.",
+                metadata={"rule": "all_candidates_violate_instructions"},
+            )
+
+        project_matching = [
+            candidate for candidate in non_violating
+            if self._matches_instruction(candidate.memory, project_instructions)
+        ]
+        global_matching = [
+            candidate for candidate in non_violating
+            if self._matches_instruction(candidate.memory, global_instructions)
+        ]
+        matching_candidates = project_matching or global_matching
+        eligible_candidates = matching_candidates or non_violating or valid_candidates
         candidate_ids = {
             candidate.memory.id
             for candidate in eligible_candidates
@@ -290,6 +341,7 @@ class DefaultConflictResolver(ConflictResolver):
             candidate.memory.supersedes_id
             for candidate in eligible_candidates
             if candidate.memory is not None
+            and candidate.memory.status == MemoryStatus.ACTIVE
             and candidate.memory.supersedes_id in candidate_ids
         }
         winner_pool = [
@@ -332,7 +384,7 @@ class DefaultConflictResolver(ConflictResolver):
         for candidate in valid_candidates:
             if candidate.memory is None or candidate.memory.id == winner_memory.id:
                 continue
-            if self._is_explicitly_overridden(candidate, active_instructions):
+            if candidate.memory.id in violating_ids:
                 unresolved.append(candidate)
                 continue
             superseded.append(candidate)
@@ -356,7 +408,7 @@ class DefaultConflictResolver(ConflictResolver):
                 metadata={"rule": "custom_instruction_precedence"},
             )
 
-        if winner_memory.provenance == "user_explicit":
+        if winner_memory.provenance in {"user_explicit", "explicit_user_update"}:
             return ConflictResolutionResult(
                 status=ConflictResolutionStatus.RESOLVED,
                 decisions=exposed_decisions,
@@ -550,14 +602,21 @@ class DefaultConflictResolver(ConflictResolver):
         if memory is None:
             return (0, 0, 0.0)
 
+        status_rank = {
+            MemoryStatus.ACTIVE: 2,
+            MemoryStatus.SUPERSEDED: 1,
+            MemoryStatus.ARCHIVED: 0,
+        }.get(memory.status, 0)
         provenance_rank = {
-            "explicit_user_update": 3,
-            "user_explicit": 2,
+            "explicit_user_update": 4,
+            "user_explicit": 3,
+            "agent_saved": 2,
             "inferred": 1,
+            "agent_inferred": 1,
         }.get(memory.provenance or "", 0)
         return (
+            status_rank,
             provenance_rank,
-            int(memory.status == MemoryStatus.ACTIVE),
             memory.updated_at.timestamp(),
         )
 
@@ -576,15 +635,78 @@ class DefaultConflictResolver(ConflictResolver):
         return False
 
     @staticmethod
-    def _is_explicitly_overridden(candidate: ConflictCandidate, custom_instructions: list[CustomInstruction]) -> bool:
-        if candidate.memory is None:
+    def _normalize_text(text: str) -> str:
+        lowered = (text or "").lower()
+        contractions = {
+            "don't": "do not",
+            "doesn't": "does not",
+            "didn't": "did not",
+            "shouldn't": "should not",
+            "wouldn't": "would not",
+            "couldn't": "could not",
+            "can't": "cannot",
+            "won't": "will not",
+            "isn't": "is not",
+            "aren't": "are not",
+            "mustn't": "must not",
+        }
+        for short, expanded in contractions.items():
+            lowered = lowered.replace(short, expanded)
+        return re.sub(r"[^a-z0-9]+", " ", lowered).strip()
+
+    @staticmethod
+    def _violates_instructions(memory: Optional[Memory], custom_instructions: list[CustomInstruction]) -> bool:
+        if memory is None or not custom_instructions:
             return False
-        if not custom_instructions:
-            return False
+        negations = {"not", "never", "avoid", "without", "cannot", "no", "forbid", "prohibit"}
+        decision_verbs = {"use", "choose", "select", "prefer"}
+        stop_words = {
+            "a", "an", "and", "as", "for", "in", "is", "of", "on", "the", "to", "with",
+            "always", "do", "does", "did", "should", "would", "could", "must", "will",
+        } | decision_verbs
+
+        mem_text = DefaultConflictResolver._normalize_text(memory.content or "")
+        mem_words = mem_text.split()
+        mem_tokens = set(mem_words) - stop_words - negations
+        mem_neg = bool(set(mem_words) & negations)
+        mem_decision = next(
+            ((w, mem_words[i + 1]) for i, w in enumerate(mem_words[:-1]) if w in decision_verbs),
+            None,
+        )
+
         for instruction in custom_instructions:
-            if instruction.is_active() and instruction.content and instruction.content.lower() in (candidate.memory.content or "").lower():
+            if not instruction.is_active() or not instruction.content:
+                continue
+            inst_text = DefaultConflictResolver._normalize_text(instruction.content)
+            inst_words = inst_text.split()
+            inst_tokens = set(inst_words) - stop_words - negations
+            inst_neg = bool(set(inst_words) & negations)
+            shared = mem_tokens & inst_tokens
+
+            # Opposite negation polarity on shared topic tokens
+            if shared and mem_neg != inst_neg:
+                return True
+
+            # Affirmative contradiction: same decision verb with different target object
+            inst_decision = next(
+                ((w, inst_words[i + 1]) for i, w in enumerate(inst_words[:-1]) if w in decision_verbs),
+                None,
+            )
+            if (
+                shared
+                and not mem_neg
+                and not inst_neg
+                and mem_decision
+                and inst_decision
+                and mem_decision[0] == inst_decision[0]
+                and mem_decision[1] != inst_decision[1]
+            ):
                 return True
         return False
+
+    @staticmethod
+    def _is_explicitly_overridden(candidate: ConflictCandidate, custom_instructions: list[CustomInstruction]) -> bool:
+        return DefaultConflictResolver._violates_instructions(candidate.memory, custom_instructions)
 
     @staticmethod
     def _build_evidence_context(candidates: list[ConflictCandidate], custom_instructions: list[CustomInstruction]) -> Optional[str]:

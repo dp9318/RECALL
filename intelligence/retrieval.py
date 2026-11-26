@@ -144,7 +144,8 @@ class DefaultRetrievalService(RetrievalService):
                         if request.project_id is not None and (
                             memory.project_id != request.project_id
                             and not (
-                                memory.project_id is None
+                                getattr(request, "include_global", True)
+                                and memory.project_id is None
                                 and memory.scope == Scope.GLOBAL
                             )
                         ):

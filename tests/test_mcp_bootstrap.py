@@ -234,13 +234,26 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
         )
         assert not second_saved.isError
 
+        for idx in range(4):
+            extra = asyncio.run(
+                _call_tool(
+                    server,
+                    "recall_save_memory",
+                    {
+                        "project_id": str(project.id),
+                        "content": f"Extra project memory {idx} for compaction floor.",
+                    },
+                )
+            )
+            assert not extra.isError
+
         compact = asyncio.run(
             _call_tool(
                 server,
                 "recall_compact_memory",
                 {
                     "project_id": str(project.id),
-                    "max_active_memories": 1,
+                    "max_active_memories": 5,
                 },
             )
         )
@@ -261,7 +274,11 @@ def test_mcp_protocol_uses_composed_services_for_save_search_and_context(
             _call_tool(
                 server,
                 "recall_create_custom_instruction",
-                {"content": "Prefer focused integration tests."},
+                {
+                    "content": "Prefer focused integration tests.",
+                    "scope": "project",
+                    "project_id": saved_proj.structuredContent["project"]["id"],
+                },
             )
         )
         assert not created_instruction.isError
@@ -303,7 +320,7 @@ def test_compaction_persists_aggregate_summary_and_lineage_through_mcp(
                     content=f"source-{index} unique compaction evidence",
                 )
             ).value
-            for index in range(3)
+            for index in range(6)
         ]
         server = mcp_server.create_server(manager)
 
@@ -311,13 +328,13 @@ def test_compaction_persists_aggregate_summary_and_lineage_through_mcp(
             _call_tool(
                 server,
                 "recall_compact_memory",
-                {"project_id": str(project.id), "max_active_memories": 2},
+                {"project_id": str(project.id), "max_active_memories": 5},
             )
         )
         assert not response.isError
         assert response.structuredContent["compacted_count"] == 2
         assert response.structuredContent["superseded_count"] == 2
-        assert response.structuredContent["preserved_count"] == 2
+        assert response.structuredContent["preserved_count"] == 5
 
         active = manager._uow.memories.search(
             MemorySearchParams(
@@ -326,7 +343,7 @@ def test_compaction_persists_aggregate_summary_and_lineage_through_mcp(
                 limit=100,
             )
         ).value.items
-        assert len(active) == 2
+        assert len(active) == 5
         summary = next(memory for memory in active if memory.memory_type == "compaction_summary")
         assert all(f"source-{index} unique compaction evidence" in summary.content for index in range(2))
         assert set(summary.metadata["original_ids"]) == {
@@ -357,11 +374,11 @@ def test_compaction_persists_aggregate_summary_and_lineage_through_mcp(
         assert summary.id in {memory.id for memory in retrieval.value.memories}
 
         second = manager.compact(
-            CompactRequest(project_id=project.id, max_active_memories=2)
+            CompactRequest(project_id=project.id, max_active_memories=5)
         )
         assert second.success
         assert second.value.compacted_count == 0
-        assert second.value.preserved_count == 2
+        assert second.value.preserved_count == 5
         assert len(manager._uow.memories.get_lineage(summary.id).value) == 2
     finally:
         manager.close()

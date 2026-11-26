@@ -485,3 +485,243 @@ def test_cloud_configuration_requires_key_and_model(monkeypatch):
 
     with pytest.raises(ValueError, match="API_KEY is required"):
         CloudConflictConfig.from_env()
+
+
+def test_canonical_active_memory_beats_historical_superseded_memory():
+    project_id = uuid4()
+    historical = _memory(
+        "Use PostgreSQL for persistence.",
+        provenance="explicit_user_update",
+        project_id=project_id,
+        status=MemoryStatus.SUPERSEDED,
+        updated_at=datetime(2026, 2, 1, tzinfo=timezone.utc),
+    )
+    canonical = _memory(
+        "Use SQLite for persistence.",
+        provenance="agent_inferred",
+        project_id=project_id,
+        status=MemoryStatus.ACTIVE,
+        updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+    resolver = DefaultConflictResolver()
+    res = resolver.apply_deterministic_rules(
+        [_candidate(historical), _candidate(canonical)],
+        custom_instructions=[],
+    )
+
+    assert res.status == ConflictResolutionStatus.RESOLVED
+    assert res.preferred_candidates[0].memory.id == canonical.id
+    assert res.superseded_candidates[0].memory.id == historical.id
+
+
+def test_user_explicit_beats_agent_inferred_memory():
+    project_id = uuid4()
+    agent_mem = _memory(
+        "Use Redis for session caching.",
+        provenance="agent_inferred",
+        project_id=project_id,
+    )
+    user_mem = _memory(
+        "Avoid Redis for session caching.",
+        provenance="user_explicit",
+        project_id=project_id,
+    )
+
+    resolver = DefaultConflictResolver()
+    res = resolver.apply_deterministic_rules(
+        [_candidate(agent_mem), _candidate(user_mem)],
+        custom_instructions=[],
+    )
+
+    assert res.status == ConflictResolutionStatus.RESOLVED
+    assert res.preferred_candidates[0].memory.id == user_mem.id
+
+
+def test_llm_cannot_override_active_custom_instruction():
+    from contracts.instruction import CustomInstruction
+
+    project_id = uuid4()
+    violating = _memory(
+        "Never use SQLite WAL mode.",
+        provenance="agent_inferred",
+        project_id=project_id,
+    )
+    other = _memory(
+        "Use PostgreSQL for persistence.",
+        provenance="agent_inferred",
+        project_id=project_id,
+    )
+    instruction = CustomInstruction(
+        id=uuid4(),
+        scope=Scope.PROJECT,
+        project_id=project_id,
+        content="Always use SQLite WAL mode.",
+    )
+    local_adapter = _LocalAdapter(
+        {
+            "outcome": "resolved",
+            "preferred_candidate": str(violating.id),
+            "reason": "Model tried to pick the violating candidate.",
+        }
+    )
+    resolver = DefaultConflictResolver(llm_adapter=local_adapter)
+    req = ConflictResolutionRequest(
+        candidates=[_candidate(violating), _candidate(other)],
+        custom_instructions=[instruction],
+        project_context=Project(id=project_id, name="Test"),
+    )
+
+    result = resolver.resolve(req)
+    assert result.success
+    assert result.value.status == ConflictResolutionStatus.ABSTAINED
+    assert result.value.metadata["rule"] == "llm_instruction_override_blocked"
+
+
+def test_memory_manager_get_conflicts_and_assemble_context_apply_instructions(tmp_path):
+    from contracts.instruction import CustomInstructionCreateRequest
+    from contracts.memory import MemoryCreateRequest
+    from contracts.project import ProjectCreateRequest
+    from contracts.retrieval import ContextAssemblyRequest
+    from database.config import DatabaseConfig
+    from recall_core.bootstrap import create_memory_manager
+
+    manager = create_memory_manager(DatabaseConfig.from_path(str(tmp_path / "phase04.sqlite3")))
+    try:
+        proj = manager.create_project(ProjectCreateRequest(name="Phase04Proj")).value
+        manager.create_instruction(
+            CustomInstructionCreateRequest(
+                scope=Scope.PROJECT,
+                project_id=proj.id,
+                content="Use SQLite for storage.",
+            )
+        )
+        m1 = manager.create_memory(
+            MemoryCreateRequest(
+                project_id=proj.id,
+                scope=Scope.PROJECT,
+                content="Use SQLite for storage.",
+                provenance="agent_inferred",
+            )
+        ).value
+        m2 = manager.create_memory(
+            MemoryCreateRequest(
+                project_id=proj.id,
+                scope=Scope.PROJECT,
+                content="Use Postgres for storage.",
+                provenance="agent_inferred",
+            )
+        ).value
+
+        conflicts_res = manager.get_conflicts(project_id=proj.id)
+        assert conflicts_res.success
+        assert conflicts_res.value is not None
+        assert conflicts_res.value.status == ConflictResolutionStatus.RESOLVED
+        assert conflicts_res.value.preferred_candidates[0].memory.id == m1.id
+        assert conflicts_res.value.metadata["rule"] == "custom_instruction_precedence"
+
+        ctx_res = manager.assemble_context(
+            ContextAssemblyRequest(project_id=proj.id, include_custom_instructions=True)
+        )
+        assert ctx_res.success
+        assert len(ctx_res.value.conflict_resolutions) == 1
+        assert ctx_res.value.resolved_memories[0].id == m1.id
+        assert any(
+            c.memory.id == m2.id
+            for c in ctx_res.value.conflict_resolutions[0].unresolved_candidates
+        )
+    finally:
+        manager.close()
+
+
+def test_deterministic_rules_block_instruction_violating_candidate():
+    from contracts.instruction import CustomInstruction
+
+    project_id = uuid4()
+    violating = _memory(
+        "Never use SQLite WAL mode.",
+        provenance="user_explicit",
+        project_id=project_id,
+    )
+    compatible = _memory(
+        "Use PostgreSQL for analytics.",
+        provenance="agent_inferred",
+        project_id=project_id,
+    )
+    instruction = CustomInstruction(
+        id=uuid4(),
+        scope=Scope.PROJECT,
+        project_id=project_id,
+        content="Always use SQLite WAL mode.",
+    )
+
+    resolver = DefaultConflictResolver()
+    res = resolver.apply_deterministic_rules(
+        [_candidate(violating), _candidate(compatible)],
+        custom_instructions=[instruction],
+    )
+
+    assert res.status == ConflictResolutionStatus.UNRESOLVED
+    assert any(c.memory.id == violating.id for c in res.unresolved_candidates)
+
+
+def test_superseded_candidate_with_supersedes_id_cannot_beat_active_canonical():
+    project_id = uuid4()
+    active = _memory(
+        "Use SQLite for storage.",
+        provenance="agent_inferred",
+        project_id=project_id,
+        status=MemoryStatus.ACTIVE,
+    )
+    historical = _memory(
+        "Use Postgres for storage.",
+        provenance="explicit_user_update",
+        project_id=project_id,
+        status=MemoryStatus.SUPERSEDED,
+        supersedes_id=active.id,
+    )
+
+    resolver = DefaultConflictResolver()
+    res = resolver.apply_deterministic_rules(
+        [_candidate(historical), _candidate(active)],
+        custom_instructions=[],
+    )
+
+    assert res.status == ConflictResolutionStatus.RESOLVED
+    assert res.preferred_candidates[0].memory.id == active.id
+
+
+def test_project_instruction_beats_global_instruction_in_conflict_resolution():
+    from contracts.instruction import CustomInstruction
+
+    project_id = uuid4()
+    global_mem = _memory(
+        "Use SQLite for storage.",
+        provenance="explicit_user_update",
+        project_id=project_id,
+    )
+    project_mem = _memory(
+        "Use DuckDB for storage.",
+        provenance="agent_inferred",
+        project_id=project_id,
+    )
+    global_inst = CustomInstruction(
+        id=uuid4(),
+        scope=Scope.GLOBAL,
+        content="Use SQLite for storage.",
+    )
+    project_inst = CustomInstruction(
+        id=uuid4(),
+        scope=Scope.PROJECT,
+        project_id=project_id,
+        content="Use DuckDB for storage.",
+    )
+
+    resolver = DefaultConflictResolver()
+    res = resolver.apply_deterministic_rules(
+        [_candidate(global_mem), _candidate(project_mem)],
+        custom_instructions=[global_inst, project_inst],
+    )
+
+    assert res.status == ConflictResolutionStatus.RESOLVED
+    assert res.preferred_candidates[0].memory.id == project_mem.id

@@ -1,0 +1,22 @@
+[
+  {
+    "project_id": "195081f5-657b-47fc-a578-57ce84464f75",
+    "name": "Portfolio",
+    "description": "Dipankar Kumar's personal engineering portfolio, focused on software engineering, application development, real projects, learning agility, and engineering growth.",
+    "status": "active",
+    "metadata": {
+      "canonical_keyword": "Portfolio Build — Learn What the Problem Needs"
+    },
+    "created_at": "2026-10-09T22:00:21.698124+00:00",
+    "updated_at": "2026-10-12T19:48:30.272125"
+  },
+  {
+    "project_id": "3ca43da6-f4e3-43ae-8e38-6e84cb963332",
+    "name": "RECALL",
+    "description": "Persistent memory engine for AI coding agents",
+    "status": "active",
+    "metadata": {},
+    "created_at": "2026-10-09T22:13:40.013379+00:00",
+    "updated_at": "2026-10-09T22:13:40.013379+00:00"
+  }
+]

@@ -21,6 +21,7 @@ class RetrievalRequest:
     session_id: Optional[UUID] = None
     limit: int = 20
     include_historical: bool = False
+    include_global: bool = True
     use_semantic: bool = True
     use_structured: bool = True
 
@@ -44,6 +45,7 @@ class ContextAssemblyRequest:
     query: Optional[str] = None
     retrieval_limit: int = 20
     include_custom_instructions: bool = True
+    include_global: bool = True
     include_resolved_conflicts: bool = True
     include_historical: bool = False
 
@@ -71,6 +73,7 @@ class CompactRequest:
     # Retained for request compatibility; MemoryManager rejects false.
     preserve_lineage: bool = True
     max_active_memories: int = 50
+    idempotency_key: Optional[str] = None
 
 
 @dataclass
@@ -81,6 +84,9 @@ class CompactResult:
     archived_count: int = 0
     preserved_count: int = 0
     errors: list[str] = field(default_factory=list)
+    summary_id: Optional[UUID] = None
+    compaction_version: Optional[int] = None
+    idempotent_replay: bool = False
 
 
 @dataclass
